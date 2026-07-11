@@ -1,0 +1,1 @@
+Quiz Kunsi bu Terra
