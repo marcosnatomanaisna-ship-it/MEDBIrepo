@@ -5,7 +5,7 @@
 // ficheiro da lista abaixo), muda este número de versão. Isso força os
 // telemóveis dos jogadores a descarregar a versão nova (o toast "Nova versão
 // disponível" que já existe no index.html vai aparecer).
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME = 'kunsibuterra-' + CACHE_VERSION;
 
 // Ficheiros essenciais para o jogo abrir e funcionar sem internet.
@@ -19,7 +19,9 @@ const APP_SHELL = [
   './icons/favicon-32.png',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './audio/bg-music.m4a',
+  './audio/bg-music.mp3'
 ];
 
 // ---------- Instalação: guarda o app shell em cache ----------
