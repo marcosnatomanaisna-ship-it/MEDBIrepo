@@ -5,7 +5,7 @@
 // ficheiro da lista abaixo), muda este número de versão. Isso força os
 // telemóveis dos jogadores a descarregar a versão nova (o toast "Nova versão
 // disponível" que já existe no index.html vai aparecer).
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = 'kunsibuterra-' + CACHE_VERSION;
 
 // Ficheiros essenciais para o jogo abrir e funcionar sem internet.
