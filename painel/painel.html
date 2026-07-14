@@ -1,1 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Painel MEDBI Store</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --bg: #0b1220;
+    --card: #121b2e;
+    --card-border: #1e2a44;
+    --text: #ffffff;
+    --text-soft: #93a3bd;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --danger: #f87171;
+    --success: #34d399;
+    --gold: #f0b429;
+  }
+  * { box-sizing: border-box; }
+  html { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom,0px)); }
 
+  /* ---------- Login ---------- */
+  .login-screen {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .login-box {
+    width: 100%; max-width: 340px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 28px 24px;
+  }
+  .login-box h1 { font-size: 18px; margin: 0 0 4px; }
+  .login-box .sub { color: var(--text-soft); font-size: 13px; margin: 0 0 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 6px; }
+  .field input {
+    width: 100%; padding: 11px 12px;
+    background: #0d1626; border: 1px solid var(--card-border);
+    border-radius: 10px; color: var(--text); font-size: 15px;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .btn {
+    width: 100%; padding: 12px;
+    background: var(--accent); border: none; border-radius: 10px;
+    color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .login-error {
+    background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35);
+    color: var(--danger); font-size: 13px; padding: 10px 12px; border-radius: 10px;
+    margin-bottom: 14px; display: none;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--card-border); margin-bottom: 18px;
+  }
+  .topbar h1 { font-size: 17px; margin: 0; }
+  .topbar .who { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+  .icon-btn {
+    background: none; border: 1px solid var(--card-border); color: var(--text-soft);
+    padding: 8px 12px; border-radius: 10px; font-size: 13px; cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+
+  .section-title {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-soft); margin: 26px 0 10px;
+  }
+
+  /* ---------- Stat cards ---------- */
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 14px;
+  }
+  .stat-card .num { font-size: 22px; font-weight: 700; }
+  .stat-card .label { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+  .stat-card.gold .num { color: var(--gold); }
+  .stat-card.success .num { color: var(--success); }
+
+  /* ---------- App cards ---------- */
+  .app-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  }
+  .app-card .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .app-card .head h3 { margin: 0; font-size: 15px; }
+  .app-card .head span { font-size: 11px; color: var(--text-soft); }
+  .mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px,1fr)); gap: 10px; }
+  .mini-grid .mini { text-align: left; }
+  .mini-grid .mini b { display: block; font-size: 17px; }
+  .mini-grid .mini small { color: var(--text-soft); font-size: 11px; }
+  .bar-outer { height: 6px; border-radius: 4px; background: #0d1626; overflow: hidden; margin-top: 10px; }
+  .bar-inner { height: 100%; background: var(--success); }
+
+  /* ---------- Chart ---------- */
+  .chart-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 16px 16px 8px;
+  }
+  .chart-bars {
+    display: flex; align-items: flex-end; gap: 4px; height: 120px;
+  }
+  .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .chart-col .bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .chart-col .bar.promo { background: var(--gold); }
+  .chart-labels { display: flex; gap: 4px; margin-top: 6px; }
+  .chart-labels span { flex: 1; text-align: center; font-size: 9px; color: var(--text-soft); }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-soft); margin-top: 10px; }
+  .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
+  /* ---------- Table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; color: var(--text-soft); font-weight: 500; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .04em;
+    padding: 8px 10px; border-bottom: 1px solid var(--card-border);
+  }
+  tbody td { padding: 10px; border-bottom: 1px solid var(--card-border); }
+  tbody tr:last-child td { border-bottom: none; }
+  .tag {
+    display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px;
+    background: rgba(37,99,235,.15); color: #8fb2ff;
+  }
+  .tag.promo { background: rgba(240,180,41,.15); color: var(--gold); }
+  .table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; }
+  .table-wrap table { min-width: 560px; }
+
+  .note {
+    font-size: 12px; color: var(--text-soft); background: var(--card);
+    border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; margin-top: 18px;
+  }
+  .center-msg { text-align: center; color: var(--text-soft); padding: 40px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>Painel MEDBI Store</h1>
+    <p class="sub">Acesso interno — não partilhes este link.</p>
+    <div class="login-error" id="loginError"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn" type="submit" id="loginBtn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div class="wrap" id="dashScreen" style="display:none;">
+  <div class="topbar">
+    <div>
+      <h1>Painel MEDBI Store</h1>
+      <div class="who" id="whoAmI"></div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="icon-btn" id="refreshBtn">↻ Atualizar</button>
+      <button class="icon-btn" id="logoutBtn">Sair</button>
+    </div>
+  </div>
+
+  <div id="dashContent">
+    <div class="center-msg">A carregar dados…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---- Ligação Supabase ----
+  const SUPABASE_URL = 'https://ncfsxndwkyrlntmmqeya.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Z0J-PwWmmFeOKbgT4Qp5uw__8AAP6Vk';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginScreen = document.getElementById('loginScreen');
+  const dashScreen = document.getElementById('dashScreen');
+  const loginForm = document.getElementById('loginForm');
+  const loginError = document.getElementById('loginError');
+  const loginBtn = document.getElementById('loginBtn');
+  const whoAmI = document.getElementById('whoAmI');
+  const dashContent = document.getElementById('dashContent');
+
+  // Preço estimado por plano (edita aqui se os preços mudarem)
+  const PRICE_MONTHLY = 250; // FCFA, ~30 dias
+  const PRICE_ANNUAL = 2500; // FCFA, ~365 dias
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }) + ' ' +
+           dt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  }
+  function dayKey(d) {
+    const dt = new Date(d);
+    return dt.toISOString().slice(0, 10);
+  }
+
+  // ---------- AUTH ----------
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.style.display = 'none';
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'A entrar…';
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        loginError.textContent = 'Não foi possível entrar: ' + error.message;
+        loginError.style.display = 'block';
+        return;
+      }
+      await showDashboard();
+    } catch (err) {
+      console.error('Erro de login:', err);
+      loginError.textContent = 'Erro de ligação: ' + (err && err.message ? err.message : String(err));
+      loginError.style.display = 'block';
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Entrar';
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+  document.getElementById('refreshBtn').addEventListener('click', loadStats);
+
+  async function showDashboard() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { loginScreen.style.display = 'flex'; dashScreen.style.display = 'none'; return; }
+    whoAmI.textContent = session.user.email;
+    loginScreen.style.display = 'none';
+    dashScreen.style.display = 'block';
+    loadStats();
+  }
+
+  // ---------- DADOS ----------
+  async function loadStats() {
+    dashContent.innerHTML = '<div class="center-msg">A carregar dados…</div>';
+    try {
+      const [appsRes, codesRes, licensesRes] = await Promise.all([
+        sb.from('apps').select('*'),
+        sb.from('codes').select('*'),
+        sb.from('licenses').select('*')
+      ]);
+      if (appsRes.error) throw appsRes.error;
+      if (codesRes.error) throw codesRes.error;
+      if (licensesRes.error) throw licensesRes.error;
+      render(appsRes.data || [], codesRes.data || [], licensesRes.data || []);
+    } catch (err) {
+      dashContent.innerHTML = '<div class="center-msg">Erro ao carregar dados: ' + esc(err.message || String(err)) + '</div>';
+    }
+  }
+
+  function isPromo(code) { return /^PROMO/i.test(code || ''); }
+
+  function planPrice(createdAt, expiresAt, promo) {
+    if (promo) return 0;
+    const days = Math.round((new Date(expiresAt) - new Date(createdAt)) / 86400000);
+    if (days >= 300) return PRICE_ANNUAL;
+    if (days >= 25) return PRICE_MONTHLY;
+    return 0; // trial curto ou período não identificado, não conta como venda
+  }
+
+  function render(apps, codes, licenses) {
+    const now = new Date();
+
+    const totalApps = apps.length;
+    const totalCodes = codes.length;
+    const usedCodes = codes.filter(c => c.used).length;
+    const paidLicenses = licenses.filter(l => !isPromo(l.code));
+    const promoLicenses = licenses.filter(l => isPromo(l.code));
+    const activeLicenses = licenses.filter(l => new Date(l.expires_at) > now);
+    let revenue = 0;
+    licenses.forEach(l => { revenue += planPrice(l.created_at, l.expires_at, isPromo(l.code)); });
+
+    let html = '';
+
+    // ---- Cards gerais ----
+    html += `<div class="section-title">Visão geral</div>`;
+    html += `<div class="stat-grid">
+      <div class="stat-card"><div class="num">${totalApps}</div><div class="label">Apps na loja</div></div>
+      <div class="stat-card"><div class="num">${totalCodes}</div><div class="label">Códigos gerados</div></div>
+      <div class="stat-card success"><div class="num">${usedCodes}</div><div class="label">Códigos ativados</div></div>
+      <div class="stat-card"><div class="num">${activeLicenses.length}</div><div class="label">Licenças ativas agora</div></div>
+      <div class="stat-card"><div class="num">${paidLicenses.length}</div><div class="label">Ativações pagas</div></div>
+      <div class="stat-card"><div class="num">${promoLicenses.length}</div><div class="label">Ativações promo</div></div>
+      <div class="stat-card gold"><div class="num">${revenue.toLocaleString('pt-PT')} <span style="font-size:12px;">FCFA</span></div><div class="label">Receita estimada</div></div>
+    </div>`;
+
+    // ---- Por app ----
+    html += `<div class="section-title">Por aplicação</div>`;
+    apps.forEach(app => {
+      const appCodes = codes.filter(c => c.app_id === app.id);
+      const appLicenses = licenses.filter(l => l.app_id === app.id);
+      const appActive = appLicenses.filter(l => new Date(l.expires_at) > now).length;
+      const appUsed = appCodes.filter(c => c.used).length;
+      const conv = appCodes.length ? Math.round((appUsed / appCodes.length) * 100) : 0;
+      let appRevenue = 0;
+      appLicenses.forEach(l => { appRevenue += planPrice(l.created_at, l.expires_at, isPromo(l.code)); });
+
+      html += `<div class="app-card">
+        <div class="head">
+          <h3>${esc(app.name)}</h3>
+          <span>${app.is_free ? 'App gratuita' : 'App paga'} · v${esc(app.version)}</span>
+        </div>
+        <div class="mini-grid">
+          <div class="mini"><b>${appCodes.length}</b><small>Códigos gerados</small></div>
+          <div class="mini"><b>${appUsed}</b><small>Ativados</small></div>
+          <div class="mini"><b>${appActive}</b><small>Licenças ativas</small></div>
+          <div class="mini"><b>${appRevenue.toLocaleString('pt-PT')}</b><small>Receita est. (FCFA)</small></div>
+        </div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${conv}%"></div></div>
+        <div style="font-size:11px;color:var(--text-soft);margin-top:6px;">${conv}% dos códigos gerados foram ativados</div>
+      </div>`;
+    });
+
+    // ---- Gráfico últimos 14 dias ----
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      days.push(dayKey(d));
+    }
+    const perDay = {};
+    days.forEach(d => { perDay[d] = { paid: 0, promo: 0 }; });
+    licenses.forEach(l => {
+      const k = dayKey(l.created_at);
+      if (perDay[k]) { isPromo(l.code) ? perDay[k].promo++ : perDay[k].paid++; }
+    });
+    const maxVal = Math.max(1, ...days.map(d => perDay[d].paid + perDay[d].promo));
+
+    html += `<div class="section-title">Ativações — últimos 14 dias</div>`;
+    html += `<div class="chart-card">
+      <div class="chart-bars">`;
+    days.forEach(d => {
+      const v = perDay[d];
+      const totalH = ((v.paid + v.promo) / maxVal) * 100;
+      const paidH = v.paid + v.promo > 0 ? (v.paid / (v.paid + v.promo)) * totalH : 0;
+      const promoH = totalH - paidH;
+      html += `<div class="chart-col" title="${d}: ${v.paid} pagas, ${v.promo} promo">
+          <div class="bar promo" style="height:${promoH}%"></div>
+          <div class="bar" style="height:${paidH}%"></div>
+        </div>`;
+    });
+    html += `</div><div class="chart-labels">`;
+    days.forEach(d => { html += `<span>${d.slice(8,10)}/${d.slice(5,7)}</span>`; });
+    html += `</div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--accent)"></i>Pagas</span>
+        <span><i class="dot" style="background:var(--gold)"></i>Promo</span>
+      </div>
+    </div>`;
+
+    // ---- Tabela últimas ativações ----
+    const recent = licenses.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 25);
+    html += `<div class="section-title">Últimas ativações</div>`;
+    html += `<div class="table-wrap"><table><thead><tr>
+        <th>App</th><th>Código</th><th>Tipo</th><th>Ativada em</th><th>Expira em</th><th>Estado</th>
+      </tr></thead><tbody>`;
+    if (!recent.length) {
+      html += `<tr><td colspan="6" style="text-align:center;color:var(--text-soft);">Sem ativações ainda.</td></tr>`;
+    }
+    recent.forEach(l => {
+      const app = apps.find(a => a.id === l.app_id);
+      const promo = isPromo(l.code);
+      const active = new Date(l.expires_at) > now;
+      html += `<tr>
+        <td>${esc(app ? app.name : l.app_id)}</td>
+        <td>${esc(l.code)}</td>
+        <td><span class="tag ${promo ? 'promo' : ''}">${promo ? 'Promo' : 'Paga'}</span></td>
+        <td>${fmtDate(l.created_at)}</td>
+        <td>${fmtDate(l.expires_at)}</td>
+        <td>${active ? '🟢 Ativa' : '⚪ Expirada'}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    html += `<div class="note">
+      Nota: a receita é uma <b>estimativa</b> baseada na duração de cada licença (≈30 dias = ${PRICE_MONTHLY} FCFA, ≈365 dias = ${PRICE_ANNUAL} FCFA) —
+      ajusta os valores no código se os preços mudarem. Downloads da app gratuita (Kunsi bu Terra) ainda não são contados em nenhuma tabela;
+      se quiseres esse número também, dá para adicionar um contador simples na store.
+    </div>`;
+
+    dashContent.innerHTML = html;
+  }
+
+  // ---------- Arranque ----------
+  (async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) { showDashboard(); }
+  })();
+})();
+</script>
+</body>
+</html>
