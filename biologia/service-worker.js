@@ -3,7 +3,7 @@
 // Como a app é um único ficheiro HTML sem recursos externos, basta cachear
 // o próprio index.html (e o manifest/ícones) para funcionar 100% offline.
 
-const CACHE_NAME = "biologia-premedico-v1";
+const CACHE_NAME = "biologia-premedico-v3";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
