@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquivo AAFM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1B2A4A;
+    --ink-soft:#324467;
+    --parchment:#F6F1E4;
+    --parchment-2:#EFE7D3;
+    --red:#B4332C;
+    --red-deep:#8C2620;
+    --green:#2F5233;
+    --gold:#B08D57;
+    --gold-soft:#DCC9A3;
+    --charcoal:#2B2B2B;
+    --muted:#8a8272;
+    --line:#D9CFB6;
+    --paper:#fffdf9;
+    --radius-sm:4px;
+    --radius-md:8px;
+    --shadow-card:0 1px 2px rgba(27,42,74,.06), 0 6px 16px rgba(27,42,74,.06);
+    --shadow-pop:0 12px 36px rgba(27,42,74,.18), 0 2px 8px rgba(27,42,74,.10);
+  }
+  *{box-sizing:border-box;}
+  html{ overflow-x:hidden; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top, rgba(176,141,87,.06), transparent 55%),
+      var(--parchment);
+    color:var(--charcoal);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    max-width:100vw;
+  }
+  h1,h2,h3,.brand,.doc-title{ font-family:'Fraunces',serif; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+
+  a{ color:var(--red); }
+  ::selection{ background:var(--gold-soft); }
+
+  /* focus ring used everywhere for keyboard accessibility */
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--gold); outline-offset:2px; border-radius:var(--radius-sm);
+  }
+
+  /* ---------- LOGIN ---------- */
+  #tela-login{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .cartao-login{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:44px 36px 36px;
+    max-width:380px;
+    width:100%;
+    box-shadow:var(--shadow-pop);
+    position:relative;
+  }
+  .selo{
+    width:58px;height:58px;border-radius:50%;
+    border:2px solid var(--red);
+    box-shadow:0 0 0 3px var(--paper), 0 0 0 4px var(--gold-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;font-size:20px;letter-spacing:.02em;
+    color:var(--red);
+    transform:rotate(-6deg);
+    margin:0 auto 20px;
+  }
+  .cartao-login h1{ font-size:23px; text-align:center; margin:0 0 4px; color:var(--ink); font-weight:600;}
+  .cartao-login p.sub{ text-align:center; color:var(--muted); font-size:13px; margin:0 0 30px;}
+  label{ display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin:16px 0 6px; text-transform:uppercase; letter-spacing:.06em;}
+  input,select,textarea{
+    width:100%; padding:11px 13px; border:1px solid var(--line);
+    border-radius:var(--radius-sm); font-family:'Inter',sans-serif; font-size:14px;
+    background:var(--paper); color:var(--charcoal);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(176,141,87,.18); }
+  ::placeholder{ color:#b3a894; }
+  button{
+    cursor:pointer; border:none; border-radius:var(--radius-sm); font-family:'Inter',sans-serif;
+    font-weight:600; font-size:14px; transition:background .15s ease, color .15s ease, box-shadow .15s ease, transform .05s ease;
+  }
+  button:active{ transform:translateY(1px); }
+  .btn-primario{
+    background:var(--ink); color:#fff; padding:12px 18px; width:100%; margin-top:22px;
+    box-shadow:0 1px 2px rgba(27,42,74,.2);
+  }
+  .btn-primario:hover{ background:var(--ink-soft); }
+  .link-alt{ text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+  .link-alt a{ color:var(--red); cursor:pointer; text-decoration:none; font-weight:600; }
+  .link-alt a:hover{ text-decoration:underline; }
+  .erro{ color:var(--red); font-size:13px; margin-top:10px; text-align:center; }
+
+  /* ---------- APP ---------- */
+  #app{ display:none; min-height:100vh; }
+  .cabecalho{
+    background:var(--ink); color:#fff;
+    padding:14px 28px; display:flex; align-items:center; justify-content:space-between;
+    gap:16px; flex-wrap:wrap;
+    box-shadow:0 1px 0 rgba(255,255,255,.06), 0 4px 14px rgba(0,0,0,.12);
+    position:sticky; top:0; z-index:40;
+  }
+  .cabecalho .brand{ font-size:18px; display:flex; align-items:center; gap:10px; white-space:nowrap; }
+  .cabecalho .brand .selo-mini{
+    width:32px;height:32px;border-radius:50%;
+    border:1.5px solid var(--gold); box-shadow:0 0 0 2px rgba(176,141,87,.25);
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gold);font-weight:700;
+    transform:rotate(-8deg); flex-shrink:0;
+  }
+  .cabecalho .utilizador{ font-size:13px; opacity:.9; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  #nome-utilizador{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:38vw; }
+  .cabecalho .utilizador button{
+    background:transparent; color:#fff; border:1px solid rgba(255,255,255,.28);
+    padding:7px 13px; border-radius:var(--radius-sm); font-size:12.5px; white-space:nowrap;
+  }
+  .cabecalho .utilizador button:hover{ background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.5); }
+
+  .corpo{ display:flex; max-width:1180px; margin:0 auto; align-items:flex-start; }
+  .lateral{
+    width:216px; padding:26px 16px; border-right:1px solid var(--line);
+    flex-shrink:0; position:sticky; top:65px;
+  }
+  .lateral h3{ font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:20px 8px 8px;}
+  .lateral h3:first-child{ margin-top:0; }
+  .filtro-tipo{
+    display:block; width:100%; text-align:left; background:none; padding:8px 10px; border-radius:var(--radius-sm);
+    font-size:13px; font-weight:500; color:var(--charcoal); margin-bottom:2px; border-left:3px solid transparent;
+  }
+  .filtro-tipo:hover{ background:var(--parchment-2); }
+  .filtro-tipo.ativo{ background:var(--ink); color:#fff; border-left-color:var(--gold); }
+
+  .principal{ flex:1; padding:26px 28px 60px; min-width:0; }
+  .barra-topo{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:12px; flex-wrap:wrap;}
+  .barra-topo input[type=text]{ flex:1; min-width:180px; max-width:320px; }
+  .barra-topo .acoes-topo{ display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-novo{ background:var(--red); color:#fff; padding:10px 18px; white-space:nowrap; box-shadow:0 1px 2px rgba(180,51,44,.3); }
+  .btn-novo:hover{ background:var(--red-deep); }
+
+  .linha-doc{
+    background:var(--paper); border:1px solid var(--line); border-left:4px solid var(--ink);
+    border-radius:var(--radius-sm); padding:15px 18px; margin-bottom:10px;
+    display:flex; align-items:center; gap:16px; cursor:pointer;
+    box-shadow:var(--shadow-card);
+    transition:box-shadow .15s ease, transform .1s ease, border-left-color .15s ease;
+  }
+  .linha-doc:hover{ box-shadow:0 4px 18px rgba(27,42,74,.12); transform:translateY(-1px); border-left-color:var(--gold); }
+  .linha-doc .ref{ font-size:11.5px; color:var(--gold); white-space:nowrap; flex-shrink:0; }
+  .linha-doc .assunto{ flex:1; min-width:0; }
+  .linha-doc .assunto strong{ display:block; font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .linha-doc .assunto span{ font-size:12px; color:var(--muted); }
+  .badge{ font-size:10.5px; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:.04em; font-weight:700; flex-shrink:0;}
+  .badge.rascunho{ background:#EFE3C8; color:#8a6d1f; }
+  .badge.enviado{ background:#DDE7E0; color:var(--green); }
+  .badge.arquivado{ background:#E3E8F0; color:var(--ink); }
+
+  .vazio{ text-align:center; padding:70px 20px; color:#9a9384; font-size:14px; }
+
+  /* ---------- BOTÕES DE ÍCONE (contas) ---------- */
+  .btn-icone{
+    background:none; padding:5px 8px; font-size:14px; border-radius:var(--radius-sm); line-height:1;
+  }
+  .btn-icone:hover{ background:var(--parchment-2); }
+  .btn-icone.perigo:hover{ background:#F4E2E0; }
+
+  /* ---------- MODAL ---------- */
+  .sobreposicao{ display:none; position:fixed; inset:0; background:rgba(27,42,74,.5); backdrop-filter:blur(1.5px); z-index:50; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto;}
+  .modal{ background:#fff; max-width:640px; width:100%; border-radius:var(--radius-md); padding:32px; box-shadow:var(--shadow-pop); }
+  .modal h2{ margin:0 0 20px; font-size:20px; color:var(--ink); padding-bottom:14px; border-bottom:1px solid var(--line); }
+  .linha-form{ display:flex; gap:12px; }
+  .linha-form > div{ flex:1; }
+  .acoes-modal{ display:flex; justify-content:flex-end; gap:10px; margin-top:24px; flex-wrap:wrap; }
+  .btn-secundario{ background:var(--parchment-2); color:var(--charcoal); padding:10px 16px; }
+  .btn-secundario:hover{ background:var(--line); }
+  textarea{ min-height:110px; resize:vertical; font-family:'Inter',sans-serif; }
+
+  /* ---------- ABAS (relatórios) ---------- */
+  .aba-relatorio{
+    background:none; padding:9px 4px; margin-right:18px; color:var(--muted);
+    border-bottom:2px solid transparent; border-radius:0; font-size:14px;
+  }
+  .aba-relatorio.ativa{ color:var(--charcoal); border-bottom-color:var(--ink); }
+  .aba-relatorio:hover{ color:var(--charcoal); }
+
+  /* ---------- VISUALIZAÇÃO ---------- */
+  .doc-preview{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); padding:26px; margin-top:4px; }
+  .doc-preview .ref{ font-size:12px; color:var(--gold); margin-bottom:4px; font-weight:600; }
+  .doc-preview .doc-title{ font-size:21px; color:var(--ink); margin:0 0 14px; font-weight:600; }
+  .doc-preview .meta{ font-size:12.5px; color:var(--muted); margin-bottom:16px; border-bottom:1px solid var(--line); padding-bottom:14px; }
+  .doc-preview .corpo-texto{ white-space:pre-wrap; line-height:1.65; font-size:14.5px; overflow-wrap:anywhere; }
+
+  .modal, #resumo-contas, #lista-transacoes, #resultado-atividades, #anexo-atual{ overflow-wrap:anywhere; }
+
+  @media(max-width:760px){
+    .cabecalho{ padding:12px 16px; }
+    .cabecalho .brand{ font-size:16px; }
+    #nome-utilizador{ max-width:34vw; font-size:12px; }
+    .corpo{ flex-direction:column; }
+    .lateral{ width:100%; border-right:none; border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:4px; padding:14px 16px; position:static;}
+    .lateral h3{ display:none; }
+    .principal{ padding:20px 16px 50px; }
+    .barra-topo input[type=text]{ max-width:none; width:100%; }
+    .modal{ padding:24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="tela-login">
+  <div class="cartao-login">
+    <div class="selo">AAFM</div>
+    <h1>Arquivo da Secretaria</h1>
+    <p class="sub">Associação Académica de Faculdade de Medicina</p>
+    <form id="form-login">
+      <label>Email</label>
+      <input type="email" id="login-email" required placeholder="nome@exemplo.com">
+      <label>Senha</label>
+      <input type="password" id="login-senha" required placeholder="••••••••">
+      <button type="submit" class="btn-primario">Entrar</button>
+      <div class="erro" id="login-erro"></div>
+    </form>
+    <div class="link-alt">
+      Ainda não tens conta? <a id="mostrar-registo">Criar conta</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REGISTO ============ -->
+<div id="tela-registo" style="display:none;" class="cartao-login-wrap">
+  <div id="tela-registo-inner"></div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="cabecalho">
+    <div class="brand"><span class="selo-mini">AAFM</span> Arquivo de Documentos</div>
+    <div class="utilizador">
+      <span id="nome-utilizador"></span>
+      <button id="btn-membros" style="display:none;">⚙️ Membros</button>
+      <button id="btn-sair">Sair</button>
+    </div>
+  </div>
+  <div class="corpo">
+    <div class="lateral">
+      <h3>Tipo</h3>
+      <div id="lista-filtros-tipo"></div>
+      <h3>Estado</h3>
+      <button class="filtro-tipo ativo" data-estado="todos">Todos</button>
+      <button class="filtro-tipo" data-estado="rascunho">Rascunho</button>
+      <button class="filtro-tipo" data-estado="enviado">Enviado</button>
+      <button class="filtro-tipo" data-estado="arquivado">Arquivado</button>
+    </div>
+    <div class="principal">
+      <div class="barra-topo">
+        <input type="text" id="pesquisa" placeholder="Pesquisar por assunto, destinatário ou nº...">
+        <div class="acoes-topo">
+          <button class="btn-secundario" id="btn-relatorios">📊 Relatórios</button>
+          <button class="btn-novo" id="btn-novo-doc" style="display:none;">+ Novo Documento</button>
+        </div>
+      </div>
+      <div id="lista-documentos"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL NOVO/EDITAR ============ -->
+<div class="sobreposicao" id="modal-doc">
+  <div class="modal">
+    <h2 id="modal-titulo">Novo documento</h2>
+    <form id="form-doc">
+      <label>Tipo de documento</label>
+      <select id="doc-tipo" required></select>
+      <div class="linha-form">
+        <div><label>Data</label><input type="date" id="doc-data" required></div>
+        <div><label>Estado</label>
+          <select id="doc-estado">
+            <option value="rascunho">Rascunho</option>
+            <option value="enviado">Enviado</option>
+            <option value="arquivado">Arquivado</option>
+          </select>
+        </div>
+      </div>
+      <label>Assunto</label>
+      <input type="text" id="doc-assunto" required placeholder="Ex: Convocatória para Assembleia Geral">
+      <label>Destinatário / Remetente</label>
+      <input type="text" id="doc-destinatario" placeholder="Ex: Direção da Faculdade de Medicina">
+      <label>Em resposta a (opcional)</label>
+      <select id="doc-em-resposta-a">
+        <option value="">— Nenhum —</option>
+      </select>
+      <label>Corpo do texto</label>
+      <textarea id="doc-corpo" placeholder="Conteúdo do documento... (opcional, se anexares um ficheiro)"></textarea>
+      <label>Observações / Resultado</label>
+      <textarea id="doc-observacoes" placeholder="Ex: Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07." style="min-height:70px;"></textarea>
+      <label>Anexar ficheiro (PDF ou Word)</label>
+      <input type="file" id="doc-anexo" accept=".pdf,.doc,.docx">
+      <div id="anexo-atual" style="margin-top:6px;font-size:12.5px;color:#7a7160;"></div>
+      <div class="acoes-modal">
+        <button type="button" class="btn-secundario" id="btn-cancelar-doc">Cancelar</button>
+        <button type="submit" class="btn-primario" style="width:auto;">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODAL VISUALIZAÇÃO ============ -->
+<div class="sobreposicao" id="modal-ver">
+  <div class="modal">
+    <div id="ver-conteudo"></div>
+    <div class="acoes-modal">
+      <button type="button" class="btn-secundario" id="btn-fechar-ver">Fechar</button>
+      <button type="button" class="btn-secundario" id="btn-editar-ver" style="display:none;">Editar</button>
+      <button type="button" class="btn-secundario" id="btn-apagar-ver" style="display:none;color:var(--red);">Apagar</button>
+      <button type="button" class="btn-primario" style="width:auto;" id="btn-pdf-ver">Exportar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL RELATÓRIOS ============ -->
+<div class="sobreposicao" id="modal-relatorio">
+  <div class="modal" style="max-width:720px;">
+    <h2>Relatórios</h2>
+    <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--line);">
+      <button type="button" class="aba-relatorio ativa" data-aba="atividades">Atividades</button>
+      <button type="button" class="aba-relatorio" data-aba="contas">Contas</button>
+    </div>
+
+    <!-- ABA ATIVIDADES -->
+    <div id="painel-atividades">
+      <div class="linha-form">
+        <div><label>De</label><input type="date" id="rel-data-inicio"></div>
+        <div><label>Até</label><input type="date" id="rel-data-fim"></div>
+      </div>
+      <button type="button" class="btn-secundario" id="btn-gerar-atividades" style="margin-top:14px;">Gerar relatório</button>
+      <div id="resultado-atividades" style="margin-top:18px;"></div>
+    </div>
+
+    <!-- ABA CONTAS -->
+    <div id="painel-contas" style="display:none;">
+      <div id="form-nova-transacao" style="display:none;border:1px solid var(--line);padding:14px;border-radius:4px;margin-bottom:16px;">
+        <div class="linha-form">
+          <div><label>Tipo</label>
+            <select id="fin-tipo"><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
+          </div>
+          <div><label>Valor (FCFA)</label><input type="number" id="fin-valor" min="0" step="0.01"></div>
+        </div>
+        <label>Categoria</label>
+        <input type="text" id="fin-categoria" placeholder="Ex: quotas, evento, material">
+        <label>Descrição</label>
+        <input type="text" id="fin-descricao" placeholder="Ex: Quotas de julho — turma do 3º ano">
+        <label>Data</label>
+        <input type="date" id="fin-data">
+        <div class="acoes-modal">
+          <button type="button" class="btn-primario" style="width:auto;" id="btn-guardar-transacao">Adicionar</button>
+        </div>
+      </div>
+      <button type="button" class="btn-secundario" id="btn-nova-transacao">+ Nova transação</button>
+      <div class="linha-form" style="margin-top:14px;">
+        <div><label>De</label><input type="date" id="fin-filtro-inicio"></div>
+        <div><label>Até</label><input type="date" id="fin-filtro-fim"></div>
+      </div>
+      <div id="resumo-contas" style="margin-top:14px;"></div>
+      <div id="lista-transacoes" style="margin-top:10px;max-height:260px;overflow:auto;"></div>
+    </div>
+
+    <div class="acoes-modal">
+      <button type="button" class="btn-secundario" id="btn-fechar-relatorio">Fechar</button>
+      <button type="button" class="btn-primario" style="width:auto;" id="btn-pdf-relatorio">Exportar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL MEMBROS ============ -->
+<div class="sobreposicao" id="modal-membros">
+  <div class="modal">
+    <h2>Gerir Membros</h2>
+    <p style="font-size:13px;color:#7a7160;margin-top:-10px;">Define quem tem acesso de secretário/direção (pode criar e editar) ou apenas consulta (membro).</p>
+    <div id="lista-membros" style="margin-top:14px;"></div>
+    <div class="acoes-modal">
+      <button type="button" class="btn-secundario" id="btn-fechar-membros">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CONFIGURAÇÃO SUPABASE — preencher com os teus dados
+   ========================================================= */
+const SUPABASE_URL = 'https://wulmhubjxwrolcsrxpjc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bG1odWJqeHdyb2xjc3J4cGpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NjQ4MjgsImV4cCI6MjEwMTI0MDgyOH0.XtAzSjTvuFCxGYLtCeaVMRmCsjOt2mHsp3h9c4MM1_s';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const TIPOS = [
+  {v:'ata', l:'Ata'},
+  {v:'carta', l:'Carta'},
+  {v:'oficio', l:'Ofício'},
+  {v:'circular', l:'Circular'},
+  {v:'convocatoria', l:'Convocatória'},
+  {v:'memorando', l:'Memorando'},
+  {v:'declaracao', l:'Declaração'},
+  {v:'relatorio', l:'Relatório'},
+  {v:'edital', l:'Edital'},
+  {v:'requerimento', l:'Requerimento'},
+  {v:'termo_posse', l:'Termo de Posse'},
+  {v:'estatuto', l:'Estatuto'}
+];
+const rotuloTipo = t => (TIPOS.find(x=>x.v===t)||{}).l || t;
+
+let PERFIL = null;
+let DOCUMENTOS = [];
+let FILTRO_TIPO = 'todos';
+let FILTRO_ESTADO = 'todos';
+let DOC_EM_EDICAO = null;
+let DOC_VISUALIZADO = null;
+let ANEXO_ATUAL = null;
+
+/* ---------- INICIALIZAÇÃO ---------- */
+document.getElementById('doc-tipo').innerHTML = TIPOS.map(t=>`<option value="${t.v}">${t.l}</option>`).join('');
+document.getElementById('lista-filtros-tipo').innerHTML =
+  `<button class="filtro-tipo ativo" data-tipo="todos">Todos os tipos</button>` +
+  TIPOS.map(t=>`<button class="filtro-tipo" data-tipo="${t.v}">${t.l}</button>`).join('');
+
+async function iniciar(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ await entrarNaApp(session.user); }
+}
+iniciar();
+
+/* ---------- LOGIN ---------- */
+document.getElementById('form-login').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const senha = document.getElementById('login-senha').value;
+  const erroEl = document.getElementById('login-erro');
+  erroEl.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+  if(error){ erroEl.textContent = 'Email ou senha incorretos.'; return; }
+  await entrarNaApp(data.user);
+});
+
+document.getElementById('mostrar-registo').addEventListener('click', renderizarRegisto);
+
+function renderizarRegisto(){
+  document.getElementById('tela-login').style.display='none';
+  const wrap = document.getElementById('tela-registo');
+  wrap.style.display='flex';
+  wrap.style.cssText='min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;';
+  document.getElementById('tela-registo-inner').innerHTML = `
+    <div class="cartao-login">
+      <div class="selo">AAFM</div>
+      <h1>Criar conta</h1>
+      <p class="sub">Acesso ao arquivo da secretaria</p>
+      <form id="form-registo">
+        <label>Nome completo</label>
+        <input type="text" id="reg-nome" required>
+        <label>Email</label>
+        <input type="email" id="reg-email" required>
+        <label>Senha</label>
+        <input type="password" id="reg-senha" required minlength="6">
+        <button type="submit" class="btn-primario">Criar conta</button>
+        <div class="erro" id="reg-erro"></div>
+      </form>
+      <div class="link-alt"><a id="voltar-login">Já tenho conta</a></div>
+    </div>`;
+  document.getElementById('voltar-login').addEventListener('click', ()=>{
+    wrap.style.display='none';
+    document.getElementById('tela-login').style.display='flex';
+  });
+  document.getElementById('form-registo').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const nome = document.getElementById('reg-nome').value;
+    const email = document.getElementById('reg-email').value;
+    const senha = document.getElementById('reg-senha').value;
+    const erroEl = document.getElementById('reg-erro');
+    const { data, error } = await sb.auth.signUp({
+      email, password: senha, options:{ data:{ nome } }
+    });
+    if(error){ erroEl.textContent = error.message; return; }
+    if(data.user){ await entrarNaApp(data.user); }
+  });
+}
+
+document.getElementById('btn-sair').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  location.reload();
+});
+
+/* ---------- ENTRAR NA APP ---------- */
+async function entrarNaApp(user){
+  document.getElementById('tela-login').style.display='none';
+  document.getElementById('tela-registo').style.display='none';
+
+  let { data: perfil } = await sb.from('perfis').select('*').eq('id', user.id).single();
+  PERFIL = perfil || { nome: user.email, papel: 'membro' };
+
+  document.getElementById('app').style.display='block';
+  document.getElementById('nome-utilizador').textContent = `${PERFIL.nome} · ${rotuloPapel(PERFIL.papel)}`;
+  document.getElementById('btn-novo-doc').style.display = podeEditar() ? 'inline-block' : 'none';
+  document.getElementById('btn-membros').style.display = PERFIL.papel === 'secretario' ? 'inline-block' : 'none';
+
+  await carregarDocumentos();
+}
+
+function rotuloPapel(p){
+  return { secretario:'Secretário', direcao:'Direção', membro:'Membro' }[p] || p;
+}
+function podeEditar(){
+  return PERFIL && (PERFIL.papel === 'secretario' || PERFIL.papel === 'direcao');
+}
+
+/* ---------- CARREGAR / RENDERIZAR DOCUMENTOS ---------- */
+async function carregarDocumentos(){
+  const { data, error } = await sb.from('documentos').select('*').order('criado_em', { ascending:false });
+  if(error){ console.error(error); return; }
+  DOCUMENTOS = data || [];
+  renderizarLista();
+}
+
+function renderizarLista(){
+  const termo = document.getElementById('pesquisa').value.toLowerCase();
+  let lista = DOCUMENTOS.filter(d=>{
+    if(FILTRO_TIPO !== 'todos' && d.tipo !== FILTRO_TIPO) return false;
+    if(FILTRO_ESTADO !== 'todos' && d.estado !== FILTRO_ESTADO) return false;
+    if(termo){
+      const alvo = `${d.assunto} ${d.destinatario||''} ${d.numero_referencia}`.toLowerCase();
+      if(!alvo.includes(termo)) return false;
+    }
+    return true;
+  });
+
+  const cont = document.getElementById('lista-documentos');
+  if(lista.length===0){
+    cont.innerHTML = `<div class="vazio">Nenhum documento encontrado.</div>`;
+    return;
+  }
+  cont.innerHTML = lista.map(d=>`
+    <div class="linha-doc" data-id="${d.id}">
+      <div class="ref mono">${d.numero_referencia}</div>
+      <div class="assunto">
+        <strong>${escaparHtml(d.assunto)} ${(d.anexos && d.anexos.length) ? '<span title="Tem anexo" style="font-size:12px;">📎</span>' : ''}</strong>
+        <span>${d.destinatario ? escaparHtml(d.destinatario)+' · ' : ''}${formatarData(d.data)}</span>
+      </div>
+      <span class="badge ${d.estado}">${d.estado}</span>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.linha-doc').forEach(el=>{
+    el.addEventListener('click', ()=> visualizarDocumento(el.dataset.id));
+  });
+}
+
+document.getElementById('pesquisa').addEventListener('input', renderizarLista);
+
+document.querySelectorAll('#lista-filtros-tipo .filtro-tipo').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#lista-filtros-tipo .filtro-tipo').forEach(b=>b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    FILTRO_TIPO = btn.dataset.tipo;
+    renderizarLista();
+  });
+});
+document.querySelectorAll('.lateral [data-estado]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.lateral [data-estado]').forEach(b=>b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    FILTRO_ESTADO = btn.dataset.estado;
+    renderizarLista();
+  });
+});
+
+/* ---------- NOVO / EDITAR DOCUMENTO ---------- */
+document.getElementById('btn-novo-doc').addEventListener('click', ()=>{
+  DOC_EM_EDICAO = null;
+  ANEXO_ATUAL = null;
+  document.getElementById('modal-titulo').textContent = 'Novo documento';
+  document.getElementById('form-doc').reset();
+  document.getElementById('doc-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('anexo-atual').textContent = '';
+  document.getElementById('doc-tipo').disabled = false;
+  preencherSelectRespostaA();
+  document.getElementById('modal-doc').style.display='flex';
+});
+
+function preencherSelectRespostaA(excluirId){
+  const sel = document.getElementById('doc-em-resposta-a');
+  const lista = DOCUMENTOS.filter(d => d.id !== excluirId)
+    .sort((a,b)=> b.data.localeCompare(a.data));
+  sel.innerHTML = '<option value="">— Nenhum —</option>' +
+    lista.map(d=>`<option value="${d.id}">${d.numero_referencia} — ${escaparHtml(d.assunto)}</option>`).join('');
+}
+
+document.getElementById('btn-cancelar-doc').addEventListener('click', ()=>{
+  document.getElementById('modal-doc').style.display='none';
+});
+
+document.getElementById('form-doc').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const registo = {
+    tipo: document.getElementById('doc-tipo').value,
+    data: document.getElementById('doc-data').value,
+    estado: document.getElementById('doc-estado').value,
+    assunto: document.getElementById('doc-assunto').value,
+    destinatario: document.getElementById('doc-destinatario').value,
+    corpo: document.getElementById('doc-corpo').value,
+    observacoes: document.getElementById('doc-observacoes').value,
+    em_resposta_a: document.getElementById('doc-em-resposta-a').value || null,
+  };
+
+  // manter anexo existente se estiver a editar e não escolher novo ficheiro
+  if(DOC_EM_EDICAO && ANEXO_ATUAL){
+    registo.anexos = ANEXO_ATUAL;
+  }
+
+  const ficheiro = document.getElementById('doc-anexo').files[0];
+  if(ficheiro){
+    const btnGuardar = e.target.querySelector('button[type=submit]');
+    btnGuardar.textContent = 'A enviar ficheiro...';
+    btnGuardar.disabled = true;
+    const caminho = `${registo.tipo}/${Date.now()}-${ficheiro.name}`;
+    const { error: erroUpload } = await sb.storage.from('documentos-aafm').upload(caminho, ficheiro);
+    btnGuardar.textContent = 'Guardar';
+    btnGuardar.disabled = false;
+    if(erroUpload){ alert('Erro ao enviar ficheiro: ' + erroUpload.message); return; }
+    const { data: urlData } = sb.storage.from('documentos-aafm').getPublicUrl(caminho);
+    registo.anexos = [{ nome: ficheiro.name, url: urlData.publicUrl }];
+  }
+
+  if(DOC_EM_EDICAO){
+    const { error } = await sb.from('documentos').update(registo).eq('id', DOC_EM_EDICAO);
+    if(error){ alert('Erro ao atualizar: ' + error.message); return; }
+  } else {
+    registo.ano = new Date(registo.data).getFullYear();
+    registo.criado_por = PERFIL.id;
+    const { error } = await sb.from('documentos').insert(registo);
+    if(error){ alert('Erro ao criar: ' + error.message); return; }
+  }
+  document.getElementById('modal-doc').style.display='none';
+  await carregarDocumentos();
+});
+
+/* ---------- VISUALIZAR DOCUMENTO ---------- */
+function visualizarDocumento(id){
+  const d = DOCUMENTOS.find(x=>x.id===id);
+  if(!d) return;
+  DOC_VISUALIZADO = d;
+
+  const original = d.em_resposta_a ? DOCUMENTOS.find(x=>x.id===d.em_resposta_a) : null;
+  const respostas = DOCUMENTOS.filter(x=>x.em_resposta_a===d.id);
+
+  document.getElementById('ver-conteudo').innerHTML = `
+    <div class="doc-preview">
+      <div class="ref mono">${d.numero_referencia}</div>
+      <div class="doc-title">${escaparHtml(d.assunto)}</div>
+      <div class="meta">
+        ${d.destinatario ? `Para: ${escaparHtml(d.destinatario)} · ` : ''}${formatarData(d.data)} ·
+        <span class="badge ${d.estado}">${d.estado}</span>
+      </div>
+      ${original ? `
+        <div style="font-size:12.5px;margin-bottom:12px;">
+          ↳ Em resposta a: <a href="#" class="link-doc-relacionado" data-id="${original.id}" style="color:var(--red);font-weight:600;">${original.numero_referencia} — ${escaparHtml(original.assunto)}</a>
+        </div>` : ''}
+      <div class="corpo-texto">${escaparHtml(d.corpo || '')}</div>
+      ${(d.anexos && d.anexos.length) ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
+          <a href="${d.anexos[0].url}" target="_blank" style="color:var(--red);font-weight:600;font-size:13.5px;">
+            📎 ${escaparHtml(d.anexos[0].nome)} — abrir/descarregar
+          </a>
+        </div>` : ''}
+      ${d.observacoes ? `
+        <div style="margin-top:16px;padding:12px;background:var(--parchment-2);border-radius:4px;font-size:13.5px;">
+          <strong>Observações / Resultado:</strong><br>${escaparHtml(d.observacoes)}
+        </div>` : ''}
+      ${respostas.length ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;">
+          <strong>Respostas recebidas:</strong>
+          ${respostas.map(r=>`<div style="margin-top:6px;">↳ <a href="#" class="link-doc-relacionado" data-id="${r.id}" style="color:var(--red);">${r.numero_referencia} — ${escaparHtml(r.assunto)}</a></div>`).join('')}
+        </div>` : ''}
+    </div>`;
+  document.getElementById('btn-editar-ver').style.display = podeEditar() ? 'inline-block' : 'none';
+  document.getElementById('btn-apagar-ver').style.display = podeEditar() ? 'inline-block' : 'none';
+  document.getElementById('btn-pdf-ver').textContent = (d.anexos && d.anexos.length) ? 'Abrir Ficheiro' : 'Exportar PDF';
+  document.getElementById('modal-ver').style.display='flex';
+
+  document.querySelectorAll('.link-doc-relacionado').forEach(a=>{
+    a.addEventListener('click', (e)=>{ e.preventDefault(); visualizarDocumento(a.dataset.id); });
+  });
+}
+
+document.getElementById('btn-fechar-ver').addEventListener('click', ()=>{
+  document.getElementById('modal-ver').style.display='none';
+});
+
+document.getElementById('btn-editar-ver').addEventListener('click', ()=>{
+  const d = DOC_VISUALIZADO;
+  DOC_EM_EDICAO = d.id;
+  document.getElementById('modal-titulo').textContent = 'Editar documento';
+  document.getElementById('doc-tipo').value = d.tipo;
+  document.getElementById('doc-tipo').disabled = true; // tipo fixo ao editar — protege a numeração
+  document.getElementById('doc-data').value = d.data;
+  document.getElementById('doc-estado').value = d.estado;
+  document.getElementById('doc-assunto').value = d.assunto;
+  document.getElementById('doc-destinatario').value = d.destinatario || '';
+  document.getElementById('doc-corpo').value = d.corpo || '';
+  document.getElementById('doc-observacoes').value = d.observacoes || '';
+  preencherSelectRespostaA(d.id);
+  document.getElementById('doc-em-resposta-a').value = d.em_resposta_a || '';
+  ANEXO_ATUAL = (d.anexos && d.anexos.length) ? d.anexos : null;
+  document.getElementById('anexo-atual').textContent = ANEXO_ATUAL
+    ? `Ficheiro atual: ${ANEXO_ATUAL[0].nome} (escolhe um novo para substituir)` : '';
+  document.getElementById('modal-ver').style.display='none';
+  document.getElementById('modal-doc').style.display='flex';
+});
+
+document.getElementById('btn-apagar-ver').addEventListener('click', async ()=>{
+  const d = DOC_VISUALIZADO;
+  if(!confirm(`Apagar definitivamente "${d.numero_referencia} — ${d.assunto}"? Esta ação não pode ser desfeita.`)) return;
+  const { error } = await sb.from('documentos').delete().eq('id', d.id);
+  if(error){ alert('Erro ao apagar: ' + error.message); return; }
+  document.getElementById('modal-ver').style.display='none';
+  await carregarDocumentos();
+});
+
+/* ---------- EXPORTAR PDF ---------- */
+document.getElementById('btn-pdf-ver').addEventListener('click', ()=>{
+  const d = DOC_VISUALIZADO;
+
+  // se já existe um ficheiro real anexado, usa-o em vez de gerar um novo
+  if(d.anexos && d.anexos.length){
+    window.open(d.anexos[0].url, '_blank');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('ASSOCIAÇÃO ACADÉMICA DE FACULDADE DE MEDICINA (AAFM)', 20, 20);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text(d.numero_referencia, 20, 28);
+  doc.line(20, 32, 190, 32);
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(d.assunto, 20, 44);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  let y = 54;
+  if(d.destinatario){ doc.text(`Para: ${d.destinatario}`, 20, y); y+=7; }
+  doc.text(`Data: ${formatarData(d.data)}`, 20, y); y+=12;
+  doc.setFontSize(11);
+  const linhas = doc.splitTextToSize(d.corpo || '', 170);
+  doc.text(linhas, 20, y);
+  doc.save(`${d.numero_referencia.replace(/[\/ ]/g,'_')}.pdf`);
+});
+
+/* ---------- UTILITÁRIOS ---------- */
+function escaparHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatarData(iso){
+  if(!iso) return '';
+  const [a,m,d] = iso.split('-');
+  return `${d}/${m}/${a}`;
+}
+/* =========================================================
+   GESTÃO DE MEMBROS (só secretário)
+   ========================================================= */
+document.getElementById('btn-membros').addEventListener('click', async ()=>{
+  document.getElementById('modal-membros').style.display='flex';
+  await carregarMembros();
+});
+document.getElementById('btn-fechar-membros').addEventListener('click', ()=>{
+  document.getElementById('modal-membros').style.display='none';
+});
+
+async function carregarMembros(){
+  const { data, error } = await sb.from('perfis').select('*').order('nome');
+  if(error){ document.getElementById('lista-membros').innerHTML = `<div class="erro">${error.message}</div>`; return; }
+  document.getElementById('lista-membros').innerHTML = data.map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
+      <div>
+        <strong style="font-size:14px;">${escaparHtml(p.nome)}</strong>
+        ${p.id === PERFIL.id ? '<span style="font-size:11px;color:#8a8272;"> (tu)</span>' : ''}
+      </div>
+      <select class="select-papel-membro" data-id="${p.id}" ${p.id===PERFIL.id ? 'disabled' : ''} style="width:auto;">
+        <option value="membro" ${p.papel==='membro'?'selected':''}>Membro (só consulta)</option>
+        <option value="direcao" ${p.papel==='direcao'?'selected':''}>Direção (edita)</option>
+        <option value="secretario" ${p.papel==='secretario'?'selected':''}>Secretário (acesso total)</option>
+      </select>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.select-papel-membro').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const { error } = await sb.from('perfis').update({ papel: sel.value }).eq('id', sel.dataset.id);
+      if(error){ alert('Erro ao atualizar: ' + error.message); await carregarMembros(); }
+    });
+  });
+}
+
+/* =========================================================
+   RELATÓRIOS
+   ========================================================= */
+let FINANCAS = [];
+let ABA_RELATORIO_ATIVA = 'atividades';
+let ULTIMO_RELATORIO = null; // guarda dados do último relatório gerado, para o PDF
+
+document.getElementById('btn-relatorios').addEventListener('click', async ()=>{
+  document.getElementById('modal-relatorio').style.display='flex';
+  document.getElementById('btn-nova-transacao').style.display = podeEditar() ? 'inline-block' : 'none';
+  await carregarFinancas();
+});
+document.getElementById('btn-fechar-relatorio').addEventListener('click', ()=>{
+  document.getElementById('modal-relatorio').style.display='none';
+});
+
+document.querySelectorAll('.aba-relatorio').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.aba-relatorio').forEach(b=> b.classList.remove('ativa'));
+    btn.classList.add('ativa');
+    ABA_RELATORIO_ATIVA = btn.dataset.aba;
+    document.getElementById('painel-atividades').style.display = ABA_RELATORIO_ATIVA==='atividades' ? 'block' : 'none';
+    document.getElementById('painel-contas').style.display = ABA_RELATORIO_ATIVA==='contas' ? 'block' : 'none';
+  });
+});
+
+/* ---------- ATIVIDADES ---------- */
+document.getElementById('btn-gerar-atividades').addEventListener('click', ()=>{
+  const inicio = document.getElementById('rel-data-inicio').value;
+  const fim = document.getElementById('rel-data-fim').value;
+  let lista = DOCUMENTOS.filter(d=>{
+    if(inicio && d.data < inicio) return false;
+    if(fim && d.data > fim) return false;
+    return true;
+  }).sort((a,b)=> a.data.localeCompare(b.data));
+
+  const contagens = {};
+  lista.forEach(d=> contagens[d.tipo] = (contagens[d.tipo]||0)+1 );
+
+  ULTIMO_RELATORIO = { periodo:{inicio,fim}, lista, contagens };
+
+  const cont = document.getElementById('resultado-atividades');
+  if(lista.length===0){
+    cont.innerHTML = `<div class="vazio">Nenhum documento no período selecionado.</div>`;
+    return;
+  }
+  cont.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <strong>${lista.length} documento(s)</strong> ·
+      ${Object.entries(contagens).map(([t,n])=>`${rotuloTipo(t)}: ${n}`).join(' · ')}
+    </div>
+    ${lista.map(d=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;">
+        <span class="mono" style="color:var(--gold);">${d.numero_referencia}</span> —
+        ${escaparHtml(d.assunto)} <span style="color:#8a8272;">(${formatarData(d.data)})</span>
+      </div>`).join('')}
+  `;
+});
+
+/* ---------- CONTAS ---------- */
+async function carregarFinancas(){
+  const { data, error } = await sb.from('financas').select('*').order('data', { ascending:false });
+  if(error){ console.error(error); return; }
+  FINANCAS = data || [];
+  renderizarContas();
+}
+
+document.getElementById('btn-nova-transacao').addEventListener('click', ()=>{
+  FIN_EM_EDICAO = null;
+  document.getElementById('btn-guardar-transacao').textContent = 'Adicionar';
+  const f = document.getElementById('form-nova-transacao');
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+  document.getElementById('fin-data').value = new Date().toISOString().slice(0,10);
+});
+
+document.getElementById('btn-guardar-transacao').addEventListener('click', async ()=>{
+  const registo = {
+    tipo: document.getElementById('fin-tipo').value,
+    categoria: document.getElementById('fin-categoria').value,
+    descricao: document.getElementById('fin-descricao').value,
+    valor: parseFloat(document.getElementById('fin-valor').value || 0),
+    data: document.getElementById('fin-data').value || new Date().toISOString().slice(0,10),
+  };
+  if(!registo.descricao || !registo.valor){ alert('Preenche a descrição e o valor.'); return; }
+
+  let error;
+  if(FIN_EM_EDICAO){
+    ({ error } = await sb.from('financas').update(registo).eq('id', FIN_EM_EDICAO));
+  } else {
+    registo.criado_por = PERFIL.id;
+    ({ error } = await sb.from('financas').insert(registo));
+  }
+  if(error){ alert('Erro: ' + error.message); return; }
+
+  FIN_EM_EDICAO = null;
+  document.getElementById('btn-guardar-transacao').textContent = 'Adicionar';
+  document.getElementById('form-nova-transacao').style.display='none';
+  document.getElementById('fin-categoria').value='';
+  document.getElementById('fin-descricao').value='';
+  document.getElementById('fin-valor').value='';
+  await carregarFinancas();
+});
+
+function renderizarContas(){
+  const inicio = document.getElementById('fin-filtro-inicio').value;
+  const fim = document.getElementById('fin-filtro-fim').value;
+  let lista = FINANCAS.filter(f=>{
+    if(inicio && f.data < inicio) return false;
+    if(fim && f.data > fim) return false;
+    return true;
+  });
+
+  const receitas = lista.filter(f=>f.tipo==='receita').reduce((s,f)=>s+Number(f.valor),0);
+  const despesas = lista.filter(f=>f.tipo==='despesa').reduce((s,f)=>s+Number(f.valor),0);
+  const saldo = receitas - despesas;
+
+  ULTIMO_RELATORIO_CONTAS = { periodo:{inicio,fim}, lista, receitas, despesas, saldo };
+
+  document.getElementById('resumo-contas').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px 16px;font-size:14px;padding:12px;background:var(--parchment-2);border-radius:4px;">
+      <div>Receitas: <strong style="color:var(--green);">${formatarFCFA(receitas)}</strong></div>
+      <div>Despesas: <strong style="color:var(--red);">${formatarFCFA(despesas)}</strong></div>
+      <div>Saldo: <strong>${formatarFCFA(saldo)}</strong></div>
+    </div>`;
+
+  document.getElementById('lista-transacoes').innerHTML = lista.length===0
+    ? `<div class="vazio">Nenhuma transação no período.</div>`
+    : lista.map(f=>`
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;">
+        <span style="min-width:0;">${escaparHtml(f.descricao)} ${f.categoria ? `<span style="color:#8a8272;">· ${escaparHtml(f.categoria)}</span>`:''}
+          <span style="color:#8a8272;"> · ${formatarData(f.data)}</span></span>
+        <span style="display:flex;align-items:center;gap:10px;white-space:nowrap;">
+          <span style="color:${f.tipo==='receita'?'var(--green)':'var(--red)'};font-weight:600;">
+            ${f.tipo==='receita'?'+':'-'}${formatarFCFA(f.valor)}
+          </span>
+          ${podeEditar() ? `
+            <button type="button" class="btn-editar-fin btn-icone" data-id="${f.id}" title="Editar">✏️</button>
+            <button type="button" class="btn-apagar-fin btn-icone perigo" data-id="${f.id}" title="Apagar">🗑️</button>
+          ` : ''}
+        </span>
+      </div>`).join('');
+
+  document.querySelectorAll('.btn-editar-fin').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const f = FINANCAS.find(x=>x.id===btn.dataset.id);
+      FIN_EM_EDICAO = f.id;
+      document.getElementById('fin-tipo').value = f.tipo;
+      document.getElementById('fin-valor').value = f.valor;
+      document.getElementById('fin-categoria').value = f.categoria || '';
+      document.getElementById('fin-descricao').value = f.descricao;
+      document.getElementById('fin-data').value = f.data;
+      document.getElementById('form-nova-transacao').style.display = 'block';
+      document.getElementById('btn-guardar-transacao').textContent = 'Guardar alteração';
+    });
+  });
+  document.querySelectorAll('.btn-apagar-fin').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Apagar esta transação?')) return;
+      const { error } = await sb.from('financas').delete().eq('id', btn.dataset.id);
+      if(error){ alert('Erro: ' + error.message); return; }
+      await carregarFinancas();
+    });
+  });
+}
+let FIN_EM_EDICAO = null;
+document.getElementById('fin-filtro-inicio').addEventListener('change', renderizarContas);
+document.getElementById('fin-filtro-fim').addEventListener('change', renderizarContas);
+
+let ULTIMO_RELATORIO_CONTAS = null;
+function formatarFCFA(v){ return Number(v).toLocaleString('pt-PT') + ' FCFA'; }
+
+/* ---------- EXPORTAR PDF DO RELATÓRIO ---------- */
+document.getElementById('btn-pdf-relatorio').addEventListener('click', ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('ASSOCIAÇÃO ACADÉMICA DE FACULDADE DE MEDICINA (AAFM)', 20, 20);
+
+  if(ABA_RELATORIO_ATIVA === 'atividades'){
+    if(!ULTIMO_RELATORIO){ alert('Gera o relatório primeiro.'); return; }
+    const { periodo, lista, contagens } = ULTIMO_RELATORIO;
+    doc.setFontSize(15); doc.text('Relatório de Atividades', 20, 32);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text(`Período: ${periodo.inicio ? formatarData(periodo.inicio) : 'início'} a ${periodo.fim ? formatarData(periodo.fim) : 'hoje'}`, 20, 40);
+    doc.line(20, 44, 190, 44);
+    let y = 52;
+    doc.setFont('helvetica','bold'); doc.text('Resumo por tipo:', 20, y); y+=7;
+    doc.setFont('helvetica','normal');
+    Object.entries(contagens).forEach(([t,n])=>{ doc.text(`${rotuloTipo(t)}: ${n}`, 24, y); y+=6; });
+    y+=6;
+    doc.setFont('helvetica','bold'); doc.text('Documentos:', 20, y); y+=7;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    lista.forEach(d=>{
+      if(y>280){ doc.addPage(); y=20; }
+      const linha = doc.splitTextToSize(`${d.numero_referencia} — ${d.assunto} (${formatarData(d.data)})`, 170);
+      doc.text(linha, 20, y); y += 6*linha.length;
+    });
+    doc.save('relatorio-atividades-aafm.pdf');
+  } else {
+    if(!ULTIMO_RELATORIO_CONTAS){ alert('Sem dados de contas para o período.'); return; }
+    const { periodo, lista, receitas, despesas, saldo } = ULTIMO_RELATORIO_CONTAS;
+    doc.setFontSize(15); doc.text('Relatório de Contas', 20, 32);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text(`Período: ${periodo.inicio ? formatarData(periodo.inicio) : 'início'} a ${periodo.fim ? formatarData(periodo.fim) : 'hoje'}`, 20, 40);
+    doc.line(20, 44, 190, 44);
+    let y = 52;
+    doc.setFont('helvetica','bold');
+    doc.text(`Total de receitas: ${formatarFCFA(receitas)}`, 20, y); y+=7;
+    doc.text(`Total de despesas: ${formatarFCFA(despesas)}`, 20, y); y+=7;
+    doc.text(`Saldo: ${formatarFCFA(saldo)}`, 20, y); y+=12;
+    doc.setFont('helvetica','bold'); doc.text('Transações:', 20, y); y+=7;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    lista.forEach(f=>{
+      if(y>280){ doc.addPage(); y=20; }
+      const sinal = f.tipo==='receita' ? '+' : '-';
+      const linha = doc.splitTextToSize(`${formatarData(f.data)} — ${f.descricao} (${f.categoria||'sem categoria'}): ${sinal}${formatarFCFA(f.valor)}`, 170);
+      doc.text(linha, 20, y); y += 6*linha.length;
+    });
+    doc.save('relatorio-contas-aafm.pdf');
+  }
+});
+</script>
+</body>
+</html>
