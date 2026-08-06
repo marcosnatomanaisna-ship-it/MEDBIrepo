@@ -765,6 +765,7 @@
       <label id="label-doc-emissor">Emissor (órgão/departamento da AAFM responsável)</label>
       <select id="doc-emissor">
       </select>
+      <input type="text" id="doc-emissor-texto" placeholder="Ex: Faculdade de Medicina, Ordem dos Médicos...">
       <label>Assunto</label>
       <input type="text" id="doc-assunto" required placeholder="Ex: Convocatória para Assembleia Geral">
       <label id="label-doc-destinatario">Destinatário / Remetente</label>
@@ -1326,7 +1327,7 @@ const SECCOES_TUTORIAL = [
         <li><strong>Reunião de</strong> (só para Ata e Convocatória): escolhe se a reunião é da <strong>Direção</strong> ou com <strong>Todos os Sócios</strong> (Assembleia) — fica visível como etiqueta na lista e nos detalhes do documento, para distinguires facilmente as reuniões de Direção das restantes.</li>
         <li><strong>Direção</strong> (Interno/Enviado/Recebido): "Interno" é para documentos que nunca saem da AAFM (ex: uma Ata ou uma Convocatória aos próprios membros) — vem <strong>predefinido</strong> ao criar um documento novo. "Enviado" é o que saiu da AAFM para fora; "Recebido" é o que chegou de outra entidade.</li>
         <li><strong>Arquivado</strong>: uma caixa à parte, independente da Direção. Marcá-la não muda se o documento é interno, enviado ou recebido — só indica que já está tratado e guardado como referência. Um documento pode ser arquivado mais tarde sem perder o registo da sua direção.</li>
-        <li><strong>Emissor</strong>: aparece quando a Direção é "Interno" ou "Enviado" (nos dois casos o documento é sempre produzido pela própria AAFM). Escolhe qual órgão/departamento o emitiu — ex: Conselho Diretivo, Departamento de Cultura, etc. Para documentos "Recebidos" este campo não aparece, porque quem emitiu é uma entidade externa (identificada em "Destinatário/Remetente").</li>
+        <li><strong>Emissor</strong>: em documentos "Interno" ou "Enviado" (produzidos pela própria AAFM), escolhes de uma lista o órgão/departamento que o emitiu — ex: Conselho Diretivo, Departamento de Cultura, etc. Para Estatuto, Protocolo de Associação, Acordo de Parceria e Comissão de Atividades o campo é opcional e começa em branco, já que estes documentos nem sempre têm um departamento específico responsável. Em documentos "Recebidos", o campo passa a ser de texto livre e opcional, para identificares a entidade externa que emitiu o documento.</li>
         <li>"Em resposta a" liga este documento a outro já existente (útil para ofícios/respostas).</li>
         <li>Podes anexar <strong>mais do que um ficheiro</strong> PDF/Word ao mesmo documento — o botão "Escolher ficheiro(s)" permite selecionar vários de uma vez. É sempre obrigatório haver pelo menos um anexo (exceto ao editar um documento que já tem anexos guardados).</li>
       </ul>`
@@ -2595,15 +2596,43 @@ document.getElementById('anexo-atual').addEventListener('click', (e)=>{
   atualizarCampoAnexo();
 });
 
+// Para estes tipos o Emissor (órgão/departamento da AAFM) é um detalhe que nem sempre se
+// aplica — um Estatuto ou um Acordo de Parceria não nascem sempre de um departamento
+// específico, e cada Comissão de Atividades já se identifica pela subcomissão escolhida.
+// Por isso, para estes tipos, o campo fica opcional e começa em branco, em vez de vir
+// logo preenchido com o primeiro órgão da lista.
+const TIPOS_EMISSOR_OPCIONAL = ['estatuto', 'protocolo_associacao', 'acordo_parceria', 'comissao_atividades'];
+
 function atualizarCampoEmissor(){
-  const estado = document.getElementById('doc-estado').value; // 'enviado' ou 'recebido'
+  const estado = document.getElementById('doc-estado').value; // 'enviado', 'interno' ou 'recebido'
   const tipo = document.getElementById('doc-tipo').value;
   const label = document.getElementById('label-doc-emissor');
   const select = document.getElementById('doc-emissor');
-  const mostrar = (estado === 'enviado' || estado === 'interno') && !TIPOS_REGISTO_SIMPLES.includes(tipo); // "arquivado" já não é um valor de estado — a direção é sempre conhecida; "recebido" é o único que vem de fora, sem emissor interno
+  const inputTexto = document.getElementById('doc-emissor-texto');
+  const mostrar = !TIPOS_REGISTO_SIMPLES.includes(tipo); // só não aparece nos registos simples (ex: Membro da Direção), onde nem faz sentido
+  const recebido = estado === 'recebido';
   label.style.display = mostrar ? '' : 'none';
-  select.style.display = mostrar ? '' : 'none';
-  if(!mostrar) select.value = '';
+  label.textContent = recebido ? 'Emissor' : 'Emissor (órgão/departamento da AAFM responsável)';
+
+  // "Recebido": quem emitiu é uma entidade externa, por isso escreve-se livremente, sem lista
+  // fixa nem obrigatoriedade. "Enviado"/"Interno": continua a escolher-se de entre os órgãos
+  // e departamentos da própria AAFM.
+  select.style.display = (mostrar && !recebido) ? '' : 'none';
+  inputTexto.style.display = (mostrar && recebido) ? '' : 'none';
+
+  if(!mostrar){ select.value = ''; inputTexto.value = ''; return; }
+  if(recebido){ select.value = ''; return; }
+  inputTexto.value = '';
+
+  // Garante (ou remove) a opção em branco no topo da lista, consoante o tipo escolhido.
+  const opcional = TIPOS_EMISSOR_OPCIONAL.includes(tipo);
+  const temOpcaoBranco = select.options.length>0 && select.options[0].value === '';
+  if(opcional && !temOpcaoBranco){
+    select.insertAdjacentHTML('afterbegin', '<option value=""></option>');
+  } else if(!opcional && temOpcaoBranco){
+    select.remove(0);
+  }
+  if(opcional && !DOC_EM_EDICAO) select.value = ''; // documento novo destes tipos: começa em branco (ao editar, o valor já guardado é reposto a seguir)
 }
 
 // Alguns tipos (ex: Estatuto, Protocolo de Associação, Acordo de Parceria) não pertencem
@@ -2874,7 +2903,9 @@ document.getElementById('form-doc').addEventListener('submit', async(e)=>{
     estado: document.getElementById('doc-estado').value,
     arquivado: document.getElementById('doc-arquivado').checked,
     assunto: document.getElementById('doc-assunto').value,
-    emissor: document.getElementById('doc-emissor').value || null,
+    emissor: (document.getElementById('doc-estado').value === 'recebido'
+      ? document.getElementById('doc-emissor-texto').value.trim()
+      : document.getElementById('doc-emissor').value) || null,
     destinatario: document.getElementById('doc-destinatario').value,
     observacoes: document.getElementById('doc-observacoes').value,
     em_resposta_a: document.getElementById('doc-em-resposta-a').value || null,
@@ -3071,7 +3102,6 @@ async function abrirEdicaoDoc(d){
   document.getElementById('doc-estado').value = d.estado;
   document.getElementById('doc-arquivado').checked = !!d.arquivado;
   document.getElementById('doc-assunto').value = d.assunto;
-  document.getElementById('doc-emissor').value = d.emissor || '';
   document.getElementById('doc-destinatario').value = d.destinatario || '';
   document.getElementById('doc-observacoes').value = d.observacoes || '';
   preencherSelectRespostaA(d.id);
@@ -3088,6 +3118,8 @@ async function abrirEdicaoDoc(d){
   atualizarCampoSubcomissao();
   atualizarCampoReuniaoPublico();
   atualizarCamposRegistoSimples();
+  document.getElementById('doc-emissor').value = d.emissor || ''; // depois de sincronizadas as opções (pode incluir a opção em branco para este tipo)
+  document.getElementById('doc-emissor-texto').value = d.emissor || '';
   document.getElementById('modal-doc').style.display='flex';
 }
 
