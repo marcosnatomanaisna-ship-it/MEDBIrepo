@@ -664,7 +664,7 @@
             </div>
             <div class="painel-filtros-corpo">
               <div class="grupo-filtro" style="margin-top:6px;">
-                <h4>Direção</h4>
+                <h4>Sentido</h4>
                 <div class="segmentado" id="lista-filtros-estado">
                   <button class="ativo" data-estado="todos">Todos</button>
                   <button data-estado="recebido">Recebido</button>
@@ -747,10 +747,10 @@
       <label id="label-doc-subcomissao">Comissão</label>
       <select id="doc-subcomissao"></select>
       <label id="label-doc-numero-referencia">Número de referência</label>
-      <input type="text" id="doc-numero-referencia" placeholder="Ex: 004/2026-AAFM" required>
+      <input type="text" id="doc-numero-referencia" placeholder="Ex: 000/AAFM/ANO" required>
       <div class="linha-form">
         <div><label>Data</label><input type="date" id="doc-data" required></div>
-        <div id="campo-doc-estado"><label>Direção</label>
+        <div id="campo-doc-estado"><label>Sentido</label>
           <select id="doc-estado">
             <option value="interno" selected>Interno</option>
             <option value="enviado">Enviado</option>
@@ -766,10 +766,10 @@
       <select id="doc-emissor">
       </select>
       <input type="text" id="doc-emissor-texto" placeholder="Ex: Faculdade de Medicina, Ordem dos Médicos...">
-      <label>Assunto</label>
+      <label id="label-doc-assunto">Assunto</label>
       <input type="text" id="doc-assunto" required placeholder="Ex: Convocatória para Assembleia Geral">
       <label id="label-doc-destinatario">Destinatário / Remetente</label>
-      <input type="text" id="doc-destinatario" placeholder="Ex: Direção da Faculdade de Medicina">
+      <input type="text" id="doc-destinatario" placeholder="Ex: Brigada Médica Cubana">
       <label id="label-doc-em-resposta-a">Em resposta a (opcional)</label>
       <select id="doc-em-resposta-a">
         <option value="">— Nenhum —</option>
@@ -986,7 +986,7 @@
   <div class="modal" style="max-width:400px;">
     <h2>Editar número de referência</h2>
     <label>Número de referência</label>
-    <input type="text" id="input-editar-numero" placeholder="Ex: 004/2026-AAFM">
+    <input type="text" id="input-editar-numero" placeholder="Ex: 000/AAFM/ANO">
     <div class="acoes-modal">
       <button type="button" class="btn-secundario" id="btn-editar-numero-cancelar">Cancelar</button>
       <button type="button" class="btn-primario" style="width:auto;" id="btn-editar-numero-guardar">Guardar</button>
@@ -1157,75 +1157,121 @@ document.getElementById('lista-filtros-emissor').insertAdjacentHTML('beforeend',
 const GUIA_TIPOS = {
   ata: {
     quando: 'Regista, por escrito, o que foi discutido e decidido numa reunião (direção, assembleia geral, comissão de evento). Serve como prova formal do que foi deliberado. Ao criares, escolhe se é uma reunião da Direção ou com Todos os Sócios.',
-    exemplo: 'Ata da Reunião da Direção de 15/03/2026, registando a aprovação do orçamento para o Congresso Científico da AAFM.'
+    exemplo: 'Ata da Reunião da Direção de 15/03/2026, registando a aprovação do orçamento para o Congresso Científico da AAFM.',
+    observacoes: 'Deliberação já executada.'
   },
   carta: {
     quando: 'Comunicação escrita dirigida a uma pessoa ou entidade específica, com tom mais pessoal e direto do que um ofício.',
-    exemplo: 'Carta de agradecimento ao Dr. Fulano pela palestra dada aos estudantes do 3º ano.'
+    exemplo: 'Carta de agradecimento ao Dr. Fulano pela palestra dada aos estudantes do 3º ano.',
+    destinatario: 'Dr. Fulano',
+    assunto: 'Agradecimento pela palestra aos estudantes do 3º ano',
+    observacoes: 'Resposta recebida a agradecer o gesto.'
   },
   oficio: {
     quando: 'Comunicação oficial entre a AAFM e outra instituição (faculdade, ministério, empresa). Mais formal, numerado, usado para pedir, informar ou responder oficialmente.',
-    exemplo: 'Ofício nº 001/2026-AAFM, solicitando audiência ao Decano da Faculdade de Medicina.'
+    exemplo: 'Ofício nº 001/AAFM/2026, solicitando audiência ao Decano da Faculdade de Medicina.',
+    destinatario: 'Decano da Faculdade de Medicina',
+    assunto: 'Pedido de audiência ao Decano',
+    observacoes: 'Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07.'
   },
   circular: {
     quando: 'Comunicado dirigido a vários destinatários ao mesmo tempo (todos os anos), para informar ou orientar sobre algo geral.',
-    exemplo: 'Circular a informar os membros da AAFM sobre a mudança de horário das reuniões mensais.'
+    exemplo: 'Circular a informar os membros da AAFM sobre a mudança de horário das reuniões mensais.',
+    destinatario: 'Membros da AAFM',
+    assunto: 'Mudança de horário das reuniões mensais',
+    observacoes: 'Enviada a todos os membros por email e WhatsApp.'
   },
   convocatoria: {
     quando: 'Convoca formalmente pessoas para uma reunião ou evento, indicando data, hora, local e assuntos a tratar. Ao criares, escolhe se é uma reunião da Direção ou com Todos os Sócios.',
-    exemplo: 'Convocatória para a Assembleia Geral Extraordinária do dia 20/07/2026, às 18h, no auditório da Faculdade.'
+    exemplo: 'Convocatória para a Assembleia Geral Extraordinária do dia 20/07/2026, às 18h, no auditório da Faculdade.',
+    observacoes: 'Confirmada a presença de 32 sócios.'
   },
   memorando: {
     quando: 'Comunicação interna, curta e direta, entre membros ou direção, para registar rapidamente uma instrução, lembrete ou decisão do dia a dia.',
-    exemplo: 'Memorando interno a distribuir tarefas da equipa organizadora do Congresso Científico.'
+    exemplo: 'Memorando interno a distribuir tarefas da equipa organizadora do Congresso Científico.',
+    destinatario: 'Equipa Organizadora do Congresso Científico',
+    assunto: 'Distribuição de tarefas do Congresso Científico',
+    observacoes: 'Tarefas distribuídas e confirmadas pela equipa.'
   },
   declaracao: {
     quando: 'Atesta ou certifica um facto — participação, cargo exercido, situação de um membro — geralmente para o próprio membro apresentar noutro lugar.',
-    exemplo: 'Declaração de participação de um estudante no Congresso Científico da AAFM 2026, para efeitos de créditos académicos.'
+    exemplo: 'Declaração de participação de um estudante no Congresso Científico da AAFM 2026, para efeitos de créditos académicos.',
+    destinatario: 'A quem interessar',
+    assunto: 'Declaração de participação no Congresso Científico',
+    observacoes: 'Entregue ao estudante em mão, 10/07/2026.'
   },
   relatorio: {
     quando: 'Descreve e analisa atividades realizadas num período ou evento, normalmente para prestar contas à direção, assembleia ou entidade financiadora.',
-    exemplo: 'Relatório de Atividades do 1º Semestre de 2026 da Secretaria da AAFM.'
+    exemplo: 'Relatório de Atividades do 1º Semestre de 2026 da Secretaria da AAFM.',
+    destinatario: 'Direção da AAFM',
+    assunto: 'Relatório de Atividades do 1º Semestre',
+    observacoes: 'Aprovado pela Direção sem alterações.'
   },
   edital: {
     quando: 'Comunicado público e formal, geralmente anunciando um processo com regras claras (eleições, concurso, candidaturas).',
-    exemplo: 'Edital de Eleições para a nova Direção da AAFM, mandato 2026/2027.'
+    exemplo: 'Edital de Eleições para a nova Direção da AAFM, mandato 2026/2027.',
+    destinatario: 'Membros da AAFM',
+    assunto: 'Edital de Eleições para a nova Direção',
+    observacoes: 'Publicado no mural da Faculdade e nas redes sociais da AAFM.'
   },
   requerimento: {
     quando: 'Pedido formal dirigido a uma entidade (interna ou externa), solicitando algo específico — apoio, autorização, isenção.',
-    exemplo: 'Requerimento de apoio financeiro à Faculdade para a participação de estudantes num congresso nacional.'
+    exemplo: 'Requerimento de apoio financeiro à Faculdade para a participação de estudantes num congresso nacional.',
+    destinatario: 'Faculdade de Medicina',
+    assunto: 'Pedido de apoio financeiro para congresso nacional',
+    observacoes: 'Deferido pela Faculdade, apoio concedido.'
   },
   termo_posse: {
     quando: 'Regista formalmente a entrada em funções de alguém eleito ou nomeado para um cargo.',
-    exemplo: 'Termo de Posse da nova Direção da AAFM para o mandato 2026/2027.'
+    exemplo: 'Termo de Posse da nova Direção da AAFM para o mandato 2026/2027.',
+    assunto: 'Tomada de posse da nova Direção',
+    observacoes: 'Assinado por todos os membros da nova Direção.'
   },
   estatuto: {
     quando: 'Documento fundador que define as regras, a estrutura e o funcionamento da associação.',
-    exemplo: 'Estatuto da AAFM, revisto e aprovado em Assembleia Geral em 2026.'
+    exemplo: 'Estatuto da AAFM, revisto e aprovado em Assembleia Geral em 2026.',
+    assunto: 'Revisão do Estatuto da AAFM',
+    observacoes: 'Aprovado por unanimidade em Assembleia Geral.'
   },
   convite: {
     quando: 'Convite para participar num evento, cerimónia ou atividade — pode ser recebido (de outra entidade, convidando a AAFM ou um seu representante) ou enviado (a AAFM a convidar outras pessoas/entidades para uma atividade sua).',
-    exemplo: 'Convite da RENAJ para a AAFM participar no seu encontro anual de associações juvenis.'
+    exemplo: 'Convite da RENAJ para a AAFM participar no seu encontro anual de associações juvenis.',
+    destinatario: 'RENAJ',
+    assunto: 'Convite para o encontro anual de associações juvenis',
+    observacoes: 'Confirmada a participação de um representante da AAFM.'
   },
   plano_acao: {
     quando: 'Define os objetivos, atividades e prazos da direção para os próximos seis meses. Serve de referência para acompanhar o que foi planeado e prestar contas depois na Assembleia.',
-    exemplo: 'Plano de Ação Semestral da Direção da AAFM para o 2º Semestre de 2026, com metas por departamento.'
+    exemplo: 'Plano de Ação Semestral da Direção da AAFM para o 2º Semestre de 2026, com metas por departamento.',
+    assunto: 'Plano de Ação Semestral da Direção',
+    observacoes: 'Apresentado e aprovado em reunião de Direção.'
   },
   protocolo_associacao: {
     quando: 'Formaliza a filiação ou associação da AAFM a outra organização (federação, associação congénere, rede de estudantes).',
-    exemplo: 'Protocolo de Associação entre a AAFM e a RENAJ.'
+    exemplo: 'Protocolo de Associação entre a AAFM e a RENAJ.',
+    destinatario: 'RENAJ',
+    assunto: 'Protocolo de Associação com a RENAJ',
+    observacoes: 'Assinado por ambas as partes em 2026.'
   },
   acordo_parceria: {
     quando: 'Formaliza uma parceria com uma empresa ou entidade privada (patrocínio, desconto para membros, colaboração em eventos).',
-    exemplo: 'Acordo de Parceria entre a AAFM e a Farmácia Central, com desconto de 10% para membros associados.'
+    exemplo: 'Acordo de Parceria entre a AAFM e a Farmácia Central, com desconto de 10% para membros associados.',
+    destinatario: 'Farmácia Central',
+    assunto: 'Parceria com a Farmácia Central',
+    observacoes: 'Em vigor, renovação prevista para 2027.'
   },
   membros_direcao: {
     quando: 'Regista a composição da Direção da AAFM num mandato — nomes e cargos de quem a integra.',
-    exemplo: 'Lista de Membros da Direção da AAFM para o mandato 2026-2028: Presidente, Vice-Presidente, Secretário-Geral, Tesoureiro e Vogais.'
+    exemplo: 'Lista de Membros da Direção da AAFM para o mandato 2026-2028: Presidente, Vice-Presidente, Secretário-Geral, Tesoureiro e Vogais.',
+    assunto: 'Composição da Direção para o mandato 2026-2028',
+    observacoes: 'Ata da tomada de posse anexa.'
   },
   comissao_atividades: {
     quando: 'Cada comissão (Campo de Férias, Receção de Jaleco, Aulas de Reforço, 24 de Setembro, Aniversário da AAFM, Campeonato de Futebol...) é incumbida pela AAFM de organizar uma atividade específica. Usa este tipo para guardar o relatório dessa comissão sobre a atividade — o que foi feito, resultados, participantes, contas, etc. Ao escolheres este tipo, seleciona também a comissão a que pertence.',
-    exemplo: 'Relatório da Comissão do Campo de Férias 2026, com o número de participantes, atividades realizadas e balanço financeiro.'
+    exemplo: 'Relatório da Comissão do Campo de Férias 2026, com o número de participantes, atividades realizadas e balanço financeiro.',
+    destinatario: 'Direção da AAFM',
+    assunto: 'Relatório da Comissão do Campo de Férias',
+    observacoes: 'Atividade realizada com sucesso, balanço financeiro positivo.'
   }
 };
 
@@ -1302,7 +1348,7 @@ const SECCOES_TUTORIAL = [
   {
     grupo: 'Encontrar documentos',
     titulo: 'Pastas por tipo de documento',
-    corpo: `<p>Ao entrar, vês primeiro as <strong>pastas de Mandato</strong> (ex: "Mandato 2026-2028") e uma pasta <strong>Documentos Gerais</strong> — para documentos que não pertencem a nenhum mandato específico (Estatuto, Protocolo de Associação, Acordo de Parceria). Dentro de cada mandato aparece a grelha de <strong>pastas por tipo</strong> (Ata, Carta, Ofício, Circular, etc.), cada uma com a contagem de documentos desse mandato. Dentro de "Documentos Gerais" só aparecem as pastas dos tipos que vivem lá. Toca numa pasta para veres só os documentos desse tipo.</p>`
+    corpo: `<p>Ao entrar, vês primeiro as <strong>pastas de Mandato</strong> (ex: "Mandato 2026-2028") e uma pasta <strong>Documentos Gerais</strong> — para documentos que não pertencem a nenhum mandato específico (Estatuto, Protocolo de Associação, Acordo de Parceria). Dentro de cada mandato aparece a grelha de <strong>pastas por tipo</strong> (Ata, Carta, Ofício, Circular, etc.), cada uma com a contagem de documentos desse mandato.</p>`
   },
   {
     grupo: 'Encontrar documentos',
@@ -1312,24 +1358,27 @@ const SECCOES_TUTORIAL = [
   },
   {
     grupo: 'Encontrar documentos',
-    titulo: 'Filtros por direção e arquivo',
-    corpo: `<p>O botão <strong>Filtros</strong> (com um número a indicar quantos estão ativos) abre um painel com quatro grupos: <strong>Direção</strong> (Recebido, Enviado ou Interno), <strong>Arquivo</strong> (Ativos ou Arquivados), <strong>Emissor</strong> (o órgão/departamento da AAFM que emitiu o documento) e <strong>Mandato</strong>. Podem ser combinados entre si e com uma pasta (ex: só "Ofícios" + "Enviado" + "Arquivados" + "Conselho Diretivo" + "Mandato 2026-2028").</p>
+    titulo: 'Filtros por sentido e arquivo',
+    corpo: `<p>O botão <strong>Filtros</strong> (com um número a indicar quantos estão ativos) abre um painel com quatro grupos: <strong>Sentido</strong> (Recebido, Enviado ou Interno), <strong>Arquivo</strong> (Ativos ou Arquivados), <strong>Emissor</strong> (o órgão/departamento da AAFM que emitiu o documento) e <strong>Mandato</strong>. Podem ser combinados entre si e com uma pasta (ex: só "Ofícios" + "Enviado" + "Arquivados" + "Conselho Diretivo" + "Mandato 2026-2028").</p>
       <p>Os filtros ativos aparecem como pequenas etiquetas por baixo da pesquisa — toca no ✕ para remover cada um.</p>`
   },
   {
     grupo: 'Gerir documentos',
     titulo: 'Criar um novo documento',
     visivel: ()=> podeEditar(),
-    corpo: `<p>Botão <strong>+ Novo Documento</strong>. Preenche tipo, mandato, número de referência, data, direção, assunto e, opcionalmente, destinatário/remetente.</p>
+    corpo: `<p>Botão <strong>+ Novo Documento</strong>. Preenche tipo, mandato, número de referência, data, sentido, assunto e, opcionalmente, emissor/destinatário.</p>
       <ul>
-        <li><strong>Mandato</strong> (formato AAAA-AAAA): em documentos novos vem <strong>preenchido automaticamente com o mandato em curso e bloqueado</strong>. Não aparece para Estatuto, Protocolo de Associação e Acordo de Parceria — esses tipos não pertencem a um mandato específico e ficam na pasta "Documentos Gerais".</li>
-        <li><strong>Número de referência</strong>: é sempre preenchido manualmente (ex: "005/2026-AAFM") — não é gerado automaticamente. Não é obrigatório para Protocolo de Associação, Acordo de Parceria, Membro da Direção e Comissão de Atividades. Já num documento existente, o botão <strong>Editar nº</strong> nos detalhes permite corrigi-lo rapidamente sem abrir o formulário completo.</li>
-        <li><strong>Reunião de</strong> (só para Ata e Convocatória): escolhe se a reunião é da <strong>Direção</strong> ou com <strong>Todos os Sócios</strong> (Assembleia) — fica visível como etiqueta na lista e nos detalhes do documento, para distinguires facilmente as reuniões de Direção das restantes.</li>
-        <li><strong>Direção</strong> (Interno/Enviado/Recebido): "Interno" é para documentos que nunca saem da AAFM (ex: uma Ata ou uma Convocatória aos próprios membros) — vem <strong>predefinido</strong> ao criar um documento novo. "Enviado" é o que saiu da AAFM para fora; "Recebido" é o que chegou de outra entidade.</li>
-        <li><strong>Arquivado</strong>: uma caixa à parte, independente da Direção. Marcá-la não muda se o documento é interno, enviado ou recebido — só indica que já está tratado e guardado como referência. Um documento pode ser arquivado mais tarde sem perder o registo da sua direção.</li>
-        <li><strong>Emissor</strong>: em documentos "Interno" ou "Enviado" (produzidos pela própria AAFM), escolhes de uma lista o órgão/departamento que o emitiu — ex: Conselho Diretivo, Departamento de Cultura, etc. Para Estatuto, Protocolo de Associação, Acordo de Parceria e Comissão de Atividades o campo é opcional e começa em branco, já que estes documentos nem sempre têm um departamento específico responsável. Em documentos "Recebidos", o campo passa a ser de texto livre e opcional, para identificares a entidade externa que emitiu o documento.</li>
-        <li>"Em resposta a" liga este documento a outro já existente (útil para ofícios/respostas).</li>
-        <li>Podes anexar <strong>mais do que um ficheiro</strong> PDF/Word ao mesmo documento — o botão "Escolher ficheiro(s)" permite selecionar vários de uma vez. É sempre obrigatório haver pelo menos um anexo (exceto ao editar um documento que já tem anexos guardados).</li>
+        <li><strong>Mandato</strong> (formato AAAA-AAAA): vem preenchido automaticamente com o mandato em curso.</li>
+        <li><strong>Número de referência</strong>: formato fixo <strong>000/AAFM/ANO</strong> (3 dígitos, "AAFM" e o ano com 4 dígitos — ex: "001/AAFM/2026"). Um número fora deste formato é rejeitado. Depois de criado, pode ser corrigido a qualquer momento com o botão <strong>Editar nº</strong> nos detalhes.</li>
+        <li><strong>Reunião de</strong> (só para Ata e Convocatória, quando o Sentido é Interno): Direção ou Assembleia (Todos os Sócios).</li>
+        <li><strong>Assunto</strong>: não aparece em Ata e Convocatória — nesses dois tipos o título é gerado automaticamente a partir da Reunião de + data.</li>
+        <li><strong>Sentido</strong>: "Interno" (fica só na AAFM), "Enviado" (saiu para fora) ou "Recebido" (chegou de outra entidade).</li>
+        <li><strong>Arquivado</strong>: marca quando o documento já está tratado e guardado como referência.</li>
+        <li><strong>Emissor</strong>: o órgão/departamento da AAFM que emitiu o documento.</li>
+        <li><strong>Destinatário / Remetente</strong>: o nome do campo muda com o Sentido — em "Enviado"/"Interno" é o <strong>Destinatário</strong> (para quem foi mandado); em "Recebido" é o <strong>Remetente</strong> (de quem veio).</li>
+        <li><strong>Observações / Resultado</strong>: espaço livre para anotar o desfecho do documento — ex: "Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07." Pode ser editado mais tarde, à medida que o assunto avança.</li>
+        <li><strong>Em resposta a</strong>: liga este documento a outro já existente (útil para ofícios/respostas).</li>
+        <li>É obrigatório anexar pelo menos <strong>um ficheiro</strong> PDF/Word (podem ser vários de uma vez).</li>
       </ul>`
   },
   {
@@ -1338,7 +1387,7 @@ const SECCOES_TUTORIAL = [
     visivel: ()=> podeEditar(),
     corpo: (papel)=>{
       if(papel === 'membro'){
-        return `<p>Toca num documento da lista para o abrires e veres todos os detalhes (assunto, datas, direção, emissor, reunião de Direção/Sócios quando aplicável, anexos, etc.).</p>
+        return `<p>Toca num documento da lista para o abrires e veres todos os detalhes (assunto, datas, sentido, emissor, reunião de Direção/Sócios quando aplicável, anexos, etc.).</p>
           <p>Como <strong>Membro</strong>, o teu acesso é só de consulta: podes ver e abrir os anexos existentes, mas não tens os botões de <strong>Editar</strong> ou <strong>Apagar</strong> — essas ações são reservadas ao Secretário, Presidente e Vice-Secretária.</p>`;
       }
       const notaPermissao = papel === 'secretario'
@@ -1553,15 +1602,57 @@ let ANEXOS_A_REMOVER = new Set(); // urls de anexos já guardados que o utilizad
 // (os restantes — ata, memorando, declaração, relatório, requerimento, termo de posse, estatuto —
 // são produzidos internamente pela AAFM, por isso não aparecem quando o estado é "Recebido").
 const TIPOS_RECEBIVEIS = ['convite','oficio','carta','circular','convocatoria','edital','relatorio','protocolo_associacao','acordo_parceria','comissao_atividades'];
+// Protocolo de Associação e Acordo de Parceria são sempre um acordo COM outra entidade —
+// não faz sentido existirem como "Interno" (nunca são só um assunto interno da AAFM).
+const TIPOS_NAO_INTERNOS = ['protocolo_associacao', 'acordo_parceria'];
 
 function atualizarOpcoesTipo(){
   const estado = document.getElementById('doc-estado').value;
   const selectTipo = document.getElementById('doc-tipo');
   const valorAtual = selectTipo.value;
-  const lista = estado === 'recebido' ? TIPOS.filter(t=>TIPOS_RECEBIVEIS.includes(t.v)) : TIPOS;
+  let lista = TIPOS;
+  if(estado === 'recebido') lista = TIPOS.filter(t=>TIPOS_RECEBIVEIS.includes(t.v));
+  else if(estado === 'interno') lista = TIPOS.filter(t=>!TIPOS_NAO_INTERNOS.includes(t.v));
   selectTipo.innerHTML = lista.map(t=>`<option value="${t.v}">${t.l}</option>`).join('');
-  // mantém o tipo selecionado se ainda estiver na lista filtrada, senão volta ao primeiro
-  if(lista.some(t=>t.v===valorAtual)) selectTipo.value = valorAtual;
+  if(lista.some(t=>t.v===valorAtual)){
+    // mantém o tipo selecionado se ainda estiver na lista filtrada
+    selectTipo.value = valorAtual;
+  } else {
+    // o tipo anterior não é válido para este sentido — o select passa a mostrar o primeiro
+    // da lista filtrada; disparamos "change" para que os campos que dependem do tipo
+    // (assunto, destinatário, mandato, reunião de, etc.) também se atualizem.
+    selectTipo.dispatchEvent(new Event('change'));
+  }
+}
+
+const ROTULOS_SENTIDO = { interno:'Interno', enviado:'Enviado', recebido:'Recebido' };
+// Mesma regra de cima (TIPOS_RECEBIVEIS / TIPOS_NAO_INTERNOS), só que aplicada ao contrário:
+// dado um tipo, quais Sentidos fazem sentido para ele. "Enviado" nunca é excluído — é o
+// valor "neutro", válido para qualquer tipo de documento.
+function sentidosPermitidos(tipo){
+  return ['interno','enviado','recebido'].filter(s=>
+    (s !== 'recebido' || TIPOS_RECEBIVEIS.includes(tipo)) &&
+    (s !== 'interno' || !TIPOS_NAO_INTERNOS.includes(tipo))
+  );
+}
+
+// Se o Tipo for escolhido primeiro (antes do Sentido), esta função garante a mesma
+// consistência: só mostra as opções de Sentido válidas para esse tipo — ex: Estatuto não
+// pode ser "Recebido", Acordo de Parceria não pode ser "Interno".
+function atualizarOpcoesSentido(){
+  const tipo = document.getElementById('doc-tipo').value;
+  const selectEstado = document.getElementById('doc-estado');
+  const valorAtual = selectEstado.value;
+  const permitidos = sentidosPermitidos(tipo);
+  selectEstado.innerHTML = permitidos.map(s=>`<option value="${s}">${ROTULOS_SENTIDO[s]}</option>`).join('');
+  if(permitidos.includes(valorAtual)){
+    selectEstado.value = valorAtual;
+  } else {
+    // o mesmo princípio do lado do tipo: se o sentido atual deixou de ser válido, muda para
+    // o primeiro válido e dispara "change" para os campos que dependem do Sentido se
+    // atualizarem também (emissor, destinatário, etc.).
+    selectEstado.dispatchEvent(new Event('change'));
+  }
 }
 
 document.getElementById('doc-tipo').innerHTML = TIPOS.map(t=>`<option value="${t.v}">${t.l}</option>`).join('');
@@ -2603,25 +2694,80 @@ document.getElementById('anexo-atual').addEventListener('click', (e)=>{
 // logo preenchido com o primeiro órgão da lista.
 const TIPOS_EMISSOR_OPCIONAL = ['estatuto', 'protocolo_associacao', 'acordo_parceria', 'comissao_atividades'];
 
+// O campo é um só (uma pessoa/entidade), mas o que ela representa muda com o Sentido:
+// num documento "Enviado" ou "Interno" é para quem o documento foi mandado (Destinatário);
+// num documento "Recebido" é de quem ele veio (Remetente). Por isso o rótulo muda consoante
+// o valor de "Sentido", em vez de mostrar sempre os dois nomes juntos.
+function atualizarCampoDestinatario(){
+  const estado = document.getElementById('doc-estado').value; // 'enviado', 'interno' ou 'recebido'
+  const tipo = document.getElementById('doc-tipo').value;
+  const reuniaoPublico = document.getElementById('doc-reuniao-publico').value;
+  const label = document.getElementById('label-doc-destinatario');
+  const input = document.getElementById('doc-destinatario');
+  label.textContent = estado === 'recebido' ? 'Remetente' : 'Destinatário';
+
+  // Numa Ata/Convocatória Interna o destinatário típico já se sabe: todos os sócios (numa
+  // Assembleia) ou só os membros da Direção (numa reunião de Direção) — o exemplo reflete
+  // isso em vez de sugerir uma entidade externa qualquer.
+  if(TIPOS_REUNIAO.includes(tipo) && estado === 'interno'){
+    input.placeholder = reuniaoPublico === 'socios' ? 'Ex: Todos os Sócios' : 'Ex: Todos os Membros da Direção';
+  } else {
+    // Cada tipo de documento tem um destinatário/remetente típico diferente (ex: um Ofício
+    // vai para o Decano, um Acordo de Parceria é com a Farmácia Central) — o exemplo vem
+    // da própria definição do tipo em GUIA_TIPOS. Tipos sem um caso típico (Estatuto, Termo
+    // de Posse, Plano de Ação...) usam um exemplo genérico de entidade externa.
+    const exemploTipo = GUIA_TIPOS[tipo] && GUIA_TIPOS[tipo].destinatario;
+    input.placeholder = 'Ex: ' + (exemploTipo || 'Brigada Médica Cubana');
+  }
+}
+
+// O exemplo do Assunto também vem de GUIA_TIPOS — cada tipo tem um assunto típico diferente
+// (ex: um Ofício pede audiência, uma Circular informa uma mudança de horário), em vez de um
+// único exemplo genérico igual para todos os tipos.
+function atualizarCampoAssunto(){
+  const tipo = document.getElementById('doc-tipo').value;
+  const label = document.getElementById('label-doc-assunto');
+  const input = document.getElementById('doc-assunto');
+  // Ata e Convocatória já têm o essencial coberto por "Reunião de" + data — um Assunto à
+  // parte fica redundante (e o tema de cada reunião muda demais para um exemplo fixo).
+  const mostrar = !TIPOS_REUNIAO.includes(tipo);
+  label.style.display = mostrar ? '' : 'none';
+  input.style.display = mostrar ? '' : 'none';
+  input.required = mostrar;
+  if(!mostrar){ input.value = ''; return; }
+  const exemploTipo = GUIA_TIPOS[tipo] && GUIA_TIPOS[tipo].assunto;
+  input.placeholder = exemploTipo ? ('Ex: ' + exemploTipo) : '';
+}
+
+// Observações / Resultado segue a mesma lógica de Assunto e Destinatário: cada tipo de
+// documento tem um desfecho típico diferente (um Ofício é aceite/marcado, um Acordo de
+// Parceria fica "em vigor"), guardado junto da definição do tipo em GUIA_TIPOS.
+function atualizarCampoObservacoes(){
+  const tipo = document.getElementById('doc-tipo').value;
+  const input = document.getElementById('doc-observacoes');
+  const exemploTipo = GUIA_TIPOS[tipo] && GUIA_TIPOS[tipo].observacoes;
+  input.placeholder = 'Ex: ' + (exemploTipo || 'Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07.');
+}
+
 function atualizarCampoEmissor(){
   const estado = document.getElementById('doc-estado').value; // 'enviado', 'interno' ou 'recebido'
   const tipo = document.getElementById('doc-tipo').value;
   const label = document.getElementById('label-doc-emissor');
   const select = document.getElementById('doc-emissor');
   const inputTexto = document.getElementById('doc-emissor-texto');
-  const mostrar = !TIPOS_REGISTO_SIMPLES.includes(tipo); // só não aparece nos registos simples (ex: Membro da Direção), onde nem faz sentido
   const recebido = estado === 'recebido';
+  // Em "Recebido" o Emissor (a entidade externa que o emitiu) é exatamente a mesma coisa que
+  // o Remetente — por isso o campo fica escondido nesse caso, para não pedir a mesma
+  // informação duas vezes. Só aparece em "Enviado"/"Interno", para escolher o órgão/departamento
+  // da própria AAFM responsável.
+  const mostrar = !TIPOS_REGISTO_SIMPLES.includes(tipo) && !recebido; // nem nos registos simples (ex: Membro da Direção), nem em "Recebido"
   label.style.display = mostrar ? '' : 'none';
-  label.textContent = recebido ? 'Emissor' : 'Emissor (órgão/departamento da AAFM responsável)';
+  label.textContent = 'Emissor (órgão/departamento da AAFM responsável)';
 
-  // "Recebido": quem emitiu é uma entidade externa, por isso escreve-se livremente, sem lista
-  // fixa nem obrigatoriedade. "Enviado"/"Interno": continua a escolher-se de entre os órgãos
-  // e departamentos da própria AAFM.
-  select.style.display = (mostrar && !recebido) ? '' : 'none';
-  inputTexto.style.display = (mostrar && recebido) ? '' : 'none';
+  select.style.display = mostrar ? '' : 'none';
+  inputTexto.style.display = 'none';
 
   if(!mostrar){ select.value = ''; inputTexto.value = ''; return; }
-  if(recebido){ select.value = ''; return; }
   inputTexto.value = '';
 
   // Garante (ou remove) a opção em branco no topo da lista, consoante o tipo escolhido.
@@ -2669,14 +2815,16 @@ function atualizarCampoSubcomissao(){
 document.getElementById('doc-tipo').addEventListener('change', atualizarCampoSubcomissao);
 
 // Ata e Convocatória podem ser de uma reunião da Direção ou de uma reunião com todos os
-// sócios (Assembleia Geral) — este campo diferencia as duas, para os outros tipos nem faz
-// sentido e por isso fica escondido.
+// sócios (Assembleia Geral) — este campo diferencia as duas. Só faz sentido quando o
+// documento é Interno (uma Ata ou Convocatória enviada/recebida de fora não tem essa
+// distinção), por isso fica escondido nos outros casos.
 const TIPOS_REUNIAO = ['ata', 'convocatoria'];
 function atualizarCampoReuniaoPublico(){
   const tipo = document.getElementById('doc-tipo').value;
+  const estado = document.getElementById('doc-estado').value;
   const label = document.getElementById('label-doc-reuniao-publico');
   const select = document.getElementById('doc-reuniao-publico');
-  const mostrar = TIPOS_REUNIAO.includes(tipo);
+  const mostrar = TIPOS_REUNIAO.includes(tipo) && estado === 'interno';
   label.style.display = mostrar ? '' : 'none';
   select.style.display = mostrar ? '' : 'none';
   select.required = mostrar;
@@ -2684,6 +2832,10 @@ function atualizarCampoReuniaoPublico(){
 }
 
 document.getElementById('doc-tipo').addEventListener('change', atualizarCampoReuniaoPublico);
+document.getElementById('doc-tipo').addEventListener('change', atualizarCampoDestinatario);
+document.getElementById('doc-tipo').addEventListener('change', atualizarCampoAssunto);
+document.getElementById('doc-tipo').addEventListener('change', atualizarCampoObservacoes);
+document.getElementById('doc-reuniao-publico').addEventListener('change', atualizarCampoDestinatario);
 
 // Alguns tipos (ex: "Membro da Direção") não são uma comunicação enviada/recebida — são
 // só um registo (ex: a lista de quem está na Direção nesse mandato). Para esses tipos os
@@ -2730,11 +2882,14 @@ function atualizarCamposRegistoSimples(){
 }
 
 document.getElementById('doc-tipo').addEventListener('change', atualizarCamposRegistoSimples);
+document.getElementById('doc-tipo').addEventListener('change', atualizarOpcoesSentido);
 
 document.getElementById('doc-estado').addEventListener('change', ()=>{
   atualizarCampoAnexo();
   atualizarOpcoesTipo();
   atualizarCampoEmissor();
+  atualizarCampoDestinatario();
+  atualizarCampoReuniaoPublico();
 });
 
 document.getElementById('btn-novo-doc').addEventListener('click', ()=>{
@@ -2752,10 +2907,16 @@ document.getElementById('btn-novo-doc').addEventListener('click', ()=>{
   document.getElementById('nome-ficheiro').classList.remove('tem-ficheiro');
   document.getElementById('progresso-upload').style.display = 'none';
   document.getElementById('doc-tipo').disabled = false;
+  document.getElementById('doc-tipo').innerHTML = TIPOS.map(t=>`<option value="${t.v}">${t.l}</option>`).join(''); // repõe a lista completa antes de filtrar, para não herdar um filtro de uma edição anterior
+  document.getElementById('doc-estado').value = 'interno'; // ponto de partida para documentos novos
   preencherSelectRespostaA();
   atualizarCampoAnexo();
   atualizarOpcoesTipo();
+  atualizarOpcoesSentido();
   atualizarCampoEmissor();
+  atualizarCampoDestinatario();
+  atualizarCampoAssunto();
+  atualizarCampoObservacoes();
   atualizarCampoMandato();
   atualizarCampoSubcomissao();
   atualizarCampoReuniaoPublico();
@@ -2892,8 +3053,17 @@ function uploadComProgresso(bucket, caminho, ficheiro, aoProgredir){
   });
 }
 
+// Formato rígido do número de referência: exatamente 3 dígitos / "AAFM" / 4 dígitos do ano
+// (ex: "001/AAFM/2026"). Qualquer letra, número ou separador fora deste padrão é rejeitado.
+const REGEX_NUMERO_REFERENCIA = /^\d{3}\/AAFM\/\d{4}$/;
+
 document.getElementById('form-doc').addEventListener('submit', async(e)=>{
   e.preventDefault();
+  const numeroDigitado = document.getElementById('doc-numero-referencia').value.trim();
+  if(numeroDigitado && !REGEX_NUMERO_REFERENCIA.test(numeroDigitado)){
+    await avisarPersonalizado('O número de referência tem de seguir exatamente o formato 000/AAFM/ANO — 3 dígitos, "AAFM" e o ano com 4 dígitos (ex: 001/AAFM/2026).', 'Número de referência inválido');
+    return;
+  }
   const registo = {
     tipo: document.getElementById('doc-tipo').value,
     reuniao_publico: TIPOS_REUNIAO.includes(document.getElementById('doc-tipo').value) ? (document.getElementById('doc-reuniao-publico').value || null) : null,
@@ -2902,14 +3072,24 @@ document.getElementById('form-doc').addEventListener('submit', async(e)=>{
     data: document.getElementById('doc-data').value,
     estado: document.getElementById('doc-estado').value,
     arquivado: document.getElementById('doc-arquivado').checked,
-    assunto: document.getElementById('doc-assunto').value,
-    emissor: (document.getElementById('doc-estado').value === 'recebido'
-      ? document.getElementById('doc-emissor-texto').value.trim()
-      : document.getElementById('doc-emissor').value) || null,
+    assunto: '', // preenchido a seguir (Ata/Convocatória geram o assunto sozinhas; os restantes usam o campo)
+    emissor: document.getElementById('doc-estado').value === 'recebido'
+      ? null // em "Recebido" essa informação já fica no campo Remetente, não se pede duas vezes
+      : (document.getElementById('doc-emissor').value || null),
     destinatario: document.getElementById('doc-destinatario').value,
     observacoes: document.getElementById('doc-observacoes').value,
     em_resposta_a: document.getElementById('doc-em-resposta-a').value || null,
   };
+
+  // Ata e Convocatória não pedem Assunto ao utilizador (fica coberto por "Reunião de" + data)
+  // — mas o resto da app usa "assunto" como título do documento em todo o lado (listas, PDF,
+  // Excel), por isso gera-se um automaticamente aqui, em vez de deixar em branco.
+  if(TIPOS_REUNIAO.includes(registo.tipo)){
+    const audiencia = registo.reuniao_publico === 'socios' ? 'Assembleia Geral' : 'Reunião da Direção';
+    registo.assunto = (registo.tipo === 'ata' ? 'Ata da ' : 'Convocatória para a ') + audiencia + ' de ' + formatarData(registo.data);
+  } else {
+    registo.assunto = document.getElementById('doc-assunto').value;
+  }
 
   // ficheiros já guardados (ao editar), menos os que o utilizador marcou para remover
   let anexosFinais = (DOC_EM_EDICAO && ANEXO_ATUAL)
@@ -2917,8 +3097,7 @@ document.getElementById('form-doc').addEventListener('submit', async(e)=>{
     : [];
 
   // número de referência é agora sempre manual (geração automática desativada)
-  const numeroManual = document.getElementById('doc-numero-referencia').value.trim();
-  if(numeroManual){ registo.numero_referencia = numeroManual; }
+  if(numeroDigitado){ registo.numero_referencia = numeroDigitado; }
 
   const ficheiros = Array.from(document.getElementById('doc-anexo').files);
   const barraProgresso = document.getElementById('progresso-upload');
@@ -3077,6 +3256,10 @@ document.getElementById('btn-editar-numero-cancelar').addEventListener('click', 
 document.getElementById('btn-editar-numero-guardar').addEventListener('click', async ()=>{
   const novoNumero = document.getElementById('input-editar-numero').value.trim();
   if(!novoNumero){ await avisarPersonalizado('O número de referência não pode ficar em branco.'); return; }
+  if(!REGEX_NUMERO_REFERENCIA.test(novoNumero)){
+    await avisarPersonalizado('O número de referência tem de seguir exatamente o formato 000/AAFM/ANO — 3 dígitos, "AAFM" e o ano com 4 dígitos (ex: 001/AAFM/2026).', 'Número de referência inválido');
+    return;
+  }
   const d = DOC_VISUALIZADO;
   const { error } = await sb.from('documentos').update({ numero_referencia: novoNumero }).eq('id', d.id);
   if(error){ await avisarPersonalizado('Erro ao atualizar o número: ' + error.message); return; }
@@ -3099,6 +3282,7 @@ async function abrirEdicaoDoc(d){
   document.getElementById('doc-subcomissao').value = d.subcomissao || '';
   document.getElementById('doc-numero-referencia').value = d.numero_referencia || '';
   document.getElementById('doc-data').value = d.data;
+  document.getElementById('doc-estado').innerHTML = ['interno','enviado','recebido'].map(s=>`<option value="${s}">${ROTULOS_SENTIDO[s]}</option>`).join(''); // repõe as 3 opções antes de aplicar o valor guardado — o documento pode ter um sentido que a filtragem atual esconderia
   document.getElementById('doc-estado').value = d.estado;
   document.getElementById('doc-arquivado').checked = !!d.arquivado;
   document.getElementById('doc-assunto').value = d.assunto;
@@ -3114,6 +3298,9 @@ async function abrirEdicaoDoc(d){
   document.getElementById('progresso-upload').style.display = 'none';
   atualizarCampoAnexo();
   atualizarCampoEmissor();
+  atualizarCampoDestinatario();
+  atualizarCampoAssunto();
+  atualizarCampoObservacoes();
   atualizarCampoMandato();
   atualizarCampoSubcomissao();
   atualizarCampoReuniaoPublico();
@@ -3663,7 +3850,7 @@ function gerarNarrativaAtividades(lista, periodo){
   paragrafos.push(p1);
 
   const partesEstado = Object.entries(a.porEstado).map(([e,n])=> `${n} ${n===1?e:e+'s'}`);
-  paragrafos.push(`Quanto à direção: ${partesEstado.join(', ')}.`);
+  paragrafos.push(`Quanto ao sentido: ${partesEstado.join(', ')}.`);
 
   const extra = [];
   if(a.receberamResposta>0) extra.push(`${a.receberamResposta} ${a.receberamResposta===1?'já recebeu resposta formal':'já receberam resposta formal'}`);
