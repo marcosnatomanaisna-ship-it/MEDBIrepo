@@ -118,6 +118,46 @@
   .btn-perigo{ background:var(--red); color:#fff; padding:12px 18px; width:auto; margin-top:0; box-shadow:0 1px 2px rgba(27,42,74,.2); }
   .btn-perigo:hover{ background:var(--red-deep); }
   .link-alt{ text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+
+  /* ---------- BLOQUEIO DA APP (PIN / Senha / Padrão) ---------- */
+  #tela-bloqueio{
+    display:none; position:fixed; inset:0; z-index:200;
+    min-height:100vh; align-items:center; justify-content:center; padding:24px;
+    background:
+      radial-gradient(ellipse at top, rgba(176,141,87,.06), transparent 55%),
+      var(--parchment);
+  }
+  .icone-cadeado{ width:52px;height:52px;border-radius:50%; background:var(--ink); color:#fff;
+    display:flex;align-items:center;justify-content:center; margin:0 auto 18px; font-size:24px; }
+  .opcoes-tipo-bloqueio{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+  .opcao-tipo-bloqueio{ background:var(--parchment-2); color:var(--charcoal); padding:14px 16px; text-align:left;
+    border:1px solid var(--line); border-radius:var(--radius-sm); font-size:14px; display:flex; align-items:center; gap:10px; }
+  .opcao-tipo-bloqueio:hover{ border-color:var(--gold); }
+  .opcao-tipo-bloqueio span.emoji{ font-size:18px; }
+  /* pontos indicadores do PIN */
+  .pontos-pin{ display:flex; justify-content:center; gap:14px; margin:22px 0; }
+  .ponto-pin{ width:16px;height:16px;border-radius:50%; border:2px solid var(--gold); background:transparent; transition:background .1s ease; }
+  .ponto-pin.preenchido{ background:var(--ink); border-color:var(--ink); }
+  .ponto-pin.erro{ background:var(--red); border-color:var(--red); }
+  /* teclado numérico */
+  .teclado-numerico{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:260px; margin:0 auto; }
+  .tecla-numerica{ background:var(--parchment-2); color:var(--ink); font-size:20px; font-weight:600;
+    padding:16px 0; border-radius:50%; aspect-ratio:1; }
+  .tecla-numerica:hover{ background:var(--gold-soft); }
+  .tecla-numerica.tecla-vazia{ background:transparent; box-shadow:none; }
+  .tecla-numerica.tecla-apagar{ font-size:15px; background:transparent; color:var(--muted); }
+  /* padrão (grelha 3x3) */
+  .grade-padrao-wrap{ position:relative; width:220px; margin:22px auto; touch-action:none; }
+  .grade-padrao{ display:grid; grid-template-columns:repeat(3,1fr); gap:32px; place-items:center; }
+  .grade-padrao svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .grade-padrao svg line{ stroke:var(--gold); stroke-width:3; }
+  .ponto-padrao{ width:22px;height:22px;border-radius:50%; background:var(--parchment-2); border:2px solid var(--line); position:relative; z-index:1; }
+  .ponto-padrao.ativo{ background:var(--ink); border-color:var(--ink); }
+  .ponto-padrao.erro{ background:var(--red); border-color:var(--red); }
+  .texto-bloqueio-erro{ text-align:center; color:var(--red); font-size:13px; min-height:18px; margin-top:6px; }
+  .estado-bloqueio-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 14px; background:var(--parchment-2); border-radius:var(--radius-sm); margin-bottom:16px; font-size:13.5px; }
+
   .link-alt a{ color:var(--red); cursor:pointer; text-decoration:none; font-weight:600; }
   .link-alt a:hover{ text-decoration:underline; }
   .erro{ color:var(--red); font-size:13px; margin-top:10px; text-align:center; }
@@ -596,6 +636,18 @@
   </div>
 </div>
 
+<!-- ============ BLOQUEIO DA APP (PIN / Senha / Padrão) ============ -->
+<div id="tela-bloqueio">
+  <div class="cartao-login" style="max-width:340px;">
+    <div class="icone-cadeado">🔒</div>
+    <h1 style="font-size:19px;">Arquivo Bloqueado</h1>
+    <p class="sub" id="bloqueio-subtitulo">Introduz o teu PIN para continuar</p>
+    <div id="bloqueio-conteudo"></div>
+    <p class="texto-bloqueio-erro" id="bloqueio-erro"></p>
+    <p class="link-alt"><a href="#" id="link-bloqueio-terminar-sessao">Esqueci-me — terminar sessão</a></p>
+  </div>
+</div>
+
 <!-- ============ APP ============ -->
 <div id="app">
   <div class="overlay-menu" id="overlay-menu"></div>
@@ -614,6 +666,7 @@
       <button class="item-painel-menu" id="btn-backup-completo" style="display:none;">📤 <span>Exportar Documentos</span></button>
       <button class="item-painel-menu" id="btn-membros" style="display:none;">⚙️ <span>Membros</span></button>
       <button class="item-painel-menu" id="btn-alterar-senha">🔑 <span>Alterar Senha</span></button>
+      <button class="item-painel-menu" id="btn-bloqueio-app">🔒 <span>Bloqueio da App</span></button>
       <button class="item-painel-menu" id="btn-lixo" style="display:none;">🗑️ <span>Lixo</span></button>
       <button class="item-painel-menu" id="btn-sair">🚪 <span>Sair</span></button>
     </nav>
@@ -990,6 +1043,22 @@
     <div class="acoes-modal">
       <button type="button" class="btn-secundario" id="btn-editar-numero-cancelar">Cancelar</button>
       <button type="button" class="btn-primario" style="width:auto;" id="btn-editar-numero-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL BLOQUEIO DA APP ============ -->
+<div class="sobreposicao" id="modal-bloqueio">
+  <div class="modal" style="max-width:400px;">
+    <h2>Bloqueio da App</h2>
+    <div class="estado-bloqueio-linha">
+      <span id="bloqueio-estado-texto">Bloqueio: Inativo</span>
+      <button type="button" class="btn-secundario" id="btn-bloqueio-desativar" style="display:none;">Desativar</button>
+    </div>
+    <div id="bloqueio-config-conteudo"></div>
+    <p class="texto-bloqueio-erro" id="bloqueio-config-erro"></p>
+    <div class="acoes-modal">
+      <button type="button" class="btn-secundario" id="btn-bloqueio-fechar">Fechar</button>
     </div>
   </div>
 </div>
@@ -1657,6 +1726,288 @@ function atualizarOpcoesSentido(){
 
 document.getElementById('doc-tipo').innerHTML = TIPOS.map(t=>`<option value="${t.v}">${t.l}</option>`).join('');
 
+/* =========================================================
+   BLOQUEIO DA APP (PIN / Senha / Padrão)
+   Camada extra de segurança por cima da sessão já autenticada no Supabase — pensada
+   para reabrir a app rapidamente sem repetir email/senha todas as vezes, mas sem
+   deixar o arquivo exposto se alguém pegar no telemóvel. Guardado na tabela
+   "bloqueios" do Supabase (associado ao user_id), sempre só como hash — nunca em
+   texto simples — e protegido por RLS para que cada um só veja o seu próprio.
+   Fica em cache em memória depois de carregado, para o novo desbloqueio (troca de
+   app, ecrã apagado, etc.) não depender de rede nem ficar lento.
+   ========================================================= */
+const ROTULOS_TIPO_BLOQUEIO = { pin:'PIN', senha:'Senha', padrao:'Padrão' };
+let USER_ID = null;
+let CONFIG_BLOQUEIO_CACHE = null;
+
+function gerarSal(){
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function hashTexto(texto, sal){
+  const dados = new TextEncoder().encode(sal + ':' + texto);
+  const buffer = await crypto.subtle.digest('SHA-256', dados);
+  return Array.from(new Uint8Array(buffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+// Vai buscar a configuração do bloqueio ao Supabase e guarda-a em cache — chamado uma vez
+// ao entrar na app (e outra vez ao abrir as definições, para apanhar alterações feitas
+// noutro aparelho).
+async function carregarConfigBloqueioServidor(){
+  if(!USER_ID) return;
+  const { data, error } = await sb.from('bloqueios').select('tipo, hash, sal').eq('user_id', USER_ID).maybeSingle();
+  if(error){ console.error('Falha ao carregar bloqueio do servidor:', error.message); return; }
+  CONFIG_BLOQUEIO_CACHE = data || null;
+}
+function obterConfigBloqueio(){
+  return CONFIG_BLOQUEIO_CACHE;
+}
+async function guardarConfigBloqueio(cfg){
+  CONFIG_BLOQUEIO_CACHE = cfg;
+  const { error } = await sb.from('bloqueios').upsert({
+    user_id: USER_ID, tipo: cfg.tipo, hash: cfg.hash, sal: cfg.sal, atualizado_em: new Date().toISOString()
+  });
+  if(error){ await avisarPersonalizado('Não foi possível guardar o bloqueio no servidor: ' + error.message); }
+}
+async function removerConfigBloqueio(){
+  CONFIG_BLOQUEIO_CACHE = null;
+  const { error } = await sb.from('bloqueios').delete().eq('user_id', USER_ID);
+  if(error){ console.error('Falha ao remover bloqueio do servidor:', error.message); }
+}
+
+/* ---- UI de introdução de credencial, reutilizada no ecrã de desbloqueio E na
+   configuração (definir / confirmar). Cada render devolve {marcarErro} para o efeito
+   visual de erro, e chama onSubmit(valorIntroduzido) quando a credencial fica completa. ---- */
+function renderBloqueioPin(container, onSubmit){
+  let valor = '';
+  container.innerHTML = `
+    <div class="pontos-pin">${[0,1,2,3].map(i=>`<span class="ponto-pin" data-i="${i}"></span>`).join('')}</div>
+    <div class="teclado-numerico">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" class="tecla-numerica" data-n="${n}">${n}</button>`).join('')}
+      <span class="tecla-numerica tecla-vazia"></span>
+      <button type="button" class="tecla-numerica" data-n="0">0</button>
+      <button type="button" class="tecla-numerica tecla-apagar" data-n="apagar">⌫</button>
+    </div>`;
+  function atualizarPontos(){
+    container.querySelectorAll('.ponto-pin').forEach((p,i)=>{
+      p.classList.toggle('preenchido', i < valor.length);
+      p.classList.remove('erro');
+    });
+  }
+  container.querySelectorAll('.tecla-numerica[data-n]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const n = btn.dataset.n;
+      if(n === 'apagar'){ valor = valor.slice(0,-1); atualizarPontos(); return; }
+      if(valor.length >= 4) return;
+      valor += n;
+      atualizarPontos();
+      if(valor.length === 4){
+        const v = valor; valor = '';
+        setTimeout(()=> onSubmit(v), 120); // dá tempo ao utilizador de ver o último ponto preencher
+      }
+    });
+  });
+  return {
+    marcarErro(){
+      container.querySelectorAll('.ponto-pin').forEach(p=>p.classList.add('erro'));
+      setTimeout(atualizarPontos, 400);
+    }
+  };
+}
+function renderBloqueioSenha(container, onSubmit){
+  container.innerHTML = `
+    <input type="password" id="campo-senha-bloqueio" placeholder="Senha" autocomplete="off" style="text-align:center;letter-spacing:2px;">
+    <button type="button" class="btn-primario" id="btn-senha-bloqueio-confirmar">Confirmar</button>`;
+  const campo = container.querySelector('#campo-senha-bloqueio');
+  const confirmar = ()=>{ if(campo.value.length >= 4) onSubmit(campo.value); };
+  container.querySelector('#btn-senha-bloqueio-confirmar').addEventListener('click', confirmar);
+  campo.addEventListener('keydown', e=>{ if(e.key === 'Enter') confirmar(); });
+  setTimeout(()=>campo.focus(), 50);
+  return { marcarErro(){ campo.value=''; campo.focus(); } };
+}
+function renderBloqueioPadrao(container, onSubmit){
+  container.innerHTML = `
+    <div class="grade-padrao-wrap">
+      <svg id="svg-padrao"></svg>
+      <div class="grade-padrao">
+        ${[0,1,2,3,4,5,6,7,8].map(i=>`<div class="ponto-padrao" data-i="${i}"></div>`).join('')}
+      </div>
+    </div>`;
+  const wrap = container.querySelector('.grade-padrao-wrap');
+  const svg = container.querySelector('#svg-padrao');
+  const pontos = Array.from(container.querySelectorAll('.ponto-padrao'));
+  let sequencia = [];
+  let arrastando = false;
+  function centroDoPonto(el){
+    const r = el.getBoundingClientRect();
+    const wr = wrap.getBoundingClientRect();
+    return { x: r.left + r.width/2 - wr.left, y: r.top + r.height/2 - wr.top };
+  }
+  function redesenharLinhas(){
+    svg.innerHTML = sequencia.slice(1).map((idx,i)=>{
+      const a = centroDoPonto(pontos[sequencia[i]]);
+      const b = centroDoPonto(pontos[idx]);
+      return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
+    }).join('');
+  }
+  function limpar(){
+    sequencia = [];
+    pontos.forEach(p=>p.classList.remove('ativo','erro'));
+    svg.innerHTML = '';
+  }
+  function pontoNaPosicao(x, y){
+    return pontos.find(p=>{
+      const r = p.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    });
+  }
+  function processarPosicao(x, y){
+    const p = pontoNaPosicao(x, y);
+    if(!p) return;
+    const idx = Number(p.dataset.i);
+    if(sequencia.includes(idx)) return;
+    sequencia.push(idx);
+    p.classList.add('ativo');
+    redesenharLinhas();
+  }
+  function terminar(){
+    if(!arrastando) return;
+    arrastando = false;
+    if(sequencia.length < 4){
+      pontos.forEach(p=>p.classList.add('erro'));
+      setTimeout(limpar, 400);
+      return;
+    }
+    onSubmit(sequencia.join(''));
+  }
+  wrap.addEventListener('pointerdown', e=>{ e.preventDefault(); limpar(); arrastando = true; processarPosicao(e.clientX, e.clientY); });
+  wrap.addEventListener('pointermove', e=>{ if(arrastando){ e.preventDefault(); processarPosicao(e.clientX, e.clientY); } });
+  window.addEventListener('pointerup', terminar);
+  return { marcarErro(){ pontos.forEach(p=>p.classList.add('erro')); setTimeout(limpar, 400); } };
+}
+function renderBloqueioPorTipo(tipo, container, onSubmit){
+  if(tipo === 'pin') return renderBloqueioPin(container, onSubmit);
+  if(tipo === 'senha') return renderBloqueioSenha(container, onSubmit);
+  return renderBloqueioPadrao(container, onSubmit);
+}
+
+/* ---- Ecrã de desbloqueio (gate) — mostrado ao abrir a app e sempre que ela volta
+   de segundo plano (troca de app, ecrã do telemóvel apagado, etc.) ---- */
+let APP_DESBLOQUEADA = false;
+let BLOQUEIO_A_MOSTRAR = false;
+function mostrarTelaBloqueio(){
+  return new Promise((resolve)=>{
+    const cfg = obterConfigBloqueio();
+    if(!cfg || BLOQUEIO_A_MOSTRAR){ APP_DESBLOQUEADA = true; resolve(); return; }
+    BLOQUEIO_A_MOSTRAR = true;
+    const tela = document.getElementById('tela-bloqueio');
+    const subtitulo = document.getElementById('bloqueio-subtitulo');
+    const conteudo = document.getElementById('bloqueio-conteudo');
+    const erro = document.getElementById('bloqueio-erro');
+    erro.textContent = '';
+    subtitulo.textContent = cfg.tipo === 'pin' ? 'Introduz o teu PIN para continuar'
+      : cfg.tipo === 'senha' ? 'Introduz a tua senha para continuar'
+      : 'Desenha o teu padrão para continuar';
+    tela.style.display = 'flex';
+    let controlo;
+    async function tentar(valor){
+      const h = await hashTexto(valor, cfg.sal);
+      if(h === cfg.hash){
+        erro.textContent = '';
+        tela.style.display = 'none';
+        APP_DESBLOQUEADA = true;
+        BLOQUEIO_A_MOSTRAR = false;
+        resolve();
+      } else {
+        erro.textContent = 'Incorreto. Tenta novamente.';
+        if(controlo && controlo.marcarErro) controlo.marcarErro();
+      }
+    }
+    controlo = renderBloqueioPorTipo(cfg.tipo, conteudo, tentar);
+  });
+}
+document.getElementById('link-bloqueio-terminar-sessao').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const confirmado = await confirmarPersonalizado('Vais terminar sessão e o bloqueio atual será removido da tua conta. Da próxima vez terás de entrar com o teu email e senha. Continuar?', 'Terminar sessão', 'Terminar sessão');
+  if(!confirmado) return;
+  await removerConfigBloqueio();
+  document.getElementById('tela-bloqueio').style.display = 'none';
+  BLOQUEIO_A_MOSTRAR = false;
+  await sb.auth.signOut();
+  window.location.reload();
+});
+// Re-bloqueia sempre que a app volta a ficar visível depois de ter estado escondida
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    APP_DESBLOQUEADA = false;
+  } else if(!APP_DESBLOQUEADA && !BLOQUEIO_A_MOSTRAR && obterConfigBloqueio() && document.getElementById('app').style.display !== 'none'){
+    mostrarTelaBloqueio();
+  }
+});
+
+/* ---- Configuração do bloqueio (menu → Bloqueio da App) ---- */
+function renderizarModalBloqueio(){
+  const cfg = obterConfigBloqueio();
+  document.getElementById('bloqueio-estado-texto').textContent = 'Bloqueio: ' + (cfg ? `Ativo (${ROTULOS_TIPO_BLOQUEIO[cfg.tipo]})` : 'Inativo');
+  document.getElementById('btn-bloqueio-desativar').style.display = cfg ? 'inline-block' : 'none';
+  document.getElementById('bloqueio-config-erro').textContent = '';
+  const area = document.getElementById('bloqueio-config-conteudo');
+  area.innerHTML = `
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px;">${cfg ? 'Escolhe um novo tipo para substituir o bloqueio atual:' : 'Escolhe como proteger o acesso a este arquivo neste aparelho:'}</p>
+    <div class="opcoes-tipo-bloqueio">
+      <button type="button" class="opcao-tipo-bloqueio" data-tipo="pin"><span class="emoji">🔢</span> PIN</button>
+      <button type="button" class="opcao-tipo-bloqueio" data-tipo="senha"><span class="emoji">🔡</span> Senha</button>
+      <button type="button" class="opcao-tipo-bloqueio" data-tipo="padrao"><span class="emoji">🔀</span> Padrão</button>
+    </div>`;
+  area.querySelectorAll('.opcao-tipo-bloqueio').forEach(btn=>{
+    btn.addEventListener('click', ()=> iniciarConfiguracaoBloqueio(btn.dataset.tipo));
+  });
+}
+function iniciarConfiguracaoBloqueio(tipo){
+  const area = document.getElementById('bloqueio-config-conteudo');
+  const erro = document.getElementById('bloqueio-config-erro');
+  erro.textContent = '';
+  let primeiroValor = null;
+  function passoDefinir(){
+    area.innerHTML = `<p style="font-size:13px;color:var(--muted);margin:0 0 10px;">Define o teu novo ${ROTULOS_TIPO_BLOQUEIO[tipo].toLowerCase()}${tipo==='padrao' ? ' (liga pelo menos 4 pontos)' : ''}:</p><div id="area-passo-bloqueio"></div>`;
+    renderBloqueioPorTipo(tipo, document.getElementById('area-passo-bloqueio'), (valor)=>{
+      if(tipo === 'senha' && valor.length < 4){ erro.textContent = 'A senha deve ter pelo menos 4 caracteres.'; return; }
+      primeiroValor = valor;
+      passoConfirmar();
+    });
+  }
+  function passoConfirmar(){
+    area.innerHTML = `<p style="font-size:13px;color:var(--muted);margin:0 0 10px;">Confirma outra vez:</p><div id="area-passo-bloqueio"></div>`;
+    renderBloqueioPorTipo(tipo, document.getElementById('area-passo-bloqueio'), async (valor)=>{
+      if(valor !== primeiroValor){
+        erro.textContent = 'Não coincide — vamos começar outra vez.';
+        setTimeout(passoDefinir, 800);
+        return;
+      }
+      const sal = gerarSal();
+      const hash = await hashTexto(valor, sal);
+      await guardarConfigBloqueio({ tipo, hash, sal });
+      await avisarPersonalizado('Bloqueio ativado com sucesso.', 'Bloqueio da App');
+      renderizarModalBloqueio();
+    });
+  }
+  passoDefinir();
+}
+document.getElementById('btn-bloqueio-app').addEventListener('click', async ()=>{
+  await carregarConfigBloqueioServidor(); // repõe do servidor, para apanhar alterações feitas noutro aparelho
+  renderizarModalBloqueio();
+  document.getElementById('modal-bloqueio').style.display = 'flex';
+});
+document.getElementById('btn-bloqueio-fechar').addEventListener('click', ()=>{
+  document.getElementById('modal-bloqueio').style.display = 'none';
+});
+document.getElementById('btn-bloqueio-desativar').addEventListener('click', async ()=>{
+  const confirmado = await confirmarPersonalizado('Desativar o bloqueio da tua conta? Poderás voltar a ativar quando quiseres.', 'Desativar Bloqueio', 'Desativar');
+  if(!confirmado) return;
+  await removerConfigBloqueio();
+  renderizarModalBloqueio();
+});
+
 async function iniciar(){
   // Se o utilizador chegou através do link de recuperação de senha enviado por email,
   // o Supabase envia os tokens na hash do endereço (#access_token=...&type=recovery).
@@ -1805,6 +2156,8 @@ function renderizarRegisto(){
 document.getElementById('btn-sair').addEventListener('click', async ()=>{
   const confirmado = await confirmarPersonalizado('Tens a certeza que queres sair da tua conta?', 'Sair', 'Sair');
   if(!confirmado) return;
+  USER_ID = null;
+  CONFIG_BLOQUEIO_CACHE = null;
   await sb.auth.signOut();
   location.reload();
 });
@@ -1818,6 +2171,7 @@ document.getElementById('btn-pendente-sair').addEventListener('click', async ()=
 
 /* ---------- ENTRAR NA APP ---------- */
 async function entrarNaApp(user){
+  USER_ID = user.id;
   // a partir de agora este aparelho "já teve conta" — da próxima vez que abrir a app sem sessão,
   // mostra o ecrã de login por defeito em vez do de criar conta
   try{ localStorage.setItem('aafmJaTeveConta', '1'); }catch(e){}
@@ -1871,6 +2225,10 @@ async function entrarNaApp(user){
   }
 
   document.getElementById('app').style.display='block';
+  // Vai buscar a configuração do bloqueio (PIN/senha/padrão) à conta no Supabase e, se
+  // existir, mostra-a já a cobrir tudo — só continua depois de desbloqueado.
+  await carregarConfigBloqueioServidor();
+  await mostrarTelaBloqueio();
   document.getElementById('nome-utilizador').textContent = `${PERFIL.nome} · ${rotuloPapel(PERFIL.papel)}`;
   document.getElementById('btn-novo-doc').style.display = podeEditar() ? 'inline-block' : 'none';
   document.getElementById('btn-membros').style.display = PERFIL.papel === 'secretario' ? 'flex' : 'none';
