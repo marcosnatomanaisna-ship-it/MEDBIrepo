@@ -465,7 +465,10 @@
      Como ambos partilham a mesma classe .sobreposicao (z-index:50), a ordem no HTML é que decidia
      qual ficava visualmente por cima — e "modal-bloqueio" vem depois no documento, por isso tapava
      sempre o "modal-confirmar". Aqui garantimos que a confirmação fica sempre à frente de tudo. */
-  #modal-confirmar{ z-index:90; }
+  /* Precisa de ficar acima de TUDO — incluindo a tela-bloqueio (z-index:200), já que também é
+     usado para confirmar ações lançadas a partir do ecrã de bloqueio (ex: "Esqueci-me — terminar
+     sessão"). Sem isto, a confirmação ficava escondida atrás da tela de bloqueio. */
+  #modal-confirmar{ z-index:210; }
   .modal{ background:#fff; max-width:640px; width:100%; border-radius:var(--radius-md); padding:32px; box-shadow:var(--shadow-pop); }
   .modal h2{ margin:0 0 20px; font-size:20px; color:var(--ink); padding-bottom:14px; border-bottom:1px solid var(--line); }
   .modal-cabecalho{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin:0 0 20px; padding-bottom:14px; border-bottom:1px solid var(--line); }
@@ -1783,8 +1786,24 @@ async function guardarConfigBloqueio(cfg){
 }
 async function removerConfigBloqueio(){
   CONFIG_BLOQUEIO_CACHE = null;
+  limparTentativasBloqueio();
   const { error } = await sb.from('bloqueios').delete().eq('user_id', USER_ID);
   if(error){ console.error('Falha ao remover bloqueio do servidor:', error.message); }
+}
+
+/* ---- Contagem de tentativas erradas: guardada em localStorage (não no servidor) para
+   sobreviver a fechar/reabrir a app — assim não dá para "contornar" o limite só matando
+   o processo. Reposta a zero sempre que o desbloqueio é bem-sucedido, ou quando o bloqueio
+   é removido (desativado nas definições, ou pelo "Esqueci-me — terminar sessão"). ---- */
+const LIMITE_TENTATIVAS_BLOQUEIO = 5;
+function obterTentativasBloqueio(){
+  return Number(localStorage.getItem('aafmTentativasBloqueio') || '0');
+}
+function guardarTentativasBloqueio(n){
+  try{ localStorage.setItem('aafmTentativasBloqueio', String(n)); }catch(e){}
+}
+function limparTentativasBloqueio(){
+  try{ localStorage.removeItem('aafmTentativasBloqueio'); }catch(e){}
 }
 
 /* ---- UI de introdução de credencial, reutilizada no ecrã de desbloqueio E na
@@ -1918,21 +1937,42 @@ function mostrarTelaBloqueio(){
     const conteudo = document.getElementById('bloqueio-conteudo');
     const erro = document.getElementById('bloqueio-erro');
     erro.textContent = '';
+    tela.style.display = 'flex';
+
+    // Excedeu o limite de tentativas erradas numa vez anterior: nem mostra o teclado/campo —
+    // a única forma de voltar a entrar é pelo "Esqueci-me — terminar sessão" abaixo.
+    function mostrarBloqueadoPorTentativas(){
+      subtitulo.textContent = 'Bloqueado por demasiadas tentativas erradas';
+      conteudo.innerHTML = '';
+      erro.textContent = 'Por segurança, usa "Esqueci-me — terminar sessão" abaixo para voltares a entrar com o teu email e senha.';
+    }
+    if(obterTentativasBloqueio() >= LIMITE_TENTATIVAS_BLOQUEIO){
+      mostrarBloqueadoPorTentativas();
+      return;
+    }
+
     subtitulo.textContent = cfg.tipo === 'pin' ? 'Introduz o teu PIN para continuar'
       : cfg.tipo === 'senha' ? 'Introduz a tua senha para continuar'
       : 'Desenha o teu padrão para continuar';
-    tela.style.display = 'flex';
     let controlo;
     async function tentar(valor){
       const h = await hashTexto(valor, cfg.sal);
       if(h === cfg.hash){
+        limparTentativasBloqueio();
         erro.textContent = '';
         tela.style.display = 'none';
         APP_DESBLOQUEADA = true;
         BLOQUEIO_A_MOSTRAR = false;
         resolve();
       } else {
-        erro.textContent = 'Incorreto. Tenta novamente.';
+        const tentativas = obterTentativasBloqueio() + 1;
+        guardarTentativasBloqueio(tentativas);
+        const restantes = LIMITE_TENTATIVAS_BLOQUEIO - tentativas;
+        if(restantes <= 0){
+          mostrarBloqueadoPorTentativas();
+          return;
+        }
+        erro.textContent = `Incorreto. Resta${restantes===1?'':'m'} ${restantes} tentativa${restantes===1?'':'s'}.`;
         if(controlo && controlo.marcarErro) controlo.marcarErro();
       }
     }
