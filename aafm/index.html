@@ -135,7 +135,12 @@
   .opcao-tipo-bloqueio:hover{ border-color:var(--gold); }
   .opcao-tipo-bloqueio span.emoji{ font-size:18px; }
   /* pontos indicadores do PIN */
-  .pontos-pin{ display:flex; justify-content:center; gap:14px; margin:22px 0; }
+  .pontos-pin{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin:22px 0; }
+  .opcoes-comprimento-pin{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:8px 0 4px; }
+  .opcao-comprimento-pin{ background:var(--parchment-2); color:var(--charcoal); border:1px solid var(--line);
+    border-radius:var(--radius-sm); padding:10px 0; width:48px; text-align:center; font-size:14px; font-weight:600; }
+  .opcao-comprimento-pin:hover{ border-color:var(--gold); }
+  .opcao-comprimento-pin.selecionada{ background:var(--ink); color:#fff; border-color:var(--ink); }
   .ponto-pin{ width:16px;height:16px;border-radius:50%; border:2px solid var(--gold); background:transparent; transition:background .1s ease; }
   .ponto-pin.preenchido{ background:var(--ink); border-color:var(--ink); }
   .ponto-pin.erro{ background:var(--red); border-color:var(--red); }
@@ -155,8 +160,10 @@
   .ponto-padrao.ativo{ background:var(--ink); border-color:var(--ink); }
   .ponto-padrao.erro{ background:var(--red); border-color:var(--red); }
   .texto-bloqueio-erro{ text-align:center; color:var(--red); font-size:13px; min-height:18px; margin-top:6px; }
-  .estado-bloqueio-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  .estado-bloqueio-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
     padding:12px 14px; background:var(--parchment-2); border-radius:var(--radius-sm); margin-bottom:16px; font-size:13.5px; }
+  .estado-bloqueio-linha span{ flex:1 1 auto; min-width:0; }
+  .estado-bloqueio-linha button{ flex:0 0 auto; white-space:nowrap; }
 
   .link-alt a{ color:var(--red); cursor:pointer; text-decoration:none; font-weight:600; }
   .link-alt a:hover{ text-decoration:underline; }
@@ -454,6 +461,11 @@
 
   /* ---------- MODAL ---------- */
   .sobreposicao{ display:none; position:fixed; inset:0; background:rgba(27,42,74,.5); backdrop-filter:blur(1.5px); z-index:50; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto;}
+  /* O modal de confirmação pode ser aberto por cima de outro modal já aberto (ex: Bloqueio da App).
+     Como ambos partilham a mesma classe .sobreposicao (z-index:50), a ordem no HTML é que decidia
+     qual ficava visualmente por cima — e "modal-bloqueio" vem depois no documento, por isso tapava
+     sempre o "modal-confirmar". Aqui garantimos que a confirmação fica sempre à frente de tudo. */
+  #modal-confirmar{ z-index:90; }
   .modal{ background:#fff; max-width:640px; width:100%; border-radius:var(--radius-md); padding:32px; box-shadow:var(--shadow-pop); }
   .modal h2{ margin:0 0 20px; font-size:20px; color:var(--ink); padding-bottom:14px; border-bottom:1px solid var(--line); }
   .modal-cabecalho{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin:0 0 20px; padding-bottom:14px; border-bottom:1px solid var(--line); }
@@ -1053,7 +1065,7 @@
     <h2>Bloqueio da App</h2>
     <div class="estado-bloqueio-linha">
       <span id="bloqueio-estado-texto">Bloqueio: Inativo</span>
-      <button type="button" class="btn-secundario" id="btn-bloqueio-desativar" style="display:none;">Desativar</button>
+      <button type="button" class="btn-perigo" id="btn-bloqueio-desativar" style="display:none;">Desativar</button>
     </div>
     <div id="bloqueio-config-conteudo"></div>
     <p class="texto-bloqueio-erro" id="bloqueio-config-erro"></p>
@@ -1755,7 +1767,7 @@ async function hashTexto(texto, sal){
 // noutro aparelho).
 async function carregarConfigBloqueioServidor(){
   if(!USER_ID) return;
-  const { data, error } = await sb.from('bloqueios').select('tipo, hash, sal').eq('user_id', USER_ID).maybeSingle();
+  const { data, error } = await sb.from('bloqueios').select('tipo, hash, sal, comprimento').eq('user_id', USER_ID).maybeSingle();
   if(error){ console.error('Falha ao carregar bloqueio do servidor:', error.message); return; }
   CONFIG_BLOQUEIO_CACHE = data || null;
 }
@@ -1765,7 +1777,7 @@ function obterConfigBloqueio(){
 async function guardarConfigBloqueio(cfg){
   CONFIG_BLOQUEIO_CACHE = cfg;
   const { error } = await sb.from('bloqueios').upsert({
-    user_id: USER_ID, tipo: cfg.tipo, hash: cfg.hash, sal: cfg.sal, atualizado_em: new Date().toISOString()
+    user_id: USER_ID, tipo: cfg.tipo, hash: cfg.hash, sal: cfg.sal, comprimento: cfg.comprimento || null, atualizado_em: new Date().toISOString()
   });
   if(error){ await avisarPersonalizado('Não foi possível guardar o bloqueio no servidor: ' + error.message); }
 }
@@ -1778,10 +1790,11 @@ async function removerConfigBloqueio(){
 /* ---- UI de introdução de credencial, reutilizada no ecrã de desbloqueio E na
    configuração (definir / confirmar). Cada render devolve {marcarErro} para o efeito
    visual de erro, e chama onSubmit(valorIntroduzido) quando a credencial fica completa. ---- */
-function renderBloqueioPin(container, onSubmit){
+function renderBloqueioPin(container, onSubmit, comprimento){
+  comprimento = comprimento || 4; // compatibilidade com PINs antigos, sempre de 4 dígitos
   let valor = '';
   container.innerHTML = `
-    <div class="pontos-pin">${[0,1,2,3].map(i=>`<span class="ponto-pin" data-i="${i}"></span>`).join('')}</div>
+    <div class="pontos-pin">${Array.from({length:comprimento},(_,i)=>i).map(i=>`<span class="ponto-pin" data-i="${i}"></span>`).join('')}</div>
     <div class="teclado-numerico">
       ${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" class="tecla-numerica" data-n="${n}">${n}</button>`).join('')}
       <span class="tecla-numerica tecla-vazia"></span>
@@ -1798,10 +1811,10 @@ function renderBloqueioPin(container, onSubmit){
     btn.addEventListener('click', ()=>{
       const n = btn.dataset.n;
       if(n === 'apagar'){ valor = valor.slice(0,-1); atualizarPontos(); return; }
-      if(valor.length >= 4) return;
+      if(valor.length >= comprimento) return;
       valor += n;
       atualizarPontos();
-      if(valor.length === 4){
+      if(valor.length === comprimento){
         const v = valor; valor = '';
         setTimeout(()=> onSubmit(v), 120); // dá tempo ao utilizador de ver o último ponto preencher
       }
@@ -1885,8 +1898,8 @@ function renderBloqueioPadrao(container, onSubmit){
   window.addEventListener('pointerup', terminar);
   return { marcarErro(){ pontos.forEach(p=>p.classList.add('erro')); setTimeout(limpar, 400); } };
 }
-function renderBloqueioPorTipo(tipo, container, onSubmit){
-  if(tipo === 'pin') return renderBloqueioPin(container, onSubmit);
+function renderBloqueioPorTipo(tipo, container, onSubmit, comprimentoPin){
+  if(tipo === 'pin') return renderBloqueioPin(container, onSubmit, comprimentoPin);
   if(tipo === 'senha') return renderBloqueioSenha(container, onSubmit);
   return renderBloqueioPadrao(container, onSubmit);
 }
@@ -1923,7 +1936,7 @@ function mostrarTelaBloqueio(){
         if(controlo && controlo.marcarErro) controlo.marcarErro();
       }
     }
-    controlo = renderBloqueioPorTipo(cfg.tipo, conteudo, tentar);
+    controlo = renderBloqueioPorTipo(cfg.tipo, conteudo, tentar, cfg.comprimento);
   });
 }
 document.getElementById('link-bloqueio-terminar-sessao').addEventListener('click', async (e)=>{
@@ -1936,19 +1949,35 @@ document.getElementById('link-bloqueio-terminar-sessao').addEventListener('click
   await sb.auth.signOut();
   window.location.reload();
 });
-// Re-bloqueia sempre que a app volta a ficar visível depois de ter estado escondida
+// Re-bloqueia quando a app volta a ficar visível depois de ter estado escondida — mas só
+// se ficou escondida durante muito tempo (5 minutos), para tolerar minimizações rápidas
+// (trocar de app por breves instantes, notificações, seletor de ficheiros, câmara, etc.)
+// sem incomodar com o código a cada volta.
+// Nota técnica: o browser não distingue "ecrã do telemóvel bloqueado" de "app minimizada" —
+// ambos disparam o mesmo evento (visibilitychange), por isso seguem a mesma regra dos 5 minutos
+// aqui. Já fechar a app pela lixeira/deslizar nos recentes NÃO passa por aqui: isso mata o
+// processo e a próxima abertura é sempre um carregamento novo da página, que já pede o código
+// de imediato (ver entrarNaApp/mostrarTelaBloqueio), sem precisar de nenhum temporizador.
+const LIMITE_ESCONDIDO_PARA_BLOQUEAR_MS = 5 * 60 * 1000;
+let HORA_EM_QUE_FICOU_ESCONDIDA = null;
 document.addEventListener('visibilitychange', ()=>{
   if(document.hidden){
+    HORA_EM_QUE_FICOU_ESCONDIDA = Date.now();
+  } else if(HORA_EM_QUE_FICOU_ESCONDIDA !== null){
+    const escondidaDurante = Date.now() - HORA_EM_QUE_FICOU_ESCONDIDA;
+    HORA_EM_QUE_FICOU_ESCONDIDA = null;
+    if(escondidaDurante < LIMITE_ESCONDIDO_PARA_BLOQUEAR_MS) return; // interrupção rápida — ignora
     APP_DESBLOQUEADA = false;
-  } else if(!APP_DESBLOQUEADA && !BLOQUEIO_A_MOSTRAR && obterConfigBloqueio() && document.getElementById('app').style.display !== 'none'){
-    mostrarTelaBloqueio();
+    if(!BLOQUEIO_A_MOSTRAR && obterConfigBloqueio() && document.getElementById('app').style.display !== 'none'){
+      mostrarTelaBloqueio();
+    }
   }
 });
 
 /* ---- Configuração do bloqueio (menu → Bloqueio da App) ---- */
 function renderizarModalBloqueio(){
   const cfg = obterConfigBloqueio();
-  document.getElementById('bloqueio-estado-texto').textContent = 'Bloqueio: ' + (cfg ? `Ativo (${ROTULOS_TIPO_BLOQUEIO[cfg.tipo]})` : 'Inativo');
+  document.getElementById('bloqueio-estado-texto').textContent = 'Bloqueio: ' + (cfg ? `Ativo (${ROTULOS_TIPO_BLOQUEIO[cfg.tipo]}${cfg.tipo==='pin' ? ' de ' + (cfg.comprimento||4) + ' dígitos' : ''})` : 'Inativo');
   document.getElementById('btn-bloqueio-desativar').style.display = cfg ? 'inline-block' : 'none';
   document.getElementById('bloqueio-config-erro').textContent = '';
   const area = document.getElementById('bloqueio-config-conteudo');
@@ -1957,7 +1986,6 @@ function renderizarModalBloqueio(){
     <div class="opcoes-tipo-bloqueio">
       <button type="button" class="opcao-tipo-bloqueio" data-tipo="pin"><span class="emoji">🔢</span> PIN</button>
       <button type="button" class="opcao-tipo-bloqueio" data-tipo="senha"><span class="emoji">🔡</span> Senha</button>
-      <button type="button" class="opcao-tipo-bloqueio" data-tipo="padrao"><span class="emoji">🔀</span> Padrão</button>
     </div>`;
   area.querySelectorAll('.opcao-tipo-bloqueio').forEach(btn=>{
     btn.addEventListener('click', ()=> iniciarConfiguracaoBloqueio(btn.dataset.tipo));
@@ -1968,30 +1996,46 @@ function iniciarConfiguracaoBloqueio(tipo){
   const erro = document.getElementById('bloqueio-config-erro');
   erro.textContent = '';
   let primeiroValor = null;
+  let comprimentoPin = 4;
+  function passoEscolherComprimento(){
+    area.innerHTML = `
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px;">Quantos dígitos deve ter o teu PIN?</p>
+      <div class="opcoes-comprimento-pin">
+        ${[4,5,6,7,8].map(n=>`<button type="button" class="opcao-comprimento-pin${n===comprimentoPin?' selecionada':''}" data-n="${n}">${n}</button>`).join('')}
+      </div>`;
+    area.querySelectorAll('.opcao-comprimento-pin').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        comprimentoPin = Number(btn.dataset.n);
+        passoDefinir();
+      });
+    });
+  }
   function passoDefinir(){
     area.innerHTML = `<p style="font-size:13px;color:var(--muted);margin:0 0 10px;">Define o teu novo ${ROTULOS_TIPO_BLOQUEIO[tipo].toLowerCase()}${tipo==='padrao' ? ' (liga pelo menos 4 pontos)' : ''}:</p><div id="area-passo-bloqueio"></div>`;
     renderBloqueioPorTipo(tipo, document.getElementById('area-passo-bloqueio'), (valor)=>{
       if(tipo === 'senha' && valor.length < 4){ erro.textContent = 'A senha deve ter pelo menos 4 caracteres.'; return; }
       primeiroValor = valor;
       passoConfirmar();
-    });
+    }, comprimentoPin);
   }
   function passoConfirmar(){
     area.innerHTML = `<p style="font-size:13px;color:var(--muted);margin:0 0 10px;">Confirma outra vez:</p><div id="area-passo-bloqueio"></div>`;
     renderBloqueioPorTipo(tipo, document.getElementById('area-passo-bloqueio'), async (valor)=>{
       if(valor !== primeiroValor){
         erro.textContent = 'Não coincide — vamos começar outra vez.';
-        setTimeout(passoDefinir, 800);
+        setTimeout(tipo === 'pin' ? passoEscolherComprimento : passoDefinir, 800);
         return;
       }
       const sal = gerarSal();
       const hash = await hashTexto(valor, sal);
-      await guardarConfigBloqueio({ tipo, hash, sal });
+      const cfg = { tipo, hash, sal };
+      if(tipo === 'pin') cfg.comprimento = comprimentoPin;
+      await guardarConfigBloqueio(cfg);
       await avisarPersonalizado('Bloqueio ativado com sucesso.', 'Bloqueio da App');
       renderizarModalBloqueio();
-    });
+    }, comprimentoPin);
   }
-  passoDefinir();
+  if(tipo === 'pin') passoEscolherComprimento(); else passoDefinir();
 }
 document.getElementById('btn-bloqueio-app').addEventListener('click', async ()=>{
   await carregarConfigBloqueioServidor(); // repõe do servidor, para apanhar alterações feitas noutro aparelho
