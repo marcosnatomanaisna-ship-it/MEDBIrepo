@@ -521,7 +521,7 @@
   }
   .contact-card b { display: block; font-size: 15px; margin-bottom: 4px; }
   .contact-card p { margin: 0 0 14px; font-size: 12.5px; color: var(--text-soft); }
-  .contact-card button.wa-link {
+  .contact-card .wa-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -584,7 +584,7 @@
 
   <div class="trust-strip">
     <div class="trust-pill">🔒 <b data-i18n="header.trust1">Descarga segura</b></div>
-    <div class="trust-pill">💬 <b data-i18n="header.trust3">Soporte por WhatsApp</b></div>
+    <div class="trust-pill"><svg viewBox="0 0 32 32" width="14" height="14" style="vertical-align:-2px;margin-right:4px;" aria-hidden="true"><path fill="#25D366" d="M16.001 3C9.373 3 4 8.373 4 15c0 2.386.7 4.607 1.908 6.474L4 29l7.72-1.874A11.94 11.94 0 0 0 16.001 27C22.629 27 28 21.627 28 15S22.629 3 16.001 3z"/><path fill="#fff" d="M22.1 18.5c-.33-.165-1.95-.96-2.25-1.07-.303-.11-.523-.165-.744.165-.22.33-.85 1.07-1.04 1.29-.192.22-.384.248-.714.083-.33-.165-1.393-.513-2.653-1.637-.98-.874-1.643-1.953-1.836-2.283-.192-.33-.02-.508.145-.673.148-.148.33-.385.495-.578.165-.192.22-.33.33-.55.11-.22.055-.413-.028-.578-.083-.165-.744-1.794-1.02-2.457-.269-.646-.542-.559-.744-.57-.192-.01-.412-.012-.633-.012-.22 0-.578.083-.88.413-.303.33-1.155 1.128-1.155 2.751 0 1.623 1.183 3.19 1.348 3.41.165.22 2.328 3.554 5.638 4.984.788.34 1.403.543 1.883.695.791.252 1.512.216 2.082.131.635-.095 1.95-.797 2.225-1.567.275-.77.275-1.43.192-1.567-.082-.138-.302-.22-.632-.385z"/></svg> <b data-i18n="header.trust3">Soporte por WhatsApp</b></div>
   </div>
 
   <div class="stats-row">
@@ -675,7 +675,7 @@
   <div class="contact-card">
     <b data-i18n="contact.title">Precisas de ajuda?</b>
     <p data-i18n="contact.text">A nossa equipa responde diretamente pelo WhatsApp. Toca para abrir a conversa.</p>
-    <a class="wa-link" id="contactWaBtn" href="https://wa.me/245955307889" target="_blank" rel="noopener">💬 +245 955 307 889</a>
+    <a class="wa-link" id="contactWaBtn" href="whatsapp://send?phone=245955307889" style="display:inline-flex;align-items:center;justify-content:center;"><svg viewBox="0 0 32 32" width="18" height="18" style="margin-right:6px;flex-shrink:0;" aria-hidden="true"><path fill="#06210f" d="M16.001 3C9.373 3 4 8.373 4 15c0 2.386.7 4.607 1.908 6.474L4 29l7.72-1.874A11.94 11.94 0 0 0 16.001 27C22.629 27 28 21.627 28 15S22.629 3 16.001 3z"/><path fill="#25D366" d="M22.1 18.5c-.33-.165-1.95-.96-2.25-1.07-.303-.11-.523-.165-.744.165-.22.33-.85 1.07-1.04 1.29-.192.22-.384.248-.714.083-.33-.165-1.393-.513-2.653-1.637-.98-.874-1.643-1.953-1.836-2.283-.192-.33-.02-.508.145-.673.148-.148.33-.385.495-.578.165-.192.22-.33.33-.55.11-.22.055-.413-.028-.578-.083-.165-.744-1.794-1.02-2.457-.269-.646-.542-.559-.744-.57-.192-.01-.412-.012-.633-.012-.22 0-.578.083-.88.413-.303.33-1.155 1.128-1.155 2.751 0 1.623 1.183 3.19 1.348 3.41.165.22 2.328 3.554 5.638 4.984.788.34 1.403.543 1.883.695.791.252 1.512.216 2.082.131.635-.095 1.95-.797 2.225-1.567.275-.77.275-1.43.192-1.567-.082-.138-.302-.22-.632-.385z"/></svg>+245 955 307 889</a>
   </div>
 </section>
 
@@ -903,8 +903,8 @@
     });
   }
 
-  // contactWaBtn agora é um link direto para wa.me — não precisa de JS,
-  // o navegador/telemóvel trata a navegação e abre o WhatsApp sozinho.
+  // contactWaBtn agora é um link direto para whatsapp:// (esquema nativo) —
+  // não precisa de JS, abre a app diretamente sem página intermediária.
 })();
 </script>
 
@@ -927,6 +927,7 @@
   };
   const ORANGE_MONEY_NUMBER = '955808345';
   const WHATSAPP_NUMBER = '245955307889'; // sin +, sin espacios
+  const WHATSAPP_ICON_SVG = '<svg viewBox="0 0 32 32" width="18" height="18" style="vertical-align:-4px;margin-right:6px;flex-shrink:0;" aria-hidden="true"><path fill="#25D366" d="M16.001 3C9.373 3 4 8.373 4 15c0 2.386.7 4.607 1.908 6.474L4 29l7.72-1.874A11.94 11.94 0 0 0 16.001 27C22.629 27 28 21.627 28 15S22.629 3 16.001 3z"/><path fill="#fff" d="M22.1 18.5c-.33-.165-1.95-.96-2.25-1.07-.303-.11-.523-.165-.744.165-.22.33-.85 1.07-1.04 1.29-.192.22-.384.248-.714.083-.33-.165-1.393-.513-2.653-1.637-.98-.874-1.643-1.953-1.836-2.283-.192-.33-.02-.508.145-.673.148-.148.33-.385.495-.578.165-.192.22-.33.33-.55.11-.22.055-.413-.028-.578-.083-.165-.744-1.794-1.02-2.457-.269-.646-.542-.559-.744-.57-.192-.01-.412-.012-.633-.012-.22 0-.578.083-.88.413-.303.33-1.155 1.128-1.155 2.751 0 1.623 1.183 3.19 1.348 3.41.165.22 2.328 3.554 5.638 4.984.788.34 1.403.543 1.883.695.791.252 1.512.216 2.082.131.635-.095 1.95-.797 2.225-1.567.275-.77.275-1.43.192-1.567-.082-.138-.302-.22-.632-.385z"/></svg>';
 
   const listEl = document.getElementById('app-list');
   const t = (key, vars) => window.MedbiI18n.t(key, vars);
@@ -1167,8 +1168,8 @@
         <a class="download-btn" href="${esc(app.apk_url || '#')}" download>
           ${t('modal.downloadApk')}
         </a>
-        <a class="close-btn" id="waBtn" href="#" target="_blank" rel="noopener" style="background:#25D366;border:none;color:#06210f;display:block;text-align:center;text-decoration:none;">
-          ${t('modal.copyMessage')}
+        <a class="close-btn" id="waBtn" href="#" style="background:#25D366;border:none;color:#06210f;display:flex;align-items:center;justify-content:center;text-decoration:none;">
+          ${WHATSAPP_ICON_SVG}${t('modal.copyMessage')}
         </a>
         <p style="text-align:center;font-size:12px;color:var(--text-soft);margin:12px 0 4px;">
           ${t('modal.sendInstructions')}
@@ -1182,7 +1183,7 @@
     document.body.appendChild(overlay);
 
     let plainMessage = '';
-    const SUPPORT_WHATSAPP_NUMBER = '245955307889'; // sem "+", sem espaços (formato exigido pelo wa.me)
+    const SUPPORT_WHATSAPP_NUMBER = '245955307889'; // sem "+", sem espaços (formato exigido pelo whatsapp://send)
 
     function updatePlan() {
       const selected = overlay.querySelector('input[name="plan"]:checked').value;
@@ -1201,12 +1202,12 @@
         number: ORANGE_MONEY_NUMBER
       });
       const waBtn = overlay.querySelector('#waBtn');
-      waBtn.href = 'https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(plainMessage);
+      waBtn.href = 'whatsapp://send?phone=' + SUPPORT_WHATSAPP_NUMBER + '&text=' + encodeURIComponent(plainMessage);
     }
 
     overlay.querySelector('#waBtn').addEventListener('click', () => {
       // Copia a mensagem como reforço (útil se o WhatsApp abrir sem o texto pré-preenchido),
-      // mas nunca bloqueia a navegação: o link wa.me acima já abre o WhatsApp diretamente.
+      // mas nunca bloqueia a navegação: o link whatsapp:// acima já abre a app diretamente.
       try {
         navigator.clipboard.writeText(plainMessage);
       } catch (e) { /* silencioso */ }
