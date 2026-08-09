@@ -843,7 +843,14 @@
   const WHATSAPP_DISPLAY = '+245 955 307 889'; // número exibido ao usuário
 
   const STORAGE_KEY = 'medbi_license_v1';
-  const GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000; // 3 días de tolerancia sin internet
+  // Prazo máximo sem CONSEGUIR CONFIRMAR a licença com o servidor (sucesso
+  // real, não tentativa). Dentro deste prazo a app funciona 100% offline,
+  // sem avisos nem bloqueios. Serve só para impedir que alguém bloqueie de
+  // propósito o domínio do servidor (ex: firewall/DNS no telemóvel) e use
+  // a app pagante para sempre sem nunca poder ser revogado. Internet fraca
+  // ou instável normal não é afetada — só falta TOTAL de contacto por
+  // 7 dias seguidos é que bloqueia.
+  const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
   function getDeviceId() {
     return new Promise((resolve) => {
@@ -872,6 +879,9 @@
     document.documentElement.style.overflow = 'hidden';
     const overlay = document.createElement('div');
     overlay.id = 'medbi-activation-gate';
+    // Marca se este ecrã só precisa de internet (sem código) — usado para
+    // saber se pode tentar desbloquear sozinho assim que a rede voltar.
+    overlay.dataset.networkOnly = showCodeInput ? 'false' : 'true';
     overlay.style.cssText =
       'position:fixed;inset:0;z-index:999999;background:#0b1220;color:#fff;' +
       'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
@@ -1032,7 +1042,24 @@
     }
   }
 
+  // Travão: evita que duas chamadas de checkStoredLicense corram ao mesmo
+  // tempo (ex: o app abre sem sinal e a rede volta no mesmo instante,
+  // disparando boot() e o evento 'online' juntos). Sem isto, cada uma
+  // podia decidir mostrar o gate por conta própria, duplicando a tela.
+  let licenseCheckInFlight = false;
+
   async function checkStoredLicense(deviceId, stored) {
+    if (document.getElementById('medbi-activation-gate')) return; // já bloqueado
+    if (licenseCheckInFlight) return; // já há uma verificação em curso
+    licenseCheckInFlight = true;
+    try {
+      await checkStoredLicenseInner(deviceId, stored);
+    } finally {
+      licenseCheckInFlight = false;
+    }
+  }
+
+  async function checkStoredLicenseInner(deviceId, stored) {
     // Bloqueio LOCAL por data: se já sabemos (guardado no último contacto
     // com o servidor) que a licença expirou, bloqueamos já — mesmo sem
     // internet. Sem isto, um dispositivo offline continuava a abrir
@@ -1048,9 +1075,18 @@
       return;
     }
 
+    // Dentro do prazo local (ou sem prazo definido): o app abre SEMPRE,
+    // mesmo 100% offline, sem pedir código nem mostrar nenhum bloqueio.
+    // A verificação ao servidor abaixo é só em segundo plano — serve
+    // para captar uma revogação manual feita no /admin ou uma mudança
+    // de data de expiração, e NUNCA bloqueia o app por falha de rede
+    // (sem internet, servidor lento/dormindo no Render, timeout, etc.).
+    // O único motivo de bloqueio por causa do servidor é ele responder
+    // de forma explícita e válida "valid: false" (licença revogada ou
+    // não encontrada) — isso só acontece se ele realmente respondeu.
     try {
       const data = await validateLicense(deviceId, stored.license, 8000);
-      if (data.valid) {
+      if (data && data.valid) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           license: stored.license,
           lastValidated: Date.now(),
@@ -1059,61 +1095,30 @@
         if (data.warning && data.message) {
           showExpiryBanner(data.message);
         }
-        return; // licencia válida: el app carga normalmente
-      }
-      localStorage.removeItem(STORAGE_KEY);
-      const overlay = showGate(
-        'A licença deste dispositivo já não é válida. Contacte o suporte via WhatsApp, enviando a mensagem e o comprovativo de pagamento.',
-        true
-      );
-      wireActivationForm(overlay, deviceId);
-    } catch (e) {
-      const withinGrace = (Date.now() - (stored.lastValidated || 0)) < GRACE_PERIOD_MS;
-
-      // Sem internet de verdade (não é o servidor demorando): aplica a
-      // tolerância normal, como já era antes.
-      if (!navigator.onLine) {
-        if (!withinGrace) {
-          showGate('Sem ligação à internet. Conecte-se para verificar a sua licença.', false);
-        }
         return;
       }
-
-      // Há internet, mas a 1ª tentativa falhou (timeout/erro/500) — o mais
-      // comum é o servidor (Render, plano grátis) estar a "acordar". Antes
-      // de bloquear ou de dar grace period de graça, tenta mais UMA vez com
-      // um timeout maior, dando tempo do servidor responder de verdade.
-      try {
-        const retryData = await validateLicense(deviceId, stored.license, 20000);
-        if (retryData.valid) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            license: stored.license,
-            lastValidated: Date.now(),
-            expiresAt: (typeof retryData.expiresAt !== 'undefined') ? retryData.expiresAt : stored.expiresAt
-          }));
-          if (retryData.warning && retryData.message) {
-            showExpiryBanner(retryData.message);
-          }
-          return;
-        }
+      if (data && data.valid === false) {
+        // O servidor respondeu de facto (não é falha de rede) e disse
+        // que esta licença já não é válida — aí sim bloqueamos.
         localStorage.removeItem(STORAGE_KEY);
         const overlay = showGate(
           'A licença deste dispositivo já não é válida. Contacte o suporte via WhatsApp, enviando a mensagem e o comprovativo de pagamento.',
           true
         );
         wireActivationForm(overlay, deviceId);
-      } catch (e2) {
-        // Mesmo com internet, o servidor não respondeu nas duas tentativas.
-        // Não é "sem internet", então não usamos os 3 dias de tolerância —
-        // usamos uma tolerância bem mais curta só pra não travar o
-        // utilizador por uma falha pontual do servidor.
-        const SERVER_ERROR_GRACE_MS = 6 * 60 * 60 * 1000; // 6 horas
-        const withinServerErrorGrace =
-          (Date.now() - (stored.lastValidated || 0)) < SERVER_ERROR_GRACE_MS;
-        if (!withinServerErrorGrace) {
-          showGate('Não foi possível verificar a sua licença agora. Verifique a sua ligação e tente novamente.', false);
-        }
       }
+      // Resposta ambígua/vazia: não mexe em nada, mantém liberado.
+    } catch (e) {
+      // Sem internet, servidor lento/dormindo, timeout, CORS, etc.
+      // Tolera até GRACE_PERIOD_MS (7 dias) sem conseguir confirmar —
+      // internet fraca/instável não bloqueia ninguém. Só bloqueia se
+      // passar 7 dias seguidos sem NENHUM contacto bem-sucedido (ex:
+      // alguém a bloquear de propósito o servidor para nunca mais pagar).
+      const withinGrace = (Date.now() - (stored.lastValidated || 0)) < GRACE_PERIOD_MS;
+      if (!withinGrace) {
+        showGate('Não foi possível confirmar a sua licença há vários dias. Conecte-se à internet para continuar a usar a app.', false);
+      }
+      console.warn('MEDBI: não foi possível confirmar a licença com o servidor agora:', e);
     }
   }
 
@@ -1174,7 +1179,42 @@
   // horas offline só reportava atividade na próxima interação manual —
   // o que fazia clientes ativos (mas com internet instável) parecerem
   // inativos no painel por mais tempo do que realmente estavam.
-  window.addEventListener('online', () => revalidateIfNeeded(true));
+  // Se o ecrã de bloqueio visível é o de "só precisa de internet" (sem
+  // código — o dos 7 dias sem contacto), tenta reconfirmar sozinho assim
+  // que a rede voltar, sem esperar o utilizador reabrir o app. O gate de
+  // "licença inválida" (com código) nunca é tocado aqui — esse só sai
+  // digitando um código novo.
+  async function retryNetworkOnlyGate() {
+    const gate = document.getElementById('medbi-activation-gate');
+    if (!gate || gate.dataset.networkOnly !== 'true') return;
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
+    if (!stored || !stored.license) return;
+    const deviceId = await getDeviceId();
+    try {
+      const data = await validateLicense(deviceId, stored.license, 8000);
+      if (data && data.valid) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          license: stored.license,
+          lastValidated: Date.now(),
+          expiresAt: (typeof data.expiresAt !== 'undefined') ? data.expiresAt : stored.expiresAt
+        }));
+        const g = document.getElementById('medbi-activation-gate');
+        if (g) hideGate(g);
+        if (data.warning && data.message) showExpiryBanner(data.message);
+      }
+      // Se vier valid:false aqui, ignora por agora — o próximo boot()
+      // normal (app reaberto) é que decide mostrar o gate de código.
+    } catch (e) {
+      // Ainda sem sucesso: mantém o mesmo ecrã, tenta de novo na próxima
+      // vez que a rede voltar.
+    }
+  }
+
+  window.addEventListener('online', () => {
+    retryNetworkOnlyGate();
+    revalidateIfNeeded(true);
+  });
 
   try {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
