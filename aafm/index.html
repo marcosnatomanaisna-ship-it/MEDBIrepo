@@ -1181,6 +1181,7 @@ const TIPOS = [
   {v:'carta', l:'Carta', p:'Cartas'},
   {v:'oficio', l:'Ofício', p:'Ofícios'},
   {v:'circular', l:'Circular', p:'Circulares'},
+  {v:'comunicado', l:'Comunicado', p:'Comunicados'},
   {v:'convocatoria', l:'Convocatória', p:'Convocatórias'},
   {v:'memorando', l:'Memorando', p:'Memorandos'},
   {v:'declaracao', l:'Declaração', p:'Declarações'},
@@ -1259,11 +1260,18 @@ const GUIA_TIPOS = {
     observacoes: 'Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07.'
   },
   circular: {
-    quando: 'Comunicado dirigido a vários destinatários ao mesmo tempo (todos os anos), para informar ou orientar sobre algo geral.',
-    exemplo: 'Circular a informar os membros da AAFM sobre a mudança de horário das reuniões mensais.',
+    quando: 'Transmite uma orientação, norma ou instrução que os destinatários devem seguir ou passar a cumprir — usa-se quando o conteúdo estabelece uma regra, um procedimento ou uma mudança que afeta o comportamento dos membros.',
+    exemplo: 'Circular a informar os membros da AAFM sobre a nova hora de início das reuniões mensais, a cumprir a partir do próximo mês.',
     destinatario: 'Membros da AAFM',
-    assunto: 'Mudança de horário das reuniões mensais',
+    assunto: 'Nova hora de início das reuniões mensais',
     observacoes: 'Enviada a todos os membros por email e WhatsApp.'
+  },
+  comunicado: {
+    quando: 'Informa a comunidade sobre um facto, decisão ou acontecimento específico — não impõe regra nem exige uma ação dos destinatários, serve para dar a conhecer algo que já aconteceu ou foi decidido.',
+    exemplo: 'Comunicado a informar a comunidade académica sobre os três estudantes selecionados para representar a Faculdade numa missão da Brigada de Saúde Estudantil em Moçambique.',
+    destinatario: 'Comunidade Académica',
+    assunto: 'Estudantes selecionados para a missão da Brigada de Saúde Estudantil',
+    observacoes: 'Publicado no mural da Faculdade e enviado à comunidade académica.'
   },
   convocatoria: {
     quando: 'Convoca formalmente pessoas para uma reunião ou evento, indicando data, hora, local e assuntos a tratar. Ao criares, escolhe se é uma reunião da Direção ou com Todos os Sócios.',
@@ -1685,7 +1693,7 @@ let ANEXOS_A_REMOVER = new Set(); // urls de anexos já guardados que o utilizad
 // Tipos que fazem sentido como documentos RECEBIDOS de outras entidades
 // (os restantes — ata, memorando, declaração, relatório, requerimento, termo de posse, estatuto —
 // são produzidos internamente pela AAFM, por isso não aparecem quando o estado é "Recebido").
-const TIPOS_RECEBIVEIS = ['convite','oficio','carta','circular','convocatoria','edital','relatorio','protocolo_associacao','acordo_parceria','comissao_atividades'];
+const TIPOS_RECEBIVEIS = ['convite','oficio','carta','circular','comunicado','convocatoria','edital','relatorio','protocolo_associacao','acordo_parceria','comissao_atividades'];
 // Protocolo de Associação e Acordo de Parceria são sempre um acordo COM outra entidade —
 // não faz sentido existirem como "Interno" (nunca são só um assunto interno da AAFM).
 const TIPOS_NAO_INTERNOS = ['protocolo_associacao', 'acordo_parceria'];
