@@ -1195,7 +1195,8 @@ const TIPOS = [
   {v:'protocolo_associacao', l:'Protocolo de Associação', p:'Protocolos de Associação'},
   {v:'acordo_parceria', l:'Acordo de Parceria', p:'Acordos de Parceria'},
   {v:'membros_direcao', l:'Membro da Direção', p:'Membros da Direção'},
-  {v:'comissao_atividades', l:'Comissão de Atividades', p:'Comissão de Atividades'}
+  {v:'comissao_atividades', l:'Comissão de Atividades', p:'Comissão de Atividades'},
+  {v:'modelo_oficial', l:'Modelo Oficial AAFM', p:'Modelos Oficiais AAFM'}
 ];
 const rotuloTipo = t => (TIPOS.find(x=>x.v===t)||{}).l || t;
 const rotuloTipoPlural = t => (TIPOS.find(x=>x.v===t)||{}).p || rotuloTipo(t);
@@ -1239,131 +1240,143 @@ document.getElementById('lista-filtros-emissor').insertAdjacentHTML('beforeend',
 );
 
 /* ---------- GUIA DE TIPOS DE DOCUMENTO ---------- */
+// Texto padrão do campo Observações: explica o que preencher ali, sem simular um caso
+// concreto — Observações é livre para cada documento, por isso não faz sentido dar um
+// "exemplo" fixo como se fosse o texto certo a copiar.
+const OBSERVACOES_EXPLICACAO = 'Situação atual ou desfecho do documento.';
+
 const GUIA_TIPOS = {
   ata: {
     quando: 'Regista, por escrito, o que foi discutido e decidido numa reunião (direção, assembleia geral, comissão de evento). Serve como prova formal do que foi deliberado. Ao criares, escolhe se é uma reunião da Direção ou com Todos os Sócios.',
     exemplo: 'Ata da Reunião da Direção de 15/03/2026, registando a aprovação do orçamento para o Congresso Científico da AAFM.',
-    observacoes: 'Deliberação já executada.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   carta: {
     quando: 'Comunicação escrita dirigida a uma pessoa ou entidade específica, com tom mais pessoal e direto do que um ofício.',
     exemplo: 'Carta de agradecimento ao Dr. Fulano pela palestra dada aos estudantes do 3º ano.',
     destinatario: 'Dr. Fulano',
     assunto: 'Agradecimento pela palestra aos estudantes do 3º ano',
-    observacoes: 'Resposta recebida a agradecer o gesto.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   oficio: {
     quando: 'Comunicação oficial entre a AAFM e outra instituição (faculdade, ministério, empresa). Mais formal, numerado, usado para pedir, informar ou responder oficialmente.',
     exemplo: 'Ofício nº 001/AAFM/2026, solicitando audiência ao Decano da Faculdade de Medicina.',
     destinatario: 'Decano da Faculdade de Medicina',
     assunto: 'Pedido de audiência ao Decano',
-    observacoes: 'Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   circular: {
     quando: 'Transmite uma orientação, norma ou instrução que os destinatários devem seguir ou passar a cumprir — usa-se quando o conteúdo estabelece uma regra, um procedimento ou uma mudança que afeta o comportamento dos membros.',
     exemplo: 'Circular a informar os membros da AAFM sobre a nova hora de início das reuniões mensais, a cumprir a partir do próximo mês.',
-    destinatario: 'Membros da AAFM',
+    destinatario: 'Todos os Estudantes da Faculdade',
     assunto: 'Nova hora de início das reuniões mensais',
-    observacoes: 'Enviada a todos os membros por email e WhatsApp.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   comunicado: {
     quando: 'Informa a comunidade sobre um facto, decisão ou acontecimento específico — não impõe regra nem exige uma ação dos destinatários, serve para dar a conhecer algo que já aconteceu ou foi decidido.',
     exemplo: 'Comunicado a informar a comunidade académica sobre os três estudantes selecionados para representar a Faculdade numa missão da Brigada de Saúde Estudantil em Moçambique.',
-    destinatario: 'Comunidade Académica',
+    destinatario: 'Todos os Estudantes da Faculdade',
     assunto: 'Estudantes selecionados para a missão da Brigada de Saúde Estudantil',
-    observacoes: 'Publicado no mural da Faculdade e enviado à comunidade académica.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   convocatoria: {
     quando: 'Convoca formalmente pessoas para uma reunião ou evento, indicando data, hora, local e assuntos a tratar. Ao criares, escolhe se é uma reunião da Direção ou com Todos os Sócios.',
     exemplo: 'Convocatória para a Assembleia Geral Extraordinária do dia 20/07/2026, às 18h, no auditório da Faculdade.',
-    observacoes: 'Confirmada a presença de 32 sócios.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   memorando: {
     quando: 'Comunicação interna, curta e direta, entre membros ou direção, para registar rapidamente uma instrução, lembrete ou decisão do dia a dia.',
     exemplo: 'Memorando interno a distribuir tarefas da equipa organizadora do Congresso Científico.',
     destinatario: 'Equipa Organizadora do Congresso Científico',
     assunto: 'Distribuição de tarefas do Congresso Científico',
-    observacoes: 'Tarefas distribuídas e confirmadas pela equipa.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   declaracao: {
     quando: 'Atesta ou certifica um facto — participação, cargo exercido, situação de um membro — geralmente para o próprio membro apresentar noutro lugar.',
     exemplo: 'Declaração de participação de um estudante no Congresso Científico da AAFM 2026, para efeitos de créditos académicos.',
     destinatario: 'A quem interessar',
     assunto: 'Declaração de participação no Congresso Científico',
-    observacoes: 'Entregue ao estudante em mão, 10/07/2026.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   relatorio: {
     quando: 'Descreve e analisa atividades realizadas num período ou evento, normalmente para prestar contas à direção, assembleia ou entidade financiadora.',
     exemplo: 'Relatório de Atividades do 1º Semestre de 2026 da Secretaria da AAFM.',
     destinatario: 'Direção da AAFM',
     assunto: 'Relatório de Atividades do 1º Semestre',
-    observacoes: 'Aprovado pela Direção sem alterações.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   edital: {
     quando: 'Comunicado público e formal, geralmente anunciando um processo com regras claras (eleições, concurso, candidaturas).',
     exemplo: 'Edital de Eleições para a nova Direção da AAFM, mandato 2026/2027.',
-    destinatario: 'Membros da AAFM',
+    destinatario: 'Todos os Estudantes da Faculdade',
     assunto: 'Edital de Eleições para a nova Direção',
-    observacoes: 'Publicado no mural da Faculdade e nas redes sociais da AAFM.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   requerimento: {
     quando: 'Pedido formal dirigido a uma entidade (interna ou externa), solicitando algo específico — apoio, autorização, isenção.',
-    exemplo: 'Requerimento de apoio financeiro à Faculdade para a participação de estudantes num congresso nacional.',
-    destinatario: 'Faculdade de Medicina',
-    assunto: 'Pedido de apoio financeiro para congresso nacional',
-    observacoes: 'Deferido pela Faculdade, apoio concedido.'
+    exemplo: 'Requerimento de apoio à Brigada Médica Cubana para participação de estudantes numa atividade de saúde comunitária.',
+    destinatario: 'Brigada Médica Cubana',
+    assunto: 'Pedido de apoio à Brigada Médica Cubana',
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   termo_posse: {
     quando: 'Regista formalmente a entrada em funções de alguém eleito ou nomeado para um cargo.',
     exemplo: 'Termo de Posse da nova Direção da AAFM para o mandato 2026/2027.',
     assunto: 'Tomada de posse da nova Direção',
-    observacoes: 'Assinado por todos os membros da nova Direção.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   estatuto: {
     quando: 'Documento fundador que define as regras, a estrutura e o funcionamento da associação.',
     exemplo: 'Estatuto da AAFM, revisto e aprovado em Assembleia Geral em 2026.',
+    destinatario: 'Todos os Estudantes da Faculdade',
     assunto: 'Revisão do Estatuto da AAFM',
-    observacoes: 'Aprovado por unanimidade em Assembleia Geral.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   convite: {
     quando: 'Convite para participar num evento, cerimónia ou atividade — pode ser recebido (de outra entidade, convidando a AAFM ou um seu representante) ou enviado (a AAFM a convidar outras pessoas/entidades para uma atividade sua).',
     exemplo: 'Convite da RENAJ para a AAFM participar no seu encontro anual de associações juvenis.',
     destinatario: 'RENAJ',
     assunto: 'Convite para o encontro anual de associações juvenis',
-    observacoes: 'Confirmada a participação de um representante da AAFM.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   plano_acao: {
     quando: 'Define os objetivos, atividades e prazos da direção para os próximos seis meses. Serve de referência para acompanhar o que foi planeado e prestar contas depois na Assembleia.',
     exemplo: 'Plano de Ação Semestral da Direção da AAFM para o 2º Semestre de 2026, com metas por departamento.',
+    destinatario: 'Todos os Estudantes da Faculdade',
     assunto: 'Plano de Ação Semestral da Direção',
-    observacoes: 'Apresentado e aprovado em reunião de Direção.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   protocolo_associacao: {
     quando: 'Formaliza a filiação ou associação da AAFM a outra organização (federação, associação congénere, rede de estudantes).',
     exemplo: 'Protocolo de Associação entre a AAFM e a RENAJ.',
     destinatario: 'RENAJ',
     assunto: 'Protocolo de Associação com a RENAJ',
-    observacoes: 'Assinado por ambas as partes em 2026.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   acordo_parceria: {
     quando: 'Formaliza uma parceria com uma empresa ou entidade privada (patrocínio, desconto para membros, colaboração em eventos).',
     exemplo: 'Acordo de Parceria entre a AAFM e a Farmácia Central, com desconto de 10% para membros associados.',
     destinatario: 'Farmácia Central',
     assunto: 'Parceria com a Farmácia Central',
-    observacoes: 'Em vigor, renovação prevista para 2027.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   membros_direcao: {
     quando: 'Regista a composição da Direção da AAFM num mandato — nomes e cargos de quem a integra.',
     exemplo: 'Lista de Membros da Direção da AAFM para o mandato 2026-2028: Presidente, Vice-Presidente, Secretário-Geral, Tesoureiro e Vogais.',
     assunto: 'Composição da Direção para o mandato 2026-2028',
-    observacoes: 'Ata da tomada de posse anexa.'
+    observacoes: OBSERVACOES_EXPLICACAO
   },
   comissao_atividades: {
     quando: 'Cada comissão (Campo de Férias, Receção de Jaleco, Aulas de Reforço, 24 de Setembro, Aniversário da AAFM, Campeonato de Futebol...) é incumbida pela AAFM de organizar uma atividade específica. Usa este tipo para guardar o relatório dessa comissão sobre a atividade — o que foi feito, resultados, participantes, contas, etc. Ao escolheres este tipo, seleciona também a comissão a que pertence.',
     exemplo: 'Relatório da Comissão do Campo de Férias 2026, com o número de participantes, atividades realizadas e balanço financeiro.',
     destinatario: 'Direção da AAFM',
     assunto: 'Relatório da Comissão do Campo de Férias',
-    observacoes: 'Atividade realizada com sucesso, balanço financeiro positivo.'
+    observacoes: OBSERVACOES_EXPLICACAO
+  },
+  modelo_oficial: {
+    quando: 'Modelo/template oficial de documento da AAFM, usado como base para a produção de outros documentos. Não é de um mandato específico — vale enquanto estiver em uso. Sem mandato, número de referência, assunto, destinatário nem "em resposta a" — é só o modelo em si.',
+    exemplo: 'Modelo oficial de ofício da AAFM.',
+    observacoes: OBSERVACOES_EXPLICACAO
   }
 };
 
@@ -3180,7 +3193,8 @@ function atualizarCampoAssunto(){
   const input = document.getElementById('doc-assunto');
   // Ata e Convocatória já têm o essencial coberto por "Reunião de" + data — um Assunto à
   // parte fica redundante (e o tema de cada reunião muda demais para um exemplo fixo).
-  const mostrar = !TIPOS_REUNIAO.includes(tipo);
+  // Modelo Oficial também não tem Assunto — é só o modelo em si, sem tema associado.
+  const mostrar = !TIPOS_REUNIAO.includes(tipo) && tipo !== 'modelo_oficial';
   label.style.display = mostrar ? '' : 'none';
   input.style.display = mostrar ? '' : 'none';
   input.required = mostrar;
@@ -3195,8 +3209,8 @@ function atualizarCampoAssunto(){
 function atualizarCampoObservacoes(){
   const tipo = document.getElementById('doc-tipo').value;
   const input = document.getElementById('doc-observacoes');
-  const exemploTipo = GUIA_TIPOS[tipo] && GUIA_TIPOS[tipo].observacoes;
-  input.placeholder = 'Ex: ' + (exemploTipo || 'Aceite pelo Decano em 05/07/2026. Audiência marcada para dia 12/07.');
+  const textoTipo = GUIA_TIPOS[tipo] && GUIA_TIPOS[tipo].observacoes;
+  input.placeholder = textoTipo || OBSERVACOES_EXPLICACAO;
 }
 
 function atualizarCampoEmissor(){
@@ -3235,7 +3249,7 @@ function atualizarCampoEmissor(){
 // a nenhum mandato específico — são válidos ao longo do tempo, não ligados a uma direção.
 // Por isso o campo "Mandato" nem aparece para esses tipos, e o documento cai sempre na
 // pasta "Documentos Gerais", nunca dentro de um mandato.
-const TIPOS_SEM_MANDATO = ['estatuto', 'protocolo_associacao', 'acordo_parceria'];
+const TIPOS_SEM_MANDATO = ['estatuto', 'protocolo_associacao', 'acordo_parceria', 'modelo_oficial'];
 function atualizarCampoMandato(){
   const tipo = document.getElementById('doc-tipo').value;
   const label = document.getElementById('label-doc-mandato');
@@ -3293,6 +3307,10 @@ document.getElementById('doc-reuniao-publico').addEventListener('change', atuali
 // sentido, por isso ficam escondidos e não são pedidos ao preencher o formulário.
 const TIPOS_REGISTO_SIMPLES = ['membros_direcao'];
 
+// Modelo Oficial também não tem Destinatário nem "Em resposta a" (não é uma comunicação
+// enviada a ninguém), mas ao contrário dos registos simples acima, mantém o campo "Sentido".
+const TIPOS_SEM_DESTINATARIO = [...TIPOS_REGISTO_SIMPLES, 'modelo_oficial'];
+
 // Estes tipos são acordos/registos que normalmente não têm um número de ofício/protocolo
 // próprio da AAFM (ex: um Acordo de Parceria não nasce com uma numeração interna). Por isso
 // o número de referência deixa de ser obrigatório para eles — o utilizador pode preenchê-lo
@@ -3303,7 +3321,13 @@ function atualizarCampoReferencia(){
   const opcional = TIPOS_REFERENCIA_OPCIONAL.includes(tipo);
   const label = document.getElementById('label-doc-numero-referencia');
   const input = document.getElementById('doc-numero-referencia');
-  input.required = !opcional;
+  // Modelo Oficial não é um documento numerado — não faz sentido pedir um número de
+  // referência, por isso o campo fica escondido em vez de só opcional.
+  const mostrar = tipo !== 'modelo_oficial';
+  label.style.display = mostrar ? '' : 'none';
+  input.style.display = mostrar ? '' : 'none';
+  input.required = mostrar && !opcional;
+  if(!mostrar) input.value = '';
   label.textContent = opcional ? 'Número de referência (opcional)' : 'Número de referência';
 }
 
@@ -3314,17 +3338,18 @@ function atualizarCamposRegistoSimples(){
   document.getElementById('campo-doc-estado').style.display = simples ? 'none' : '';
   if(simples) document.getElementById('doc-estado').value = 'enviado'; // valor neutro só para satisfazer a base de dados; o campo fica escondido
 
+  const semDestinatario = TIPOS_SEM_DESTINATARIO.includes(tipo);
   const labelDestinatario = document.getElementById('label-doc-destinatario');
   const inputDestinatario = document.getElementById('doc-destinatario');
-  labelDestinatario.style.display = simples ? 'none' : '';
-  inputDestinatario.style.display = simples ? 'none' : '';
-  if(simples) inputDestinatario.value = '';
+  labelDestinatario.style.display = semDestinatario ? 'none' : '';
+  inputDestinatario.style.display = semDestinatario ? 'none' : '';
+  if(semDestinatario) inputDestinatario.value = '';
 
   const labelRespostaA = document.getElementById('label-doc-em-resposta-a');
   const selectRespostaA = document.getElementById('doc-em-resposta-a');
-  labelRespostaA.style.display = simples ? 'none' : '';
-  selectRespostaA.style.display = simples ? 'none' : '';
-  if(simples) selectRespostaA.value = '';
+  labelRespostaA.style.display = semDestinatario ? 'none' : '';
+  selectRespostaA.style.display = semDestinatario ? 'none' : '';
+  if(semDestinatario) selectRespostaA.value = '';
 
   atualizarCampoReferencia();
   atualizarCampoEmissor();
