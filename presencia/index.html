@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Presenças AAFM</title>
+<style>
+  :root{
+    --blue-900:#0f2440;
+    --blue-700:#1c3f66;
+    --blue-500:#3568a0;
+    --blue-100:#e7edf5;
+    --grey-900:#20242c;
+    --grey-600:#5a6270;
+    --grey-300:#d6dae1;
+    --grey-100:#f4f5f7;
+    --white:#ffffff;
+    --ok:#2f7d5c;
+    --danger:#a3392f;
+    --radius:10px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--grey-100);
+    color:var(--grey-900);
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  header{
+    background:var(--blue-900);
+    color:var(--white);
+    padding:16px 18px 14px;
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  header h1{
+    margin:0;
+    font-size:17px;
+    font-weight:600;
+    letter-spacing:.2px;
+  }
+  header p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:#b9c6d8;
+  }
+  #grupo-switch{
+    display:flex;
+    gap:6px;
+    background:var(--blue-900);
+    padding:0 14px 12px;
+    position:sticky;
+    top:0;
+    z-index:19;
+  }
+  #grupo-switch button{
+    flex:1;
+    background:rgba(255,255,255,.08);
+    color:#c7d3e3;
+    padding:8px 6px;
+    font-size:12px;
+    font-weight:600;
+    border-radius:8px;
+  }
+  #grupo-switch button.active{
+    background:var(--white);
+    color:var(--blue-900);
+  }
+  #config-warning{
+    display:none;
+    background:#5c2b20;
+    color:#ffe4de;
+    font-size:12px;
+    padding:8px 18px;
+  }
+  main{
+    flex:1;
+    overflow-y:auto;
+    padding:14px 14px 90px;
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--white);
+    border:1px solid var(--grey-300);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-bottom:12px;
+  }
+  .card h2{
+    margin:0 0 10px;
+    font-size:14px;
+    color:var(--blue-900);
+  }
+  label{
+    display:block;
+    font-size:11px;
+    color:var(--grey-600);
+    margin:8px 0 3px;
+  }
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=date], select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--grey-300);
+    border-radius:8px;
+    font-size:14px;
+    background:var(--white);
+    color:var(--grey-900);
+  }
+  input:focus, select:focus{outline:2px solid var(--blue-500); outline-offset:1px;}
+
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    padding:10px 14px;
+  }
+  .btn-primary{background:var(--blue-700); color:var(--white); width:100%; margin-top:12px;}
+  .btn-primary:active{background:var(--blue-900);}
+  .btn-ghost{background:transparent; color:var(--blue-700); border:1px solid var(--blue-500); padding:6px 10px; font-size:12px;}
+  .btn-danger-text{background:none; color:var(--danger); font-size:12px; font-weight:500; padding:4px 6px;}
+
+  .list-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 4px;
+    border-bottom:1px solid var(--grey-100);
+    gap:8px;
+  }
+  .list-item:last-child{border-bottom:none;}
+  .item-main{display:flex; flex-direction:column; min-width:0;}
+  .item-title{font-size:14px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .item-sub{font-size:11px; color:var(--grey-600); margin-top:1px;}
+  .tag{
+    font-size:10px;
+    font-weight:600;
+    padding:2px 7px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .tag-reuniao{background:var(--blue-100); color:var(--blue-700);}
+  .tag-atividade{background:#eef4ee; color:var(--ok);}
+  .tag-inativo{background:var(--grey-100); color:var(--grey-600);}
+
+  .empty{
+    text-align:center;
+    color:var(--grey-600);
+    font-size:13px;
+    padding:26px 10px;
+  }
+
+  /* checklist de presença */
+  .check-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 4px;
+    border-bottom:1px solid var(--grey-100);
+  }
+  .check-row:last-child{border-bottom:none;}
+  .check-name{font-size:14px;}
+  .switch{
+    position:relative;
+    width:46px;
+    height:26px;
+    flex-shrink:0;
+  }
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{
+    position:absolute; inset:0;
+    background:var(--grey-300);
+    border-radius:20px;
+    transition:.15s;
+  }
+  .slider::before{
+    content:"";
+    position:absolute;
+    height:20px; width:20px;
+    left:3px; top:3px;
+    background:var(--white);
+    border-radius:50%;
+    transition:.15s;
+  }
+  input:checked + .slider{background:var(--ok);}
+  input:checked + .slider::before{transform:translateX(20px);}
+
+  /* ranking */
+  .rank-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 4px;
+    border-bottom:1px solid var(--grey-100);
+  }
+  .rank-row:last-child{border-bottom:none;}
+  .rank-pos{
+    width:24px;
+    text-align:center;
+    font-size:12px;
+    font-weight:700;
+    color:var(--blue-700);
+    flex-shrink:0;
+  }
+  .rank-info{flex:1; min-width:0;}
+  .rank-name{font-size:14px; font-weight:500;}
+  .rank-bar-track{
+    height:5px;
+    background:var(--grey-100);
+    border-radius:3px;
+    margin-top:5px;
+    overflow:hidden;
+  }
+  .rank-bar-fill{
+    height:100%;
+    background:var(--blue-500);
+    border-radius:3px;
+  }
+  .rank-count{
+    font-size:13px;
+    font-weight:700;
+    color:var(--grey-900);
+    min-width:34px;
+    text-align:right;
+    flex-shrink:0;
+  }
+
+  .filters{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
+  .filters select, .filters input{flex:1; min-width:110px;}
+
+  nav{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    background:var(--white);
+    border-top:1px solid var(--grey-300);
+    display:flex;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    z-index:20;
+  }
+  nav button{
+    flex:1;
+    background:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    padding:6px 2px;
+    color:var(--grey-600);
+    font-size:10px;
+    font-weight:600;
+  }
+  nav button.active{color:var(--blue-700);}
+  nav svg{width:20px; height:20px;}
+
+  .toast{
+    position:fixed;
+    bottom:78px;
+    left:50%;
+    transform:translateX(-50%) translateY(10px);
+    background:var(--grey-900);
+    color:var(--white);
+    padding:9px 16px;
+    border-radius:20px;
+    font-size:12px;
+    opacity:0;
+    pointer-events:none;
+    transition:.2s;
+    z-index:30;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Presenças AAFM</h1>
+  <p>Registo de participação em reuniões e atividades</p>
+</header>
+<div id="grupo-switch">
+  <button data-grupo="direcao" class="active">Direção AAFM</button>
+  <button data-grupo="estudante">Estudantes</button>
+</div>
+<div id="config-warning">Configure SUPABASE_URL e SUPABASE_ANON_KEY no início do ficheiro.</div>
+
+<main>
+
+  <!-- PRESENÇA -->
+  <section id="panel-presenca" class="panel active">
+    <div class="card">
+      <h2>Marcar presença</h2>
+      <label for="sel-atividade">Reunião / Atividade</label>
+      <select id="sel-atividade"></select>
+      <button class="btn-ghost" id="btn-foto-presenca" style="width:100%; margin-top:10px; padding:10px;">📷 Marcar por foto da lista</button>
+      <input type="file" id="input-foto-presenca" accept="image/*" capture="environment" style="display:none;">
+    </div>
+    <div class="card" id="presenca-list-card">
+      <h2>Membros</h2>
+      <div id="presenca-list"><div class="empty">Escolha uma atividade acima.</div></div>
+      <button class="btn-primary" id="btn-salvar-presenca">Guardar presenças</button>
+    </div>
+  </section>
+
+  <!-- ATIVIDADES -->
+  <section id="panel-atividades" class="panel">
+    <div class="card">
+      <h2>Nova reunião / atividade</h2>
+      <label for="at-titulo">Título</label>
+      <input type="text" id="at-titulo" placeholder="Ex: Reunião geral, Ação de sangue...">
+      <div class="row">
+        <div>
+          <label for="at-tipo">Tipo</label>
+          <select id="at-tipo">
+            <option value="Reuniao">Reunião</option>
+            <option value="Atividade">Atividade</option>
+          </select>
+        </div>
+        <div>
+          <label for="at-data">Data</label>
+          <input type="date" id="at-data">
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-add-atividade">Adicionar</button>
+    </div>
+    <div class="card">
+      <h2>Histórico</h2>
+      <div id="atividades-list"><div class="empty">Nenhuma atividade registada.</div></div>
+    </div>
+  </section>
+
+  <!-- MEMBROS -->
+  <section id="panel-membros" class="panel">
+    <div class="card">
+      <h2>Novo membro</h2>
+      <label for="mb-nome">Nome</label>
+      <input type="text" id="mb-nome" placeholder="Nome completo">
+      <button class="btn-primary" id="btn-add-membro">Adicionar</button>
+    </div>
+    <div class="card">
+      <h2>Membros registados</h2>
+      <div id="membros-list"><div class="empty">Nenhum membro registado.</div></div>
+    </div>
+  </section>
+
+  <!-- RANKING -->
+  <section id="panel-ranking" class="panel">
+    <div class="card">
+      <h2>Base de seleção</h2>
+      <div class="filters">
+        <select id="rk-tipo">
+          <option value="todos">Todos os tipos</option>
+          <option value="Reuniao">Só reuniões</option>
+          <option value="Atividade">Só atividades</option>
+        </select>
+        <select id="rk-periodo">
+          <option value="todos">Todo o período</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="30">Últimos 30 dias</option>
+        </select>
+      </div>
+      <div id="ranking-list"><div class="empty">Sem dados suficientes ainda.</div></div>
+    </div>
+  </section>
+
+</main>
+
+<nav>
+  <button data-tab="presenca" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+    Presença
+  </button>
+  <button data-tab="atividades">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    Atividades
+  </button>
+  <button data-tab="membros">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Membros
+  </button>
+  <button data-tab="ranking">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+    Ranking
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div id="debug-log" style="display:none; position:fixed; bottom:0; left:0; right:0; max-height:35vh; overflow-y:auto; background:rgba(0,0,0,.88); color:#7CFC00; font-family:monospace; font-size:10px; padding:6px 8px; z-index:999; white-space:pre-wrap;">a carregar...</div>
+
+<script>
+function dbg(msg){
+  console.log("[presencas-aafm]", msg);
+  const d = document.getElementById("debug-log");
+  if (d.textContent === "a carregar...") d.textContent = "";
+  d.textContent += (new Date()).toLocaleTimeString() + " " + msg + "\n";
+  d.scrollTop = d.scrollHeight;
+}
+// 5 toques rápidos no título mostram/escondem o painel de debug, para quando precisares de novo
+(function(){
+  let toques = 0, timer = null;
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const titulo = document.querySelector("header h1");
+    if(!titulo) return;
+    titulo.addEventListener("click", ()=>{
+      toques++;
+      clearTimeout(timer);
+      timer = setTimeout(()=> toques = 0, 1500);
+      if(toques >= 5){
+        toques = 0;
+        const d = document.getElementById("debug-log");
+        d.style.display = d.style.display === "none" ? "block" : "none";
+      }
+    });
+  });
+})();
+dbg("script: início da execução");
+/* ======================= CONFIGURAÇÃO ======================= */
+const SUPABASE_URL = "https://wulmhubjxwrolcsrxpjc.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bG1odWJqeHdyb2xjc3J4cGpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NjQ4MjgsImV4cCI6MjEwMTI0MDgyOH0.XtAzSjTvuFCxGYLtCeaVMRmCsjOt2mHsp3h9c4MM1_s";
+// Chave gratuita do Google Gemini, usada para ler a foto da lista de presença.
+// Como obter (grátis, sem cartão de crédito):
+//   1. Vai a https://aistudio.google.com/apikey
+//   2. Inicia sessão com uma conta Google e clica "Create API key"
+//   3. Cola a chave aqui em baixo, entre aspas.
+// O plano gratuito do Gemini tem um limite diário de pedidos, mas é mais do
+// que suficiente para marcar presenças de reuniões.
+const GEMINI_API_KEY = "";
+
+// Opcional: se tiveres o teu próprio backend (Node/Render) com a rota
+// /api/reconhecer-presencas, define o URL aqui. Se definido, o app usa
+// esse backend em vez de chamar o Gemini diretamente.
+const RECONHECIMENTO_BACKEND_URL = "https://medbi-license-server.onrender.com/api/reconhecer-presencas";
+/* ===============================================================
+   SQL para criar as tabelas no Supabase (correr uma vez no SQL editor):
+
+   create table aafm_membros (
+     id uuid primary key default gen_random_uuid(),
+     nome text not null,
+     grupo text not null default 'estudante' check (grupo in ('direcao','estudante')),
+     ativo boolean not null default true,
+     criado_em timestamptz default now()
+   );
+
+   create table aafm_atividades (
+     id uuid primary key default gen_random_uuid(),
+     titulo text not null,
+     tipo text not null check (tipo in ('Reunião','Atividade')),
+     grupo text not null default 'estudante' check (grupo in ('direcao','estudante')),
+     data date not null,
+     criado_em timestamptz default now()
+   );
+
+   -- Se as tabelas já existiam (versão anterior sem "grupo"), correr em vez disso:
+   -- alter table aafm_membros add column grupo text not null default 'estudante' check (grupo in ('direcao','estudante'));
+   -- alter table aafm_atividades add column grupo text not null default 'estudante' check (grupo in ('direcao','estudante'));
+
+   create table aafm_presencas (
+     id uuid primary key default gen_random_uuid(),
+     atividade_id uuid references aafm_atividades(id) on delete cascade,
+     membro_id uuid references aafm_membros(id) on delete cascade,
+     presente boolean not null default false,
+     unique(atividade_id, membro_id)
+   );
+
+   alter table aafm_membros enable row level security;
+   alter table aafm_atividades enable row level security;
+   alter table aafm_presencas enable row level security;
+   create policy "public all" on aafm_membros for all using (true) with check (true);
+   create policy "public all" on aafm_atividades for all using (true) with check (true);
+   create policy "public all" on aafm_presencas for all using (true) with check (true);
+================================================================ */
+
+let supabase = null;
+let membros = [];
+let atividades = [];
+let currentGrupo = "direcao"; // 'direcao' | 'estudante'
+dbg("config lida, variáveis iniciais criadas");
+
+function mostrarErro(msg, permiteRetry){
+  const w = document.getElementById("config-warning");
+  w.innerHTML = "";
+  const texto = document.createElement("span");
+  texto.textContent = msg + (permiteRetry ? " (toca aqui para tentar de novo)" : "");
+  w.appendChild(texto);
+  if(permiteRetry){
+    const diag = document.createElement("div");
+    diag.textContent = "🔍 Testar ligação (diagnóstico)";
+    diag.style.cssText = "margin-top:6px; text-decoration:underline; font-weight:600;";
+    diag.onclick = (e)=>{ e.stopPropagation(); testarLigacao(); };
+    w.appendChild(diag);
+  }
+  w.style.display = "block";
+  w.style.cursor = permiteRetry ? "pointer" : "default";
+  w.onclick = permiteRetry ? ()=>{ w.style.display="none"; iniciarSupabase(); } : null;
+}
+
+async function testarLigacao(){
+  const resultados = [];
+  const t0 = Date.now();
+
+  try{
+    await fetch("https://www.gstatic.com/generate_204", {mode:"no-cors", cache:"no-store"});
+    resultados.push("✅ Internet em geral: OK");
+  }catch(e){
+    resultados.push("❌ Internet em geral: falhou (sem rede neste momento)");
+  }
+
+  try{
+    await fetch("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2", {mode:"no-cors", cache:"no-store"});
+    resultados.push("✅ CDN jsdelivr (biblioteca): alcançável");
+  }catch(e){
+    resultados.push("❌ CDN jsdelivr (biblioteca): bloqueado ou inacessível");
+  }
+
+  try{
+    const r = await fetch(SUPABASE_URL + "/rest/v1/", {headers:{apikey: SUPABASE_ANON_KEY}, cache:"no-store"});
+    resultados.push(`✅ Servidor Supabase (direto): respondeu (código ${r.status})`);
+  }catch(e){
+    resultados.push("❌ Servidor Supabase (direto): não respondeu");
+  }
+
+  resultados.push(`\nTempo total do teste: ${Date.now()-t0}ms`);
+  alert(resultados.join("\n"));
+}
+window.addEventListener("error", (e)=> mostrarErro("Erro: " + e.message, false));
+window.addEventListener("unhandledrejection", (e)=>{
+  const msg = (e.reason && e.reason.message) ? e.reason.message : String(e.reason);
+  mostrarErro("Erro: " + msg, false);
+});
+
+// Carrega a biblioteca do Supabase sem bloquear o resto da app (importante em rede lenta/instável).
+// Tenta duas fontes diferentes (jsdelivr e unpkg) e repete cada uma antes de desistir,
+// porque numa rede 4G fraca uma única tentativa de 12s falha com frequência mesmo que a
+// ligação funcione — só é lenta.
+const SUPABASE_LIB_MIRRORS = [
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+  "https://unpkg.com/@supabase/supabase-js@2",
+];
+
+function carregarScript(src, timeoutMs){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement("script");
+    s.src = src;
+    const t = setTimeout(()=> reject(new Error("tempo esgotado")), timeoutMs);
+    s.onload = ()=>{ clearTimeout(t); resolve(); };
+    s.onerror = ()=>{ clearTimeout(t); reject(new Error("falha ao carregar")); };
+    document.head.appendChild(s);
+  });
+}
+
+async function carregarSupabaseLib(timeoutMs){
+  if (window.supabase) return;
+  const tentativasPorFonte = 2;
+  for (let tentativa = 1; tentativa <= tentativasPorFonte; tentativa++){
+    for (const mirror of SUPABASE_LIB_MIRRORS){
+      if (window.supabase) return;
+      try{
+        dbg(`a tentar (${tentativa}/${tentativasPorFonte}): ${mirror}`);
+        await carregarScript(mirror, timeoutMs);
+        if (window.supabase) return;
+      }catch(err){
+        dbg(`falhou (${mirror}): ${err.message}`);
+      }
+    }
+  }
+  throw new Error("Rede demasiado lenta ou instável para carregar a biblioteca do Supabase");
+}
+
+async function iniciarSupabase(){
+  dbg("iniciarSupabase: início");
+  if (!SUPABASE_URL.startsWith("http")) {
+    mostrarErro("Configure SUPABASE_URL e SUPABASE_ANON_KEY no início do ficheiro.", false);
+    return;
+  }
+  try {
+    dbg("a carregar biblioteca Supabase...");
+    await carregarSupabaseLib(20000);
+    dbg("biblioteca Supabase carregada OK");
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    dbg("cliente Supabase criado");
+    loadMembros();
+    loadAtividades();
+  } catch (err) {
+    dbg("ERRO em iniciarSupabase: " + err.message);
+    mostrarErro("Erro ao ligar ao Supabase: " + err.message + " — a navegação funciona, mas sem guardar dados.", true);
+  }
+}
+dbg("a chamar iniciarSupabase()");
+iniciarSupabase();
+
+document.querySelectorAll("#grupo-switch button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    dbg("clique: grupo-switch " + btn.dataset.grupo);
+    if(btn.classList.contains("active")) return;
+    document.querySelectorAll("#grupo-switch button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    currentGrupo = btn.dataset.grupo;
+    renderMembros();
+    renderAtividades();
+    renderPresencaSelect();
+    if(document.getElementById("panel-ranking").classList.contains("active")) renderRanking();
+  });
+});
+dbg("nav e grupo-switch: listeners ligados, " + document.querySelectorAll("nav button").length + " botões de nav encontrados");
+
+/* ---------- utilidades ---------- */
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+function fmtData(d){
+  const dt = new Date(d + "T00:00:00");
+  return dt.toLocaleDateString("pt-PT", {day:"2-digit", month:"2-digit", year:"numeric"});
+}
+function tagClass(tipo){
+  return tipo === "Reuniao" ? "tag-reuniao" : "tag-atividade";
+}
+function tipoLabel(tipo){
+  return tipo === "Reuniao" ? "Reunião" : tipo;
+}
+
+/* ---------- navegação ---------- */
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    dbg("clique: nav tab " + btn.dataset.tab);
+    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    if(btn.dataset.tab === "ranking") renderRanking();
+  });
+});
+
+/* ---------- MEMBROS ---------- */
+async function loadMembros(){
+  dbg("loadMembros: início");
+  if(!supabase) { dbg("loadMembros: sem cliente supabase, a sair"); return; }
+  const {data, error} = await supabase.from("aafm_membros").select("*").order("nome");
+  if(error){ dbg("loadMembros: ERRO " + JSON.stringify(error)); toast("Erro ao carregar membros"); return; }
+  membros = data || [];
+  dbg("loadMembros: OK, " + membros.length + " membro(s)");
+  renderMembros();
+  renderPresencaSelect();
+}
+function renderMembros(){
+  const el = document.getElementById("membros-list");
+  const lista = membros.filter(m=>m.grupo===currentGrupo);
+  if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum membro registado neste grupo.</div>'; return; }
+  el.innerHTML = lista.map(m=>`
+    <div class="list-item">
+      <div class="item-main">
+        <div class="item-title">${m.nome}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        ${!m.ativo ? '<span class="tag tag-inativo">Inativo</span>' : ''}
+        <button class="btn-ghost" data-id="${m.id}" data-action="toggle">${m.ativo ? "Desativar" : "Ativar"}</button>
+        <button class="btn-danger-text" data-id="${m.id}" data-action="del">Remover</button>
+      </div>
+    </div>
+  `).join("");
+  el.querySelectorAll('[data-action="toggle"]').forEach(b=>b.addEventListener("click", ()=>toggleMembro(b.dataset.id)));
+  el.querySelectorAll('[data-action="del"]').forEach(b=>b.addEventListener("click", ()=>delMembro(b.dataset.id)));
+}
+document.getElementById("btn-add-membro").addEventListener("click", async ()=>{
+  dbg("clique: btn-add-membro");
+  const nome = document.getElementById("mb-nome").value.trim();
+  if(!nome) return toast("Escreva o nome");
+  if(!supabase) { dbg("btn-add-membro: sem cliente supabase"); return toast("Configure o Supabase primeiro"); }
+  const {error} = await supabase.from("aafm_membros").insert({nome, ativo:true, grupo: currentGrupo});
+  if(error) { dbg("btn-add-membro: ERRO " + JSON.stringify(error)); return toast("Erro ao adicionar"); }
+  document.getElementById("mb-nome").value = "";
+  toast("Membro adicionado");
+  dbg("btn-add-membro: OK, membro inserido");
+  loadMembros();
+});
+async function toggleMembro(id){
+  const m = membros.find(x=>x.id===id);
+  const {error} = await supabase.from("aafm_membros").update({ativo: !m.ativo}).eq("id", id);
+  if(error) return toast("Erro ao atualizar");
+  loadMembros();
+}
+async function delMembro(id){
+  if(!confirm("Remover este membro? Todo o histórico de presença dele será apagado.")) return;
+  const {error} = await supabase.from("aafm_membros").delete().eq("id", id);
+  if(error) return toast("Erro ao remover");
+  toast("Membro removido");
+  loadMembros();
+}
+
+/* ---------- ATIVIDADES ---------- */
+async function loadAtividades(){
+  if(!supabase) return;
+  const {data, error} = await supabase.from("aafm_atividades").select("*").order("data", {ascending:false});
+  if(error){ toast("Erro ao carregar atividades"); return; }
+  atividades = data || [];
+  renderAtividades();
+  renderPresencaSelect();
+}
+function renderAtividades(){
+  const el = document.getElementById("atividades-list");
+  const lista = atividades.filter(a=>a.grupo===currentGrupo);
+  if(!lista.length){ el.innerHTML = '<div class="empty">Nenhuma atividade registada neste grupo.</div>'; return; }
+  el.innerHTML = lista.map(a=>`
+    <div class="list-item">
+      <div class="item-main">
+        <div class="item-title">${a.titulo}</div>
+        <div class="item-sub">${fmtData(a.data)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="tag ${tagClass(a.tipo)}">${tipoLabel(a.tipo)}</span>
+        <button class="btn-danger-text" data-id="${a.id}">Remover</button>
+      </div>
+    </div>
+  `).join("");
+  el.querySelectorAll("[data-id]").forEach(b=>b.addEventListener("click", ()=>delAtividade(b.dataset.id)));
+}
+document.getElementById("btn-add-atividade").addEventListener("click", async ()=>{
+  const titulo = document.getElementById("at-titulo").value.trim();
+  const tipo = document.getElementById("at-tipo").value;
+  const data = document.getElementById("at-data").value;
+  if(!titulo || !data) return toast("Preencha título e data");
+  if(!supabase) return toast("Configure o Supabase primeiro");
+  const {error} = await supabase.from("aafm_atividades").insert({titulo, tipo, data, grupo: currentGrupo});
+  if(error) return toast("Erro ao adicionar");
+  document.getElementById("at-titulo").value = "";
+  document.getElementById("at-data").value = "";
+  toast("Atividade adicionada");
+  loadAtividades();
+});
+async function delAtividade(id){
+  if(!confirm("Remover esta atividade e as presenças associadas?")) return;
+  const {error} = await supabase.from("aafm_atividades").delete().eq("id", id);
+  if(error) return toast("Erro ao remover");
+  toast("Atividade removida");
+  loadAtividades();
+}
+
+/* ---------- PRESENÇA ---------- */
+function renderPresencaSelect(){
+  const sel = document.getElementById("sel-atividade");
+  const current = sel.value;
+  const lista = atividades.filter(a=>a.grupo===currentGrupo);
+  if(!lista.length){
+    sel.innerHTML = '<option value="">Nenhuma atividade criada neste grupo</option>';
+    document.getElementById("presenca-list").innerHTML = '<div class="empty">Crie uma atividade primeiro.</div>';
+    return;
+  }
+  sel.innerHTML = lista.map(a=>`<option value="${a.id}">${fmtData(a.data)} — ${a.titulo} (${tipoLabel(a.tipo)})</option>`).join("");
+  if(current && lista.some(a=>a.id===current)) sel.value = current;
+  loadPresencaChecklist();
+}
+document.getElementById("sel-atividade").addEventListener("change", loadPresencaChecklist);
+
+let presencaAtual = {}; // membro_id -> boolean
+
+async function loadPresencaChecklist(){
+  const atividadeId = document.getElementById("sel-atividade").value;
+  const el = document.getElementById("presenca-list");
+  if(!atividadeId || !membros.length){
+    el.innerHTML = '<div class="empty">Sem membros ativos para marcar.</div>';
+    return;
+  }
+  const {data, error} = await supabase.from("aafm_presencas").select("*").eq("atividade_id", atividadeId);
+  if(error){ toast("Erro ao carregar presenças"); return; }
+  presencaAtual = {};
+  (data || []).forEach(p => presencaAtual[p.membro_id] = p.presente);
+
+  const ativos = membros.filter(m=>m.ativo && m.grupo===currentGrupo);
+  if(!ativos.length){ el.innerHTML = '<div class="empty">Sem membros ativos neste grupo.</div>'; return; }
+
+  el.innerHTML = ativos.map(m=>`
+    <div class="check-row">
+      <span class="check-name">${m.nome}</span>
+      <label class="switch">
+        <input type="checkbox" data-membro="${m.id}" ${presencaAtual[m.id] ? "checked" : ""}>
+        <span class="slider"></span>
+      </label>
+    </div>
+  `).join("");
+}
+document.getElementById("btn-salvar-presenca").addEventListener("click", async ()=>{
+  const atividadeId = document.getElementById("sel-atividade").value;
+  if(!atividadeId) return toast("Escolha uma atividade");
+  if(!supabase) return toast("Configure o Supabase primeiro");
+  const checks = document.querySelectorAll('#presenca-list input[type=checkbox]');
+  const rows = Array.from(checks).map(c=>({
+    atividade_id: atividadeId,
+    membro_id: c.dataset.membro,
+    presente: c.checked
+  }));
+  const {error} = await supabase.from("aafm_presencas").upsert(rows, {onConflict: "atividade_id,membro_id"});
+  if(error) return toast("Erro ao guardar");
+  toast("Presenças guardadas");
+});
+
+/* ---------- RANKING ---------- */
+document.getElementById("rk-tipo").addEventListener("change", renderRanking);
+document.getElementById("rk-periodo").addEventListener("change", renderRanking);
+
+async function renderRanking(){
+  const el = document.getElementById("ranking-list");
+  if(!supabase){ el.innerHTML = '<div class="empty">Configure o Supabase primeiro.</div>'; return; }
+
+  const tipoFiltro = document.getElementById("rk-tipo").value;
+  const periodo = document.getElementById("rk-periodo").value;
+
+  let atividadesFiltradas = atividades.filter(a=>a.grupo===currentGrupo);
+  if(tipoFiltro !== "todos") atividadesFiltradas = atividadesFiltradas.filter(a=>a.tipo===tipoFiltro);
+  if(periodo !== "todos"){
+    const limite = new Date();
+    limite.setDate(limite.getDate() - parseInt(periodo,10));
+    atividadesFiltradas = atividadesFiltradas.filter(a=> new Date(a.data+"T00:00:00") >= limite);
+  }
+  const idsFiltrados = new Set(atividadesFiltradas.map(a=>a.id));
+  const totalAtividades = atividadesFiltradas.length;
+
+  if(!totalAtividades){ el.innerHTML = '<div class="empty">Nenhuma atividade neste período/tipo.</div>'; return; }
+
+  const {data, error} = await supabase.from("aafm_presencas").select("membro_id, presente, atividade_id").eq("presente", true);
+  if(error){ el.innerHTML = '<div class="empty">Erro ao carregar ranking.</div>'; return; }
+
+  const contagem = {};
+  (data || []).forEach(p=>{
+    if(idsFiltrados.has(p.atividade_id)){
+      contagem[p.membro_id] = (contagem[p.membro_id] || 0) + 1;
+    }
+  });
+
+  const ranking = membros
+    .filter(m=>m.ativo && m.grupo===currentGrupo)
+    .map(m=>({nome:m.nome, total: contagem[m.id] || 0}))
+    .sort((a,b)=> b.total - a.total);
+
+  if(!ranking.length){ el.innerHTML = '<div class="empty">Sem membros para mostrar.</div>'; return; }
+
+  const max = ranking[0].total || 1;
+  el.innerHTML = ranking.map((r,i)=>`
+    <div class="rank-row">
+      <div class="rank-pos">${i+1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${r.nome}</div>
+        <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(r.total/max*100).toFixed(0)}%"></div></div>
+      </div>
+      <div class="rank-count">${r.total}/${totalAtividades}</div>
+    </div>
+  `).join("");
+}
+
+/* ---------- PRESENÇA POR FOTO ---------- */
+document.getElementById("btn-foto-presenca").addEventListener("click", ()=>{
+  const atividadeId = document.getElementById("sel-atividade").value;
+  if(!atividadeId) return toast("Escolha uma atividade primeiro");
+  if(!GEMINI_API_KEY && !RECONHECIMENTO_BACKEND_URL){
+    return alert("Falta configurar a chave gratuita do Gemini.\n\n1. Vai a aistudio.google.com/apikey\n2. Cria uma chave grátis\n3. Cola-a em GEMINI_API_KEY no início do ficheiro");
+  }
+  document.getElementById("input-foto-presenca").click();
+});
+
+document.getElementById("input-foto-presenca").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const ativos = membros.filter(m=>m.ativo && m.grupo===currentGrupo);
+  if(!ativos.length){ toast("Sem membros ativos neste grupo"); e.target.value=""; return; }
+
+  const btn = document.getElementById("btn-foto-presenca");
+  const textoOriginal = btn.textContent;
+  btn.textContent = "A ler a foto...";
+  btn.disabled = true;
+
+  try{
+    const base64 = await fileToBase64(file);
+    const resultado = await reconhecerPresencas(base64, file.type, ativos.map(m=>m.nome));
+    aplicarPresencasReconhecidas(resultado, ativos);
+  }catch(err){
+    console.error(err);
+    toast("Erro ao ler a foto");
+  }finally{
+    btn.textContent = textoOriginal;
+    btn.disabled = false;
+    e.target.value = "";
+  }
+});
+
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function reconhecerPresencas(base64, mimeType, nomesConhecidos){
+  const prompt = `Esta é uma foto de uma lista de presença (manuscrita ou impressa) de uma reunião/atividade estudantil.
+
+Nomes conhecidos que podem aparecer nesta lista: ${JSON.stringify(nomesConhecidos)}
+
+Identifica quais destes nomes conhecidos aparecem na foto como presentes (podem estar escritos à mão, com letra difícil, abreviados, com pequenos erros ortográficos, ou fora de ordem). Considera presente qualquer nome da lista que apareça escrito/assinado na foto, exceto se estiver claramente riscado ou marcado como ausente/falta.
+
+Responde APENAS com um objeto JSON, sem texto antes ou depois, sem markdown, exatamente neste formato:
+{"presentes": ["nome exatamente igual a um dos nomes conhecidos"], "nao_reconhecidos": ["nomes visíveis na foto que não correspondem a nenhum nome conhecido"]}`;
+
+  // Se tiveres um backend próprio configurado, usa-o
+  if(RECONHECIMENTO_BACKEND_URL){
+    const resp = await fetch(RECONHECIMENTO_BACKEND_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ image_base64: base64, media_type: mimeType, nomes: nomesConhecidos })
+    });
+    if(!resp.ok) throw new Error("Backend respondeu com erro");
+    return await resp.json();
+  }
+
+  // Caso contrário, chama o Gemini diretamente (grátis, funciona em qualquer lugar)
+  if(!GEMINI_API_KEY){
+    throw new Error("Configure a GEMINI_API_KEY no início do ficheiro (chave grátis em aistudio.google.com/apikey)");
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          {inline_data: {mime_type: mimeType, data: base64}},
+          {text: prompt}
+        ]
+      }],
+      generationConfig: { responseMimeType: "application/json" }
+    })
+  });
+  if(!response.ok){
+    const errTxt = await response.text();
+    console.error("Gemini erro:", errTxt);
+    throw new Error("Gemini respondeu com erro");
+  }
+  const data = await response.json();
+  const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if(!texto) throw new Error("Resposta vazia da IA");
+  const limpo = texto.replace(/```json|```/g, "").trim();
+  return JSON.parse(limpo);
+}
+
+function normalizar(s){
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+}
+
+function aplicarPresencasReconhecidas(resultado, ativos){
+  const presentes = resultado.presentes || [];
+  const naoReconhecidos = resultado.nao_reconhecidos || [];
+  let marcados = 0;
+  presentes.forEach(nome=>{
+    const alvo = normalizar(nome);
+    const membro = ativos.find(m => normalizar(m.nome) === alvo);
+    if(membro){
+      const checkbox = document.querySelector(`#presenca-list input[data-membro="${membro.id}"]`);
+      if(checkbox && !checkbox.checked){
+        checkbox.checked = true;
+        marcados++;
+      }
+    }
+  });
+  toast(marcados ? `${marcados} presença(s) marcada(s) pela foto` : "Nenhum nome reconhecido");
+  if(naoReconhecidos.length){
+    alert("Nomes na foto que não correspondem a nenhum membro registado:\n\n" + naoReconhecidos.join("\n"));
+  }
+}
+
+/* A ligação ao Supabase e o carregamento inicial de membros/atividades
+   já são feitos por iniciarSupabase(), chamada mais acima. */
+</script>
+</body>
+</html>
