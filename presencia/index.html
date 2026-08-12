@@ -259,6 +259,52 @@
   .pill-btn.active[data-atraso="1"]{color:#a3691f;}
   .pill-btn.active[data-saiu="1"]{color:var(--danger);}
 
+  /* Pasta (resumo fechado) da presença de uma atividade/reunião */
+  .presenca-pasta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--grey-100);
+    border:1px solid var(--grey-300);
+    border-radius:10px;
+    padding:12px;
+    cursor:pointer;
+  }
+  .presenca-pasta:active{opacity:.8;}
+  .presenca-pasta-icon{font-size:22px; line-height:1;}
+  .presenca-pasta-info{flex:1; min-width:0;}
+  .presenca-pasta-titulo{
+    font-weight:600;
+    font-size:13px;
+    color:var(--blue-900);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .presenca-pasta-stats{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+  }
+  .pasta-badge{
+    font-size:10px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .pasta-badge.pasta-ok{background:#e6f4ec; color:var(--ok);}
+  .pasta-badge.pasta-just{background:#fef3e0; color:#a3691f;}
+  .pasta-badge.pasta-naojust{background:#fbe9e7; color:var(--danger);}
+  #btn-abrir-pasta-presenca{padding:8px 12px; font-size:12px; white-space:nowrap;}
+  .presenca-pasta-aberta-header{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom:8px;
+  }
+  #btn-fechar-pasta-presenca{padding:6px 10px; font-size:11px;}
+
   /* ranking */
   .rank-row{
     display:flex;
@@ -587,6 +633,12 @@
       </div>
       <input type="file" id="input-foto-membro" accept="image/*" style="display:none;">
       <button class="btn-primary" id="btn-add-membro">Adicionar</button>
+    </div>
+    <div class="card" id="membros-foto-lista-card" style="display:none;">
+      <h2>Nomes lidos na foto</h2>
+      <div style="font-size:11px; color:var(--grey-600); margin-bottom:8px;">A foto tinha vários nomes. Confirma quais queres adicionar como membros (desmarca os que não queres):</div>
+      <div id="membros-foto-lista"></div>
+      <button class="btn-primary" id="btn-add-membros-foto">Adicionar selecionados</button>
     </div>
     <div class="card">
       <h2>Membros registados</h2>
@@ -1693,6 +1745,9 @@ function renderPresencaSelect(){
 document.getElementById("sel-atividade").addEventListener("change", loadPresencaChecklist);
 
 let presencaAtual = {}; // membro_id -> {presente, pontual, ficouAteFim, justificada}
+let presencaListaAberta = true; // controla se a checklist completa está visível ou recolhida numa "pasta"
+let presencaUltimaAtividadeId = null;
+let presencaAtivosAtuais = []; // cache dos membros ativos da última renderização, para reabrir/fechar sem re-fetch
 
 function pontosPresenca(p){
   if(!p) return 0;
@@ -1719,9 +1774,65 @@ async function loadPresencaChecklist(){
   });
 
   const ativos = membros.filter(m=>m.ativo && m.grupo===currentGrupo);
+  presencaAtivosAtuais = ativos;
   if(!ativos.length){ el.innerHTML = '<div class="empty">Sem membros ativos neste grupo.</div>'; return; }
 
+  // Ao trocar de atividade: se já há presenças guardadas, mostra a "pasta" fechada por defeito;
+  // se é uma atividade nova sem nada marcado, abre logo a checklist para facilitar o preenchimento.
+  if(atividadeId !== presencaUltimaAtividadeId){
+    presencaListaAberta = (data || []).length === 0;
+    presencaUltimaAtividadeId = atividadeId;
+  }
+
+  if(presencaListaAberta){
+    renderChecklistCompleta(ativos);
+  } else {
+    renderPastaFechada(ativos);
+  }
+}
+
+function renderPastaFechada(ativos){
+  const el = document.getElementById("presenca-list");
+  const sel = document.getElementById("sel-atividade");
+  const tituloAtividade = sel.options[sel.selectedIndex]?.textContent || "Atividade";
+  let presentes = 0, faltaJust = 0, faltaNaoJust = 0;
+  ativos.forEach(m=>{
+    const p = presencaAtual[m.id];
+    if(p && p.presente) presentes++;
+    else if(p && p.justificada) faltaJust++;
+    else faltaNaoJust++;
+  });
   el.innerHTML = `
+    <div class="presenca-pasta" id="presenca-pasta-toggle">
+      <div class="presenca-pasta-icon">📁</div>
+      <div class="presenca-pasta-info">
+        <div class="presenca-pasta-titulo">${escapeHtml(tituloAtividade)}</div>
+        <div class="presenca-pasta-stats">
+          <span class="pasta-badge pasta-ok">${presentes} presentes</span>
+          <span class="pasta-badge pasta-just">${faltaJust} falta just.</span>
+          <span class="pasta-badge pasta-naojust">${faltaNaoJust} falta não just.</span>
+        </div>
+      </div>
+      <button class="btn-ghost" id="btn-abrir-pasta-presenca" type="button">Editar</button>
+    </div>
+  `;
+  const abrir = ()=>{
+    presencaListaAberta = true;
+    renderChecklistCompleta(ativos);
+  };
+  document.getElementById("presenca-pasta-toggle").addEventListener("click", abrir);
+  document.getElementById("btn-abrir-pasta-presenca").addEventListener("click", (e)=>{
+    e.stopPropagation();
+    abrir();
+  });
+}
+
+function renderChecklistCompleta(ativos){
+  const el = document.getElementById("presenca-list");
+  el.innerHTML = `
+    <div class="presenca-pasta-aberta-header">
+      <button class="btn-ghost" id="btn-fechar-pasta-presenca" type="button">📁 Recolher lista</button>
+    </div>
     <div style="display:flex; gap:8px; margin-bottom:8px;">
       <button class="btn-ghost" id="btn-marcar-todos" style="flex:1;">Marcar todos</button>
       <button class="btn-ghost" id="btn-marcar-nenhum" style="flex:1;">Marcar nenhum</button>
@@ -1768,6 +1879,10 @@ async function loadPresencaChecklist(){
     </div>
   `;}).join("");
 
+  document.getElementById("btn-fechar-pasta-presenca").addEventListener("click", ()=>{
+    presencaListaAberta = false;
+    renderPastaFechada(ativos);
+  });
   document.getElementById("btn-marcar-todos").addEventListener("click", ()=>{
     document.querySelectorAll('#presenca-list .chk-presente').forEach(c=>{
       c.checked = true;
@@ -1943,6 +2058,9 @@ document.getElementById("btn-salvar-presenca").addEventListener("click", async (
     removerPendenteLocal(atividadeId);
     toast("Presenças guardadas");
     loadPresencasResumo();
+    // Depois de guardar, recolhe a lista de nomes dentro da "pasta" desta atividade/reunião
+    presencaListaAberta = false;
+    if(presencaAtivosAtuais.length) renderPastaFechada(presencaAtivosAtuais);
   } finally {
     btn.disabled = false;
   }
@@ -2100,12 +2218,18 @@ document.getElementById("input-foto-membro").addEventListener("change", async (e
     dbg(`foto membro: ficheiro selecionado (${file.type}, ${Math.round(file.size/1024)}KB)`);
     const base64 = await fileToBase64(file);
     dbg("foto membro: convertida para base64, a chamar reconhecimento...");
-    const nome = await reconhecerNomeFoto(base64, file.type);
-    if(nome){
-      document.getElementById("mb-nome").value = nome;
-      toast(`Nome lido: ${nome}`);
-    } else {
+    const nomes = await reconhecerNomesFoto(base64, file.type);
+    if(!nomes.length){
       toast("Não consegui ler nenhum nome nessa foto");
+    } else if(nomes.length === 1){
+      document.getElementById("mb-nome").value = nomes[0];
+      mostrarNomesFotoMembro([]); // esconde a lista de confirmação, se estava aberta
+      toast(`Nome lido: ${nomes[0]}`);
+    } else {
+      // A foto tinha uma lista com vários nomes: mostra-os para confirmação em vez de só um
+      document.getElementById("mb-nome").value = "";
+      mostrarNomesFotoMembro(nomes);
+      toast(`${nomes.length} nomes lidos na foto — confirma quais adicionar`);
     }
   }catch(err){
     console.error(err);
@@ -2120,15 +2244,71 @@ document.getElementById("input-foto-membro").addEventListener("change", async (e
   }
 });
 
-async function reconhecerNomeFoto(base64, mimeType){
-  const prompt = `Esta é uma foto de um documento, crachá, cartão ou papel com o nome de uma pessoa (pode ser um nome escrito à mão ou impresso).
+function mostrarNomesFotoMembro(nomes){
+  const card = document.getElementById("membros-foto-lista-card");
+  const lista = document.getElementById("membros-foto-lista");
+  if(!nomes || !nomes.length){
+    card.style.display = "none";
+    lista.innerHTML = "";
+    return;
+  }
+  lista.innerHTML = nomes.map(nome => {
+    const jaExiste = membroDuplicado(nome, currentGrupo);
+    return `
+    <div class="check-row">
+      <span class="check-name">${escapeHtml(nome)}${jaExiste ? " (já existe)" : ""}</span>
+      <label class="switch">
+        <input type="checkbox" class="mf-check" value="${escapeHtml(nome)}" ${jaExiste ? "" : "checked"}>
+        <span class="slider"></span>
+      </label>
+    </div>
+  `;}).join("");
+  card.style.display = "block";
+}
 
-Lê e identifica o nome completo da pessoa presente na foto.
+document.getElementById("btn-add-membros-foto").addEventListener("click", async ()=>{
+  if(!requerSessao()) return;
+  if(!sb) return toast("Configure o Supabase primeiro");
+  const checks = Array.from(document.querySelectorAll("#membros-foto-lista .mf-check:checked"));
+  if(!checks.length) return toast("Nenhum nome selecionado");
+  const nomes = checks.map(c=>c.value).filter(nome => !membroDuplicado(nome, currentGrupo));
+  if(!nomes.length) return toast("Os nomes selecionados já existem como membros");
+
+  const btn = document.getElementById("btn-add-membros-foto");
+  btn.disabled = true;
+  try{
+    dbg(`membros-foto: a adicionar ${nomes.length} membro(s) novo(s) ao grupo "${currentGrupo}"`);
+    const {error} = await sb.from("aafm_membros")
+      .insert(nomes.map(nome => ({ nome, ativo: true, grupo: currentGrupo })));
+    if(error){
+      dbg("ERRO ao adicionar membros da foto: " + error.message);
+      return toast("Erro ao adicionar membros");
+    }
+    await loadMembros();
+    toast(`${nomes.length} membro(s) adicionado(s)`);
+    // mantém na lista apenas os que não foram adicionados agora (ex.: os que já existiam)
+    mostrarNomesFotoMembro(
+      Array.from(document.querySelectorAll("#membros-foto-lista .check-row"))
+        .filter(row => !nomes.includes(row.querySelector(".mf-check").value))
+        .map(row => row.querySelector(".mf-check").value)
+    );
+  }catch(err){
+    dbg("ERRO ao adicionar membros da foto (catch): " + err.message);
+    toast("Erro ao adicionar membros");
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+async function reconhecerNomesFoto(base64, mimeType){
+  const prompt = `Esta é uma foto de um documento, crachá, cartão, folha de presenças ou pauta com nome(s) de pessoa(s) (pode ser um único nome ou uma lista com vários nomes, escritos à mão ou impressos).
+
+Lê e identifica TODOS os nomes completos de pessoas presentes na foto, mesmo que sejam muitos (por exemplo, uma lista de turma ou de presenças). Ignora números, datas, cabeçalhos, assinaturas ilegíveis e qualquer texto que não seja claramente um nome de pessoa.
 
 Responde APENAS com um objeto JSON, sem texto antes ou depois, sem markdown, exatamente neste formato:
-{"nome": "Nome Completo Lido"}
+{"nomes": ["Nome Completo 1", "Nome Completo 2"]}
 
-Se não conseguires ler nenhum nome com confiança, responde: {"nome": ""}`;
+Se não conseguires ler nenhum nome com confiança, responde: {"nomes": []}`;
 
   // Se tiveres um backend próprio configurado, usa-o (evita expor a chave)
   if(LER_NOME_BACKEND_URL){
@@ -2138,7 +2318,7 @@ Se não conseguires ler nenhum nome com confiança, responde: {"nome": ""}`;
       resp = await fetch(LER_NOME_BACKEND_URL, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ image_base64: base64, media_type: mimeType })
+        body: JSON.stringify({ image_base64: base64, media_type: mimeType, multiplos: true })
       });
     }catch(networkErr){
       throw new Error("Não consegui contactar o backend (rede/CORS/backend em baixo): " + networkErr.message);
@@ -2155,7 +2335,9 @@ Se não conseguires ler nenhum nome com confiança, responde: {"nome": ""}`;
     }catch(parseErr){
       throw new Error("Backend respondeu algo que não é JSON válido: " + parseErr.message);
     }
-    return (json.nome || "").trim();
+    if(Array.isArray(json.nomes)) return json.nomes.map(n=>String(n).trim()).filter(Boolean);
+    // compatibilidade com backends antigos que só devolvem um único "nome"
+    return json.nome ? [String(json.nome).trim()].filter(Boolean) : [];
   }
 
   // Caso contrário, chama o Gemini diretamente (grátis, funciona em qualquer lugar)
@@ -2196,7 +2378,9 @@ Se não conseguires ler nenhum nome com confiança, responde: {"nome": ""}`;
   }catch(parseErr){
     throw new Error("A IA respondeu texto que não é JSON válido: " + limpo.slice(0, 200));
   }
-  return (json.nome || "").trim();
+  if(Array.isArray(json.nomes)) return json.nomes.map(n=>String(n).trim()).filter(Boolean);
+  // compatibilidade: se a IA responder só {"nome": "..."} num caso pontual
+  return json.nome ? [String(json.nome).trim()].filter(Boolean) : [];
 }
 
 function fileToBase64(file){
