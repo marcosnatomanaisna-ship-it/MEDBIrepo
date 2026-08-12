@@ -651,6 +651,16 @@
   </div>
 </div>
 
+<!-- ============ CONTA SEM ACESSO A ESTA APP ============ -->
+<div id="tela-sem-acesso" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;">
+  <div class="cartao-login">
+    <div class="selo"><img class="img-emblema-aafm" alt="Emblema AAFM"></div>
+    <h1>Sem acesso ao Arquivo</h1>
+    <p class="sub">Esta conta não está associada ao Arquivo AAFM. Se acabaste de criar a conta agora mesmo, aguarda alguns segundos e volta a tentar entrar. Caso contrário, esta conta pertence a outra aplicação e não tem acesso aqui — contacta o Secretário se achares que isto é um engano.</p>
+    <button type="button" class="btn-primario" id="btn-sem-acesso-sair">Sair</button>
+  </div>
+</div>
+
 <!-- ============ BLOQUEIO DA APP (PIN / Senha / Padrão) ============ -->
 <div id="tela-bloqueio">
   <div class="cartao-login" style="max-width:340px;">
@@ -2274,6 +2284,11 @@ document.getElementById('btn-pendente-sair').addEventListener('click', async ()=
   location.reload();
 });
 
+document.getElementById('btn-sem-acesso-sair').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  location.reload();
+});
+
 /* ---------- ENTRAR NA APP ---------- */
 async function entrarNaApp(user){
   USER_ID = user.id;
@@ -2316,17 +2331,29 @@ async function entrarNaApp(user){
     try{ cache = JSON.parse(localStorage.getItem('ultimoPerfilConhecido') || 'null'); }catch(e){}
     const semLinha = erroPerfil.code === 'PGRST116';
     if(cache && cache.id === user.id){
+      // Já teve perfil válido antes (falha de rede pontual agora) — deixa continuar
+      // com o último papel conhecido em vez de bloquear por um problema temporário.
       PERFIL = cache;
       await avisarPersonalizado('Não foi possível atualizar o teu perfil neste momento. A mostrar o último papel conhecido: ' + rotuloPapel(cache.papel) + '. Algumas permissões podem estar desatualizadas — tenta novamente mais tarde.');
     } else if(semLinha){
-      PERFIL = { nome: user.email, papel: 'membro' };
-      await avisarPersonalizado('O teu perfil ainda está a ser preparado no servidor. Entraste temporariamente como Membro (só consulta). Se isto continuar depois de alguns minutos, contacta o Secretário.');
+      // Nunca teve perfil nesta app: ou é uma conta de outra app (ex.: Presenças),
+      // ou o registo é tão recente que o perfil ainda não foi criado no servidor.
+      // Em vez de deixar entrar como Membro temporário, bloqueia e explica.
+      await sb.auth.signOut();
+      document.getElementById('tela-sem-acesso').style.display='flex';
+      return;
     } else {
-      PERFIL = { nome: user.email, papel: 'membro' };
-      await avisarPersonalizado('Não foi possível ligar ao servidor para confirmar o teu perfil. Entraste temporariamente como Membro (só consulta). Verifica a tua ligação à internet ou contacta o Secretário se persistir.');
+      // Erro de rede/servidor sem perfil em cache: não dá para confirmar se a
+      // conta pertence a esta app, por isso bloqueia por segurança em vez de
+      // assumir Membro.
+      await sb.auth.signOut();
+      document.getElementById('tela-sem-acesso').style.display='flex';
+      return;
     }
   } else {
-    PERFIL = { nome: user.email, papel: 'membro' };
+    await sb.auth.signOut();
+    document.getElementById('tela-sem-acesso').style.display='flex';
+    return;
   }
 
   document.getElementById('app').style.display='block';
@@ -4787,14 +4814,6 @@ async function apagarDefinitivamente(d){
 // mesmo com um modal, o painel de filtros ou uma pasta abertos. Aqui, cada "voltar"
 // fecha só a camada mais em cima — modal > painel de filtros > menu > pasta —
 // e só sai da app de facto quando já não há nada aberto.
-//
-// Como funciona: sempre que uma camada abre, criamos um "degrau" extra no histórico do
-// WebView (history.pushState). É esse degrau que faz o botão físico de voltar do telemóvel
-// perceber que "ainda há para onde voltar" em vez de mostrar logo o diálogo de sair.
-// Quando o telemóvel volta (popstate), fechamos só a camada do topo. Se o utilizador fechar
-// a camada à mão (botão "Fechar", X, clique fora, etc.), consumimos esse degrau nós próprios
-// (history.back()) para o histórico não ficar com "degraus fantasma" que obrigariam a
-// carregar duas vezes em "voltar" para sair.
 const CAMADAS_SOBREPOSTAS = [
   { id:'modal-doc',       tipo:'modal' },
   { id:'modal-ver',       tipo:'modal' },
@@ -4807,9 +4826,6 @@ const CAMADAS_SOBREPOSTAS = [
   { id:'modal-relatorio', tipo:'modal' },
   { id:'modal-exportar',  tipo:'modal' },
   { id:'modal-notificacoes', tipo:'modal' },
-  { id:'modal-confirmar', tipo:'modal' },
-  { id:'modal-aviso',     tipo:'modal' },
-  { id:'modal-bloqueio',  tipo:'modal' },
   { id:'painel-filtros',  tipo:'classe' },
   { id:'painel-menu',     tipo:'classe' },
 ];
@@ -4823,35 +4839,13 @@ function algumaCamadaAberta(){
 }
 
 let HAVIA_CAMADA_ABERTA = false;
-let A_FECHAR_POR_BOTAO_VOLTAR = false; // true enquanto processamos um popstate, para não "consumirmos" o histórico nós próprios logo a seguir
-
-function sincronizarHistoricoComCamadas(){
+function verificarNovaCamadaAberta(){
   const aberta = algumaCamadaAberta();
-  if(aberta === HAVIA_CAMADA_ABERTA) return;
-  if(aberta){
-    // Uma camada acabou de abrir → regista o degrau no histórico.
-    history.pushState({ aafmCamada:true }, '');
-  } else if(!A_FECHAR_POR_BOTAO_VOLTAR){
-    // Foi fechada pela própria app (não pelo botão de voltar) → consome o degrau que tínhamos registado.
-    history.back();
-  }
+  if(aberta && !HAVIA_CAMADA_ABERTA) history.pushState({ aafmCamada:true }, '');
   HAVIA_CAMADA_ABERTA = aberta;
 }
-
-// Observador principal: reage sempre que o "display" ou a classe de qualquer camada muda,
-// seja por clique, toque, ou por código (ex: um modal que só abre depois de uma resposta do
-// servidor). É mais fiável do que depender só do evento "click".
-const OBSERVADOR_CAMADAS = new MutationObserver(()=> sincronizarHistoricoComCamadas());
-document.querySelectorAll('.sobreposicao').forEach(el=>{
-  OBSERVADOR_CAMADAS.observe(el, { attributes:true, attributeFilter:['style'] });
-});
-['painel-filtros','painel-menu'].forEach(id=>{
-  const el = document.getElementById(id);
-  if(el) OBSERVADOR_CAMADAS.observe(el, { attributes:true, attributeFilter:['class'] });
-});
-// Rede de segurança: também verifica depois de qualquer clique (cobre a mudança de
-// FILTRO_TIPO/FILTRO_MANDATO, que não é uma camada com display/classe própria).
-document.addEventListener('click', ()=> setTimeout(sincronizarHistoricoComCamadas, 0), true);
+// Verifica depois de qualquer clique, já que os modais/painéis abrem via clique em botões.
+document.addEventListener('click', ()=> setTimeout(verificarNovaCamadaAberta, 0), true);
 
 function fecharCamadaDoTopo(){
   for(const c of CAMADAS_SOBREPOSTAS){
@@ -4871,14 +4865,7 @@ function fecharCamadaDoTopo(){
   return false;
 }
 
-window.addEventListener('popstate', ()=>{
-  A_FECHAR_POR_BOTAO_VOLTAR = true;
-  fecharCamadaDoTopo();
-  HAVIA_CAMADA_ABERTA = algumaCamadaAberta();
-  // Dá tempo ao MutationObserver (que corre em microtask) para processar este fecho
-  // antes de voltarmos a tratar fechos "normais" (feitos pela app) como tal.
-  setTimeout(()=>{ A_FECHAR_POR_BOTAO_VOLTAR = false; }, 0);
-});
+window.addEventListener('popstate', fecharCamadaDoTopo);
 
 /* ---------- PWA: regista o service worker (permite instalar a app e abrir mais depressa) ---------- */
 if('serviceWorker' in navigator){
