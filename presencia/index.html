@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Presenças AAFM</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
     --blue-900:#0f2440;
@@ -105,7 +106,7 @@
     margin:8px 0 3px;
   }
   label:first-of-type{margin-top:0;}
-  input[type=text], input[type=date], select{
+  input[type=text], input[type=date], input[type=email], input[type=password], select{
     width:100%;
     padding:9px 10px;
     border:1px solid var(--grey-300);
@@ -342,6 +343,159 @@
     white-space:nowrap;
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ---------- modal de login ---------- */
+  #login-overlay{ backdrop-filter:blur(2px); }
+  .login-card{
+    width:100%;
+    max-width:340px;
+    margin:0;
+    background:var(--white);
+    border-radius:16px;
+    padding:22px 20px 20px;
+    box-shadow:0 12px 36px rgba(15,36,64,.35);
+    animation:login-pop .18s ease-out;
+  }
+  @keyframes login-pop{
+    from{ opacity:0; transform:translateY(8px) scale(.98); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .login-card-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .login-card-head div h2{
+    margin:0;
+    font-size:18px;
+    font-weight:700;
+    color:var(--blue-900);
+  }
+  .login-card-head div p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:var(--grey-600);
+  }
+  #btn-login-fechar{
+    background:var(--grey-100);
+    color:var(--grey-600);
+    border-radius:50%;
+    width:28px;
+    height:28px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:15px;
+    line-height:1;
+    flex-shrink:0;
+  }
+  #login-erro{
+    background:#fbe9e7;
+    color:var(--danger);
+    font-size:12px;
+    padding:8px 10px;
+    border-radius:8px;
+    margin-top:10px;
+  }
+
+  /* ---------- página de perfil do membro ---------- */
+  #perfil-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:var(--grey-100);
+    z-index:55;
+    flex-direction:column;
+  }
+  #perfil-overlay.show{display:flex;}
+  .perfil-header{
+    background:var(--blue-900);
+    color:var(--white);
+    padding:16px 18px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-shrink:0;
+  }
+  #btn-perfil-fechar{
+    background:rgba(255,255,255,.12);
+    color:var(--white);
+    border-radius:50%;
+    width:32px;
+    height:32px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    line-height:1;
+    flex-shrink:0;
+  }
+  .perfil-header-texto{min-width:0;}
+  .perfil-header-texto h2{
+    margin:0;
+    font-size:16px;
+    font-weight:600;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .perfil-header-texto p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:#b9c6d8;
+  }
+  .perfil-body{
+    flex:1;
+    overflow-y:auto;
+    padding:14px 14px 30px;
+  }
+  .perfil-stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .perfil-stat{
+    background:var(--white);
+    border:1px solid var(--grey-300);
+    border-radius:10px;
+    padding:12px 6px;
+    text-align:center;
+  }
+  .perfil-stat .num{
+    font-size:19px;
+    font-weight:700;
+    color:var(--blue-900);
+  }
+  .perfil-stat .lbl{
+    font-size:10px;
+    color:var(--grey-600);
+    margin-top:2px;
+  }
+  .perfil-filtros{
+    display:flex;
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .perfil-filtros button{
+    flex:1;
+    background:var(--white);
+    border:1px solid var(--grey-300);
+    color:var(--grey-600);
+    font-size:11px;
+    padding:7px 4px;
+  }
+  .perfil-filtros button.active{
+    background:var(--blue-700);
+    color:var(--white);
+    border-color:var(--blue-700);
+  }
+  .item-title.clicavel{cursor:pointer;}
+  .item-title.clicavel:active{opacity:.7;}
 </style>
 </head>
 <body>
@@ -367,14 +521,21 @@
       <h2>Marcar presença</h2>
       <label for="sel-atividade">Reunião / Atividade</label>
       <select id="sel-atividade"></select>
-      <button class="btn-ghost" id="btn-foto-presenca" style="width:100%; margin-top:10px; padding:10px;">📷 Marcar por foto da lista</button>
-      <input type="file" id="input-foto-presenca" accept="image/*" capture="environment" style="display:none;">
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-ghost" id="btn-foto-presenca-camera" style="flex:1; padding:10px;">📷 Tirar foto</button>
+        <button class="btn-ghost" id="btn-foto-presenca-galeria" style="flex:1; padding:10px;">🖼️ Da galeria</button>
+      </div>
+      <input type="file" id="input-foto-presenca" accept="image/*" style="display:none;">
     </div>
     <div class="card" id="presenca-list-card">
       <h2>Membros</h2>
       <div id="presenca-list"><div class="empty">Escolha uma atividade acima.</div></div>
       <button class="btn-primary" id="btn-salvar-presenca">Guardar presenças</button>
       <button class="btn-ghost" id="btn-exportar-presenca" style="width:100%; margin-top:8px; padding:10px;">📤 Exportar / partilhar lista</button>
+      <div id="pendentes-banner" style="display:none; margin-top:10px; padding:10px 12px; background:#fff4e0; color:#7a4a00; border-radius:8px; font-size:12px; line-height:1.4;">
+        <div id="pendentes-texto"></div>
+        <button class="btn-ghost" id="btn-sincronizar-pendentes" style="width:100%; margin-top:8px; padding:8px;">🔄 Tentar enviar agora</button>
+      </div>
     </div>
     <div class="card" id="nao-reconhecidos-card" style="display:none;">
       <h2>Nomes não reconhecidos</h2>
@@ -403,10 +564,13 @@
           <input type="date" id="at-data">
         </div>
       </div>
+      <label for="at-local">Local (opcional)</label>
+      <input type="text" id="at-local" placeholder="Ex: Sala 3, Auditório...">
       <button class="btn-primary" id="btn-add-atividade">Adicionar</button>
     </div>
     <div class="card">
       <h2>Histórico</h2>
+      <input type="text" id="at-search" placeholder="Pesquisar por título ou local..." style="margin-bottom:10px;">
       <div id="atividades-list"><div class="empty">Nenhuma atividade registada.</div></div>
     </div>
   </section>
@@ -421,6 +585,13 @@
     </div>
     <div class="card">
       <h2>Membros registados</h2>
+      <input type="text" id="mb-search" placeholder="Pesquisar por nome..." style="margin-bottom:10px;">
+      <div id="membros-bulk-bar" style="display:none; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="btn-sel-todos-membros" type="button">Selecionar todos</button>
+        <button class="btn-ghost" id="btn-desativar-selecionados" type="button">Desativar</button>
+        <button class="btn-ghost" id="btn-ativar-selecionados" type="button">Ativar</button>
+        <button class="btn-danger-text" id="btn-remover-selecionados" type="button">Remover selecionados</button>
+      </div>
       <div id="membros-list"><div class="empty">Nenhum membro registado.</div></div>
     </div>
   </section>
@@ -439,10 +610,27 @@
           <option value="todos">Todo o período</option>
           <option value="90">Últimos 90 dias</option>
           <option value="30">Últimos 30 dias</option>
+          <option value="custom">Escolher período…</option>
         </select>
+      </div>
+      <div class="row" id="rk-periodo-custom" style="display:none; margin-top:8px;">
+        <div>
+          <label for="rk-data-inicio">De</label>
+          <input type="date" id="rk-data-inicio">
+        </div>
+        <div>
+          <label for="rk-data-fim">Até</label>
+          <input type="date" id="rk-data-fim">
+        </div>
       </div>
       <div id="ranking-list"><div class="empty">Sem dados suficientes ainda.</div></div>
       <button class="btn-primary" id="btn-exportar-ranking">📤 Exportar / partilhar ranking</button>
+    </div>
+
+    <div class="card">
+      <h2>Exportação completa</h2>
+      <p style="margin:0 0 4px; font-size:12px; color:var(--grey-600);">Um único ficheiro Excel com todos os membros, todas as atividades e todas as presenças (ambos os grupos), mais um resumo por membro.</p>
+      <button class="btn-primary" id="btn-exportar-tudo" style="margin-top:10px;">📦 Exportar histórico completo</button>
     </div>
   </section>
 
@@ -469,18 +657,49 @@
 
 <div class="toast" id="toast"></div>
 <div id="login-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,36,64,.6); z-index:50; align-items:center; justify-content:center; padding:20px;">
-  <div class="card" style="width:100%; max-width:340px; margin:0;">
-    <h2>Iniciar sessão</h2>
+  <div class="login-card">
+    <div class="login-card-head">
+      <div>
+        <h2>Iniciar sessão</h2>
+        <p>Necessário para editar dados</p>
+      </div>
+      <button type="button" id="btn-login-fechar" aria-label="Fechar">✕</button>
+    </div>
     <label for="login-email">Email</label>
-    <input type="text" id="login-email" autocomplete="username" inputmode="email">
+    <input type="email" id="login-email" autocomplete="username" inputmode="email">
     <label for="login-password">Password</label>
     <input type="password" id="login-password" autocomplete="current-password">
-    <div id="login-erro" style="color:var(--danger); font-size:12px; margin-top:6px; display:none;"></div>
-    <button class="btn-primary" id="btn-login-entrar">Entrar</button>
+    <div id="login-erro" style="display:none;"></div>
+    <button class="btn-primary" id="btn-login-entrar" style="margin-top:16px;">Entrar</button>
     <button class="btn-ghost" id="btn-login-cancelar" style="width:100%; margin-top:8px;">Cancelar</button>
   </div>
 </div>
 <div id="debug-log" style="display:none; position:fixed; bottom:0; left:0; right:0; max-height:35vh; overflow-y:auto; background:rgba(0,0,0,.88); color:#7CFC00; font-family:monospace; font-size:10px; padding:6px 8px; z-index:999; white-space:pre-wrap;">a carregar...</div>
+
+<!-- PERFIL DO MEMBRO -->
+<div id="perfil-overlay">
+  <div class="perfil-header">
+    <button type="button" id="btn-perfil-fechar" aria-label="Fechar">✕</button>
+    <div class="perfil-header-texto">
+      <h2 id="perfil-nome">—</h2>
+      <p id="perfil-grupo">—</p>
+    </div>
+  </div>
+  <div class="perfil-body">
+    <div class="perfil-stats">
+      <div class="perfil-stat"><div class="num" id="perfil-stat-pct">—</div><div class="lbl">Presença</div></div>
+      <div class="perfil-stat"><div class="num" id="perfil-stat-presencas">—</div><div class="lbl">Presenças/Total</div></div>
+      <div class="perfil-stat"><div class="num" id="perfil-stat-pontos">—</div><div class="lbl">Pontos totais</div></div>
+    </div>
+    <div class="perfil-filtros">
+      <button type="button" class="active" data-filtro="todos">Todas</button>
+      <button type="button" data-filtro="presente">Presenças</button>
+      <button type="button" data-filtro="falta">Faltas</button>
+    </div>
+    <button class="btn-ghost" id="btn-exportar-perfil" style="width:100%; margin-bottom:10px;">📤 Exportar perfil deste membro</button>
+    <div id="perfil-lista"><div class="empty">Sem atividades registadas.</div></div>
+  </div>
+</div>
 
 <!-- Biblioteca @supabase/supabase-js v2 embutida diretamente no ficheiro,
      sem depender de nenhum CDN. Cria a variável global "supabase". -->
@@ -565,12 +784,15 @@ const RECONHECIMENTO_BACKEND_URL = "https://medbi-license-server.onrender.com/ap
      tipo text not null check (tipo in ('Reunião','Atividade')),
      grupo text not null default 'estudante' check (grupo in ('direcao','estudante')),
      data date not null,
+     local text,
      criado_em timestamptz default now()
    );
 
    -- Se as tabelas já existiam (versão anterior sem "grupo"), correr em vez disso:
    -- alter table aafm_membros add column grupo text not null default 'estudante' check (grupo in ('direcao','estudante'));
    -- alter table aafm_atividades add column grupo text not null default 'estudante' check (grupo in ('direcao','estudante'));
+   -- Se a tabela "aafm_atividades" já existia sem o campo local (opcional), correr:
+   -- alter table aafm_atividades add column local text;
 
    create table aafm_presencas (
      id uuid primary key default gen_random_uuid(),
@@ -579,15 +801,19 @@ const RECONHECIMENTO_BACKEND_URL = "https://medbi-license-server.onrender.com/ap
      presente boolean not null default false,
      pontual boolean not null default true,       -- chegou a horas (false = atrasado)
      ficou_ate_fim boolean not null default true,  -- ficou até ao fim (false = saiu antes)
+     justificada boolean not null default false,   -- só relevante quando presente=false: falta justificada ou não
      unique(atividade_id, membro_id)
    );
    -- Pontuação: presente + a horas + ficou até ao fim = 3 pts
    --            presente + (a horas OU ficou até ao fim, só um dos dois) = 2 pts
-   --            presente + atrasado + saiu antes = 1 pt · ausente = 0 pts
+   --            presente + atrasado + saiu antes = 1 pt
+   --            faltou com justificação = 0,5 pts · faltou sem justificação = 0 pts
 
    -- Se a tabela já existia (versão anterior sem pontual/ficou_ate_fim), correr:
    -- alter table aafm_presencas add column pontual boolean not null default true;
    -- alter table aafm_presencas add column ficou_ate_fim boolean not null default true;
+   -- Se a tabela já existia sem o campo justificada, correr:
+   -- alter table aafm_presencas add column justificada boolean not null default false;
 
    -- RLS: leitura é sempre pública. Escrita exige sessão iniciada + estar
    -- na lista própria "presenca_editores" (ter conta não chega — é preciso
@@ -599,6 +825,7 @@ const RECONHECIMENTO_BACKEND_URL = "https://medbi-license-server.onrender.com/ap
 let sb = null;
 let membros = [];
 let atividades = [];
+let presencas = []; // todas as linhas de aafm_presencas, usadas para o resumo por membro
 let currentGrupo = "direcao"; // 'direcao' | 'estudante'
 dbg("config lida, variáveis iniciais criadas");
 
@@ -664,7 +891,9 @@ async function iniciarSupabase(){
     dbg("cliente Supabase criado");
     loadMembros();
     loadAtividades();
+    loadPresencasResumo();
     iniciarAuth();
+    sincronizarPendentes(false); // tenta enviar presenças guardadas offline numa sessão anterior
   } catch (err) {
     dbg("ERRO em iniciarSupabase: " + err.message);
     mostrarErro("Erro ao ligar ao Supabase: " + err.message + " — a navegação funciona, mas sem guardar dados.", true);
@@ -680,6 +909,7 @@ document.querySelectorAll("#grupo-switch button").forEach(btn=>{
     document.querySelectorAll("#grupo-switch button").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     currentGrupo = btn.dataset.grupo;
+    mostrarNaoReconhecidos([]); // muda de grupo: limpa nomes não reconhecidos da atividade anterior
     renderMembros();
     renderAtividades();
     renderPresencaSelect();
@@ -706,45 +936,59 @@ function tipoLabel(tipo){
   return tipo === "Reuniao" ? "Reunião" : tipo;
 }
 
-/* ---------- exportação / partilha ---------- */
-async function partilharOuExportar(titulo, texto){
-  if(navigator.share){
-    try{
-      await navigator.share({title: titulo, text: texto});
-      return;
-    }catch(e){
-      // utilizador cancelou a partilha ou falhou -> tenta o método seguinte
-    }
-  }
-  abrirJanelaImpressao(titulo, texto);
+/* ---------- exportação / partilha (ficheiro Excel .xlsx) ---------- */
+function exportarExcel(nomeFicheiro, nomeFolha, linhas){
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, nomeFolha);
+  const wbout = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+  return new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
-function abrirJanelaImpressao(titulo, texto){
-  const w = window.open("", "_blank");
-  if(!w){
-    if(navigator.clipboard){
-      navigator.clipboard.writeText(texto).then(()=>toast("Sem partilha disponível — texto copiado"));
-    } else {
-      toast("Não foi possível exportar (bloqueador de pop-ups?)");
+function exportarExcelMultiplasFolhas(folhas){
+  // folhas: [{nome, linhas}, ...]
+  const wb = XLSX.utils.book_new();
+  folhas.forEach(f=>{
+    const ws = XLSX.utils.json_to_sheet(f.linhas.length ? f.linhas : [{" ":""}]);
+    XLSX.utils.book_append_sheet(wb, ws, f.nome.slice(0,31)); // limite de 31 carateres do Excel
+  });
+  const wbout = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+  return new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function grupoLabel(g){
+  return g === "direcao" ? "Direção AAFM" : "Estudantes";
+}
+async function partilharOuExportarFicheiro(nomeFicheiro, blob, titulo){
+  if(navigator.canShare && navigator.share){
+    try{
+      const ficheiro = new File([blob], nomeFicheiro, {type: blob.type});
+      if(navigator.canShare({files:[ficheiro]})){
+        await navigator.share({title: titulo, files:[ficheiro]});
+        return;
+      }
+    }catch(e){
+      // utilizador cancelou a partilha ou falhou -> cai para descarregar
     }
-    return;
   }
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
-    <style>body{font-family:-apple-system,Arial,sans-serif; padding:24px; white-space:pre-wrap; font-size:14px; line-height:1.5;} h1{font-size:18px; margin-bottom:16px;}</style>
-    </head><body><h1>${escapeHtml(titulo)}</h1><div>${escapeHtml(texto)}</div></body></html>`);
-  w.document.close();
-  w.focus();
-  setTimeout(()=>{ w.print(); }, 350);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeFicheiro;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 
 document.getElementById("btn-exportar-ranking").addEventListener("click", ()=>{
   const linhas = Array.from(document.querySelectorAll("#ranking-list .rank-row")).map((row, i)=>{
     const nome = row.querySelector(".rank-name")?.textContent || "";
     const contagem = row.querySelector(".rank-count")?.textContent || "";
-    return `${i+1}. ${nome} — ${contagem}`;
+    return {"Posição": i+1, "Nome": nome, "Pontos": contagem};
   });
   if(!linhas.length) return toast("Sem dados para exportar");
   const grupoLabel = currentGrupo === "direcao" ? "Direção AAFM" : "Estudantes";
-  partilharOuExportar(`Ranking de presenças — ${grupoLabel}`, linhas.join("\n"));
+  const blob = exportarExcel(`ranking-${grupoLabel.replace(/\s+/g,"_")}.xlsx`, "Ranking", linhas);
+  partilharOuExportarFicheiro(`ranking-${grupoLabel.replace(/\s+/g,"_")}.xlsx`, blob, `Ranking de presenças — ${grupoLabel}`);
 });
 
 document.getElementById("btn-exportar-presenca").addEventListener("click", ()=>{
@@ -754,13 +998,131 @@ document.getElementById("btn-exportar-presenca").addEventListener("click", ()=>{
     const membroId = row.dataset.linha;
     const nome = row.querySelector(".check-name")?.textContent || "";
     const p = presencaAtual[membroId];
-    if(!p || !p.presente) return `❌ ${nome} — ausente`;
-    const pontualidade = p.pontual ? "a horas" : "atrasado";
-    const permanencia = p.ficouAteFim ? "até ao fim" : "saiu antes do fim";
-    return `✅ ${nome} — ${pontualidade}, ${permanencia} (${pontosPresenca(p)} pts)`;
+    if(!p || !p.presente){
+      return {
+        "Nome": nome,
+        "Estado": p && p.justificada ? "Falta justificada" : "Falta não justificada",
+        "Pontualidade": "",
+        "Permanência": "",
+        "Pontos": pontosPresenca(p)
+      };
+    }
+    return {
+      "Nome": nome,
+      "Estado": "Presente",
+      "Pontualidade": p.pontual ? "A horas" : "Atrasado",
+      "Permanência": p.ficouAteFim ? "Até ao fim" : "Saiu antes do fim",
+      "Pontos": pontosPresenca(p)
+    };
   });
   if(!linhas.length) return toast("Escolha uma atividade primeiro");
-  partilharOuExportar(`Presenças — ${atividadeTitulo}`, linhas.join("\n"));
+  const nomeFicheiro = `presencas-${atividadeTitulo.replace(/[^\w]+/g,"_")}.xlsx`;
+  const blob = exportarExcel(nomeFicheiro, "Presenças", linhas);
+  partilharOuExportarFicheiro(nomeFicheiro, blob, `Presenças — ${atividadeTitulo}`);
+});
+
+document.getElementById("btn-exportar-tudo").addEventListener("click", async ()=>{
+  if(!sb) return toast("Configure o Supabase primeiro");
+  if(!membros.length && !atividades.length) return toast("Sem dados para exportar");
+
+  const btn = document.getElementById("btn-exportar-tudo");
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "A preparar ficheiro...";
+  try{
+    // busca tudo de fresco da base de dados (não só o grupo atualmente aberto)
+    const [{data: todosMembros, error: errM}, {data: todasAtividades, error: errA}, {data: todasPresencas, error: errP}] =
+      await Promise.all([
+        sb.from("aafm_membros").select("*").order("nome"),
+        sb.from("aafm_atividades").select("*").order("data", {ascending:false}),
+        sb.from("aafm_presencas").select("*")
+      ]);
+    if(errM || errA || errP){
+      dbg("exportar-tudo: ERRO " + JSON.stringify(errM||errA||errP));
+      return toast("Erro ao carregar dados para exportar");
+    }
+
+    const mapAtividades = {};
+    (todasAtividades||[]).forEach(a=> mapAtividades[a.id] = a);
+    const mapMembros = {};
+    (todosMembros||[]).forEach(m=> mapMembros[m.id] = m);
+
+    const folhaMembros = (todosMembros||[]).map(m=>({
+      "Nome": m.nome,
+      "Grupo": grupoLabel(m.grupo),
+      "Estado": m.ativo ? "Ativo" : "Inativo"
+    }));
+
+    const folhaAtividades = (todasAtividades||[]).map(a=>({
+      "Título": a.titulo,
+      "Tipo": tipoLabel(a.tipo),
+      "Grupo": grupoLabel(a.grupo),
+      "Data": fmtData(a.data),
+      "Local": a.local || ""
+    }));
+
+    const folhaPresencas = (todasPresencas||[]).map(p=>{
+      const a = mapAtividades[p.atividade_id];
+      const m = mapMembros[p.membro_id];
+      const presente = !!p.presente;
+      return {
+        "Atividade": a ? a.titulo : "(atividade removida)",
+        "Data": a ? fmtData(a.data) : "",
+        "Grupo": a ? grupoLabel(a.grupo) : (m ? grupoLabel(m.grupo) : ""),
+        "Membro": m ? m.nome : "(membro removido)",
+        "Estado": presente ? "Presente" : (p.justificada ? "Falta justificada" : "Falta não justificada"),
+        "Pontualidade": presente ? (p.pontual !== false ? "A horas" : "Atrasado") : "",
+        "Permanência": presente ? (p.ficou_ate_fim !== false ? "Até ao fim" : "Saiu antes do fim") : "",
+        "Pontos": pontosPresenca({
+          presente,
+          pontual: p.pontual !== false,
+          ficouAteFim: p.ficou_ate_fim !== false,
+          justificada: p.justificada === true
+        })
+      };
+    });
+
+    const folhaResumo = (todosMembros||[]).map(m=>{
+      const atividadesGrupo = (todasAtividades||[]).filter(a=>a.grupo===m.grupo);
+      const idsGrupo = new Set(atividadesGrupo.map(a=>a.id));
+      const doMembro = (todasPresencas||[]).filter(p=>p.membro_id===m.id && idsGrupo.has(p.atividade_id));
+      const presentes = doMembro.filter(p=>p.presente).length;
+      const faltas = doMembro.filter(p=>!p.presente).length;
+      const pontos = doMembro.reduce((soma,p)=> soma + pontosPresenca({
+        presente: p.presente,
+        pontual: p.pontual !== false,
+        ficouAteFim: p.ficou_ate_fim !== false,
+        justificada: p.justificada === true
+      }), 0);
+      const total = atividadesGrupo.length;
+      return {
+        "Nome": m.nome,
+        "Grupo": grupoLabel(m.grupo),
+        "Estado": m.ativo ? "Ativo" : "Inativo",
+        "Atividades do grupo": total,
+        "Presenças": presentes,
+        "Faltas": faltas,
+        "% Presença": total ? Math.round(presentes/total*100) + "%" : "",
+        "Pontos totais": pontos
+      };
+    });
+
+    const dataHoje = new Date().toISOString().slice(0,10);
+    const nomeFicheiro = `historico-completo-AAFM-${dataHoje}.xlsx`;
+    const blob = exportarExcelMultiplasFolhas([
+      {nome: "Resumo por membro", linhas: folhaResumo},
+      {nome: "Membros", linhas: folhaMembros},
+      {nome: "Atividades", linhas: folhaAtividades},
+      {nome: "Presenças", linhas: folhaPresencas}
+    ]);
+    await partilharOuExportarFicheiro(nomeFicheiro, blob, "Histórico completo — AAFM");
+  }catch(err){
+    dbg("exportar-tudo: ERRO (catch) " + err.message);
+    toast("Erro ao exportar histórico completo");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
 });
 
 /* ---------- autenticação (Supabase Auth) ---------- */
@@ -803,6 +1165,10 @@ function fecharModalLogin(){
   document.getElementById("login-overlay").style.display = "none";
 }
 document.getElementById("btn-login-cancelar").addEventListener("click", fecharModalLogin);
+document.getElementById("btn-login-fechar").addEventListener("click", fecharModalLogin);
+document.getElementById("login-overlay").addEventListener("click", (e)=>{
+  if(e.target.id === "login-overlay") fecharModalLogin();
+});
 document.getElementById("btn-login-entrar").addEventListener("click", async ()=>{
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
@@ -815,6 +1181,8 @@ document.getElementById("btn-login-entrar").addEventListener("click", async ()=>
   }
   const btn = document.getElementById("btn-login-entrar");
   btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = "A entrar...";
   try{
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if(error){
@@ -826,6 +1194,7 @@ document.getElementById("btn-login-entrar").addEventListener("click", async ()=>
     fecharModalLogin();
   } finally {
     btn.disabled = false;
+    btn.textContent = textoOriginal;
   }
 });
 
@@ -888,14 +1257,55 @@ async function loadMembros(){
   renderMembros();
   renderPresencaSelect();
 }
+async function loadPresencasResumo(){
+  if(!sb) return;
+  const {data, error} = await sb.from("aafm_presencas").select("membro_id, atividade_id, presente, pontual, ficou_ate_fim, justificada");
+  if(error){ dbg("loadPresencasResumo: ERRO " + JSON.stringify(error)); return; }
+  presencas = data || [];
+  renderMembros();
+}
+
+// Resumo de um membro: presenças, pontos e total de atividades do grupo dele.
+function resumoPresencaMembro(m){
+  const atividadesGrupo = atividades.filter(a=>a.grupo===m.grupo);
+  const total = atividadesGrupo.length;
+  if(!total) return null;
+  const idsGrupo = new Set(atividadesGrupo.map(a=>a.id));
+  const doMembro = presencas.filter(p=>p.membro_id===m.id && idsGrupo.has(p.atividade_id));
+  const presentes = doMembro.filter(p=>p.presente).length;
+  const pontos = doMembro.reduce((soma,p)=> soma + pontosPresenca({
+    presente: p.presente,
+    pontual: p.pontual !== false,
+    ficouAteFim: p.ficou_ate_fim !== false,
+    justificada: p.justificada === true
+  }), 0);
+  const pct = Math.round(presentes / total * 100);
+  return {total, presentes, pontos, pct};
+}
+
 function renderMembros(){
   const el = document.getElementById("membros-list");
-  const lista = membros.filter(m=>m.grupo===currentGrupo);
-  if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum membro registado neste grupo.</div>'; return; }
-  el.innerHTML = lista.map(m=>`
+  document.getElementById("membros-bulk-bar").style.display = "none";
+  const termo = normalizar(document.getElementById("mb-search")?.value || "");
+  let lista = membros.filter(m=>m.grupo===currentGrupo);
+  if(termo) lista = lista.filter(m=>normalizar(m.nome).includes(termo));
+  if(!lista.length){
+    el.innerHTML = `<div class="empty">${termo ? "Nenhum membro encontrado para essa pesquisa." : "Nenhum membro registado neste grupo."}</div>`;
+    return;
+  }
+  el.innerHTML = lista.map(m=>{
+    const r = resumoPresencaMembro(m);
+    const resumoHtml = r
+      ? `<div class="item-sub">${r.presentes}/${r.total} presenças · ${r.pct}% · ${Number.isInteger(r.pontos) ? r.pontos : r.pontos.toFixed(1)} pts</div>`
+      : `<div class="item-sub">Sem atividades registadas</div>`;
+    return `
     <div class="list-item" id="membro-row-${m.id}">
-      <div class="item-main">
-        <div class="item-title">${escapeHtml(m.nome)}</div>
+      <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+        <input type="checkbox" class="chk-membro-sel" data-id="${m.id}" style="width:18px; height:18px; flex-shrink:0;">
+        <div class="item-main">
+          <div class="item-title clicavel" data-action="perfil" data-id="${m.id}">${escapeHtml(m.nome)} ›</div>
+          ${resumoHtml}
+        </div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         ${!m.ativo ? '<span class="tag tag-inativo">Inativo</span>' : ''}
@@ -904,10 +1314,190 @@ function renderMembros(){
         <button class="btn-danger-text" data-id="${m.id}" data-action="del">Remover</button>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
   el.querySelectorAll('[data-action="toggle"]').forEach(b=>b.addEventListener("click", ()=>toggleMembro(b.dataset.id)));
   el.querySelectorAll('[data-action="del"]').forEach(b=>b.addEventListener("click", ()=>delMembro(b.dataset.id)));
   el.querySelectorAll('[data-action="edit"]').forEach(b=>b.addEventListener("click", ()=>editMembroInline(b.dataset.id)));
+  el.querySelectorAll('[data-action="perfil"]').forEach(b=>b.addEventListener("click", ()=>abrirPerfilMembro(b.dataset.id)));
+  el.querySelectorAll('.chk-membro-sel').forEach(c=>c.addEventListener("change", atualizarBarraSelecaoMembros));
+}
+
+/* ---------- perfil do membro (histórico completo, 1 página) ---------- */
+let perfilMembroAtual = null; // membro atualmente aberto no perfil
+let perfilLinhasAtual = [];   // linhas já calculadas (atividade + estado + pontos), mais recente primeiro
+let perfilFiltroAtual = "todos";
+
+function abrirPerfilMembro(membroId){
+  const m = membros.find(x=>x.id === membroId);
+  if(!m) return toast("Membro não encontrado");
+  perfilMembroAtual = m;
+
+  const atividadesGrupo = atividades.filter(a=>a.grupo===m.grupo)
+    .slice()
+    .sort((a,b)=> b.data.localeCompare(a.data)); // mais recente primeiro
+
+  perfilLinhasAtual = atividadesGrupo.map(a=>{
+    const p = presencas.find(x=>x.membro_id===m.id && x.atividade_id===a.id);
+    const presente = !!(p && p.presente);
+    const registada = !!p; // se não há linha de presença, a atividade não foi marcada para este membro
+    const pontos = registada ? pontosPresenca({
+      presente,
+      pontual: p.pontual !== false,
+      ficouAteFim: p.ficou_ate_fim !== false,
+      justificada: p.justificada === true
+    }) : null;
+    return {
+      atividade: a,
+      registada,
+      presente,
+      pontual: p ? p.pontual !== false : null,
+      ficouAteFim: p ? p.ficou_ate_fim !== false : null,
+      justificada: p ? p.justificada === true : false,
+      pontos
+    };
+  });
+
+  const total = atividadesGrupo.length;
+  const registadas = perfilLinhasAtual.filter(l=>l.registada);
+  const presentesCount = registadas.filter(l=>l.presente).length;
+  const pontosTotais = registadas.reduce((soma,l)=> soma + (l.pontos || 0), 0);
+  const pct = total ? Math.round(presentesCount / total * 100) : 0;
+
+  document.getElementById("perfil-nome").textContent = m.nome;
+  document.getElementById("perfil-grupo").textContent = grupoLabel(m.grupo) + (m.ativo ? "" : " · Inativo");
+  document.getElementById("perfil-stat-pct").textContent = total ? pct + "%" : "—";
+  document.getElementById("perfil-stat-presencas").textContent = `${presentesCount}/${total}`;
+  document.getElementById("perfil-stat-pontos").textContent = Number.isInteger(pontosTotais) ? pontosTotais : pontosTotais.toFixed(1);
+
+  perfilFiltroAtual = "todos";
+  document.querySelectorAll(".perfil-filtros button").forEach(b=>b.classList.toggle("active", b.dataset.filtro==="todos"));
+  renderPerfilLista();
+  document.getElementById("perfil-overlay").classList.add("show");
+}
+
+function renderPerfilLista(){
+  const el = document.getElementById("perfil-lista");
+  let linhas = perfilLinhasAtual;
+  if(perfilFiltroAtual === "presente") linhas = linhas.filter(l=>l.registada && l.presente);
+  if(perfilFiltroAtual === "falta") linhas = linhas.filter(l=>!l.registada || !l.presente);
+
+  if(!linhas.length){
+    el.innerHTML = '<div class="empty">Nada para mostrar aqui.</div>';
+    return;
+  }
+
+  el.innerHTML = linhas.map(l=>{
+    const a = l.atividade;
+    let estadoTxt, detalheTxt, pontosTxt, pontosKey;
+    if(!l.registada){
+      estadoTxt = "Sem registo";
+      detalheTxt = "Presença não foi marcada para esta atividade";
+      pontosTxt = "—";
+      pontosKey = "0";
+    } else if(l.presente){
+      estadoTxt = "Presente";
+      const partes = [];
+      partes.push(l.pontual ? "A horas" : "Atrasado");
+      partes.push(l.ficouAteFim ? "Até ao fim" : "Saiu antes do fim");
+      detalheTxt = partes.join(" · ");
+      pontosTxt = (Number.isInteger(l.pontos) ? l.pontos : l.pontos.toFixed(1)) + " pts";
+      pontosKey = String(Math.max(1, Math.round(l.pontos)));
+    } else {
+      estadoTxt = l.justificada ? "Falta justificada" : "Falta não justificada";
+      detalheTxt = "";
+      pontosTxt = (Number.isInteger(l.pontos) ? l.pontos : l.pontos.toFixed(1)) + " pts";
+      pontosKey = "1";
+    }
+    return `
+    <div class="presenca-card ${l.registada && l.presente ? "is-presente" : ""}">
+      <div class="presenca-top">
+        <span class="check-name">${escapeHtml(a.titulo)}</span>
+        <span class="pontos-badge" data-pontos="${pontosKey}">${pontosTxt}</span>
+      </div>
+      <div class="item-sub">${fmtData(a.data)} · <span class="tag ${tagClass(a.tipo)}" style="margin-left:2px;">${tipoLabel(a.tipo)}</span></div>
+      <div class="item-sub" style="margin-top:4px;">${estadoTxt}${detalheTxt ? " · " + detalheTxt : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+document.querySelectorAll(".perfil-filtros button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    perfilFiltroAtual = btn.dataset.filtro;
+    document.querySelectorAll(".perfil-filtros button").forEach(b=>b.classList.toggle("active", b===btn));
+    renderPerfilLista();
+  });
+});
+
+function fecharPerfil(){
+  document.getElementById("perfil-overlay").classList.remove("show");
+  perfilMembroAtual = null;
+}
+document.getElementById("btn-perfil-fechar").addEventListener("click", fecharPerfil);
+
+document.getElementById("btn-exportar-perfil").addEventListener("click", ()=>{
+  if(!perfilMembroAtual) return;
+  const m = perfilMembroAtual;
+  const linhas = perfilLinhasAtual.map(l=>{
+    const a = l.atividade;
+    if(!l.registada){
+      return {"Data": fmtData(a.data), "Atividade": a.titulo, "Tipo": tipoLabel(a.tipo), "Estado": "Sem registo", "Pontualidade": "", "Permanência": "", "Pontos": 0};
+    }
+    if(l.presente){
+      return {
+        "Data": fmtData(a.data), "Atividade": a.titulo, "Tipo": tipoLabel(a.tipo),
+        "Estado": "Presente",
+        "Pontualidade": l.pontual ? "A horas" : "Atrasado",
+        "Permanência": l.ficouAteFim ? "Até ao fim" : "Saiu antes do fim",
+        "Pontos": l.pontos
+      };
+    }
+    return {
+      "Data": fmtData(a.data), "Atividade": a.titulo, "Tipo": tipoLabel(a.tipo),
+      "Estado": l.justificada ? "Falta justificada" : "Falta não justificada",
+      "Pontualidade": "", "Permanência": "", "Pontos": l.pontos
+    };
+  });
+  if(!linhas.length) return toast("Sem histórico para exportar");
+  const nomeFicheiro = `perfil-${m.nome.replace(/[^\w]+/g,"_")}.xlsx`;
+  const blob = exportarExcel(nomeFicheiro, "Perfil", linhas);
+  partilharOuExportarFicheiro(nomeFicheiro, blob, `Perfil de presenças — ${m.nome}`);
+});
+
+function membrosSelecionados(){
+  return Array.from(document.querySelectorAll("#membros-list .chk-membro-sel:checked")).map(c=>c.dataset.id);
+}
+function atualizarBarraSelecaoMembros(){
+  const sel = membrosSelecionados();
+  document.getElementById("membros-bulk-bar").style.display = sel.length ? "flex" : "none";
+}
+document.getElementById("mb-search").addEventListener("input", renderMembros);
+document.getElementById("btn-sel-todos-membros").addEventListener("click", ()=>{
+  const checks = document.querySelectorAll("#membros-list .chk-membro-sel");
+  const todosMarcados = Array.from(checks).every(c=>c.checked);
+  checks.forEach(c=> c.checked = !todosMarcados);
+  atualizarBarraSelecaoMembros();
+});
+document.getElementById("btn-remover-selecionados").addEventListener("click", async ()=>{
+  if(!requerSessao()) return;
+  const ids = membrosSelecionados();
+  if(!ids.length) return toast("Nenhum membro selecionado");
+  if(!confirm(`Remover ${ids.length} membro(s) selecionado(s)? Todo o histórico de presença deles será apagado.`)) return;
+  const {error} = await sb.from("aafm_membros").delete().in("id", ids);
+  if(error) return toast("Erro ao remover selecionados");
+  toast(`${ids.length} membro(s) removido(s)`);
+  loadMembros();
+});
+document.getElementById("btn-desativar-selecionados").addEventListener("click", ()=>bulkToggleMembros(false));
+document.getElementById("btn-ativar-selecionados").addEventListener("click", ()=>bulkToggleMembros(true));
+async function bulkToggleMembros(ativo){
+  if(!requerSessao()) return;
+  const ids = membrosSelecionados();
+  if(!ids.length) return toast("Nenhum membro selecionado");
+  const {error} = await sb.from("aafm_membros").update({ativo}).in("id", ids);
+  if(error) return toast("Erro ao atualizar selecionados");
+  toast(`${ids.length} membro(s) ${ativo ? "ativado(s)" : "desativado(s)"}`);
+  loadMembros();
 }
 
 function editMembroInline(id){
@@ -979,16 +1569,22 @@ async function loadAtividades(){
   atividades = data || [];
   renderAtividades();
   renderPresencaSelect();
+  renderMembros(); // atualiza o resumo de presença de cada membro agora que há atividades
 }
 function renderAtividades(){
   const el = document.getElementById("atividades-list");
-  const lista = atividades.filter(a=>a.grupo===currentGrupo);
-  if(!lista.length){ el.innerHTML = '<div class="empty">Nenhuma atividade registada neste grupo.</div>'; return; }
+  const termo = normalizar(document.getElementById("at-search")?.value || "");
+  let lista = atividades.filter(a=>a.grupo===currentGrupo);
+  if(termo) lista = lista.filter(a=>normalizar(a.titulo).includes(termo) || normalizar(a.local || "").includes(termo));
+  if(!lista.length){
+    el.innerHTML = `<div class="empty">${termo ? "Nenhuma atividade encontrada para essa pesquisa." : "Nenhuma atividade registada neste grupo."}</div>`;
+    return;
+  }
   el.innerHTML = lista.map(a=>`
     <div class="list-item" id="atividade-row-${a.id}">
       <div class="item-main">
         <div class="item-title">${escapeHtml(a.titulo)}</div>
-        <div class="item-sub">${fmtData(a.data)}</div>
+        <div class="item-sub">${fmtData(a.data)}${a.local ? " · " + escapeHtml(a.local) : ""}</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="tag ${tagClass(a.tipo)}">${tipoLabel(a.tipo)}</span>
@@ -1009,13 +1605,14 @@ function editAtividadeInline(id){
   row.innerHTML = `
     <div class="item-main" style="flex:1; gap:6px;">
       <input type="text" id="edit-titulo-${id}" value="${escapeHtml(a.titulo)}" style="margin-bottom:6px;">
-      <div class="row">
+      <div class="row" style="margin-bottom:6px;">
         <select id="edit-tipo-${id}">
           <option value="Reuniao" ${a.tipo==="Reuniao"?"selected":""}>Reunião</option>
           <option value="Atividade" ${a.tipo==="Atividade"?"selected":""}>Atividade</option>
         </select>
         <input type="date" id="edit-data-${id}" value="${a.data}">
       </div>
+      <input type="text" id="edit-local-${id}" value="${escapeHtml(a.local || "")}" placeholder="Local (opcional)">
     </div>
     <div style="display:flex; flex-direction:column; gap:6px; margin-left:8px;">
       <button class="btn-ghost" data-action="save">Guardar</button>
@@ -1026,30 +1623,34 @@ function editAtividadeInline(id){
     const titulo = document.getElementById(`edit-titulo-${id}`).value.trim();
     const tipo = document.getElementById(`edit-tipo-${id}`).value;
     const data = document.getElementById(`edit-data-${id}`).value;
+    const local = document.getElementById(`edit-local-${id}`).value.trim();
     if(!titulo || !data) return toast("Preencha título e data");
     if(atividadeDuplicada(titulo, data, a.grupo, id)) return toast("Já existe uma atividade igual nessa data");
-    const {error} = await sb.from("aafm_atividades").update({titulo, tipo, data}).eq("id", id);
+    const {error} = await sb.from("aafm_atividades").update({titulo, tipo, data, local: local || null}).eq("id", id);
     if(error) return toast("Erro ao guardar");
     toast("Atividade atualizada");
     loadAtividades();
   });
   row.querySelector('[data-action="cancel"]').addEventListener("click", ()=>renderAtividades());
 }
+document.getElementById("at-search").addEventListener("input", renderAtividades);
 document.getElementById("btn-add-atividade").addEventListener("click", async ()=>{
   if(!requerSessao()) return;
   const titulo = document.getElementById("at-titulo").value.trim();
   const tipo = document.getElementById("at-tipo").value;
   const data = document.getElementById("at-data").value;
+  const local = document.getElementById("at-local").value.trim();
   if(!titulo || !data) return toast("Preencha título e data");
   if(!sb) return toast("Configure o Supabase primeiro");
   if(atividadeDuplicada(titulo, data, currentGrupo)) return toast("Já existe uma atividade igual nessa data");
   const btn = document.getElementById("btn-add-atividade");
   btn.disabled = true;
   try{
-    const {error} = await sb.from("aafm_atividades").insert({titulo, tipo, data, grupo: currentGrupo});
+    const {error} = await sb.from("aafm_atividades").insert({titulo, tipo, data, local: local || null, grupo: currentGrupo});
     if(error) return toast("Erro ao adicionar");
     document.getElementById("at-titulo").value = "";
     document.getElementById("at-data").value = "";
+    document.getElementById("at-local").value = "";
     toast("Atividade adicionada");
     loadAtividades();
   } finally {
@@ -1075,20 +1676,22 @@ function renderPresencaSelect(){
     document.getElementById("presenca-list").innerHTML = '<div class="empty">Crie uma atividade primeiro.</div>';
     return;
   }
-  sel.innerHTML = lista.map(a=>`<option value="${a.id}">${fmtData(a.data)} — ${escapeHtml(a.titulo)} (${tipoLabel(a.tipo)})</option>`).join("");
+  sel.innerHTML = lista.map(a=>`<option value="${a.id}">${fmtData(a.data)} — ${escapeHtml(a.titulo)} (${tipoLabel(a.tipo)})${a.local ? " · " + escapeHtml(a.local) : ""}</option>`).join("");
   if(current && lista.some(a=>a.id===current)) sel.value = current;
   loadPresencaChecklist();
 }
 document.getElementById("sel-atividade").addEventListener("change", loadPresencaChecklist);
 
-let presencaAtual = {}; // membro_id -> {presente, pontual, ficouAteFim}
+let presencaAtual = {}; // membro_id -> {presente, pontual, ficouAteFim, justificada}
 
 function pontosPresenca(p){
-  if(!p || !p.presente) return 0;
+  if(!p) return 0;
+  if(!p.presente) return p.justificada ? 0.5 : 0;
   return 1 + (p.pontual ? 1 : 0) + (p.ficouAteFim ? 1 : 0);
 }
 
 async function loadPresencaChecklist(){
+  mostrarNaoReconhecidos([]); // muda de atividade: limpa nomes não reconhecidos da atividade anterior
   const atividadeId = document.getElementById("sel-atividade").value;
   const el = document.getElementById("presenca-list");
   if(!atividadeId || !membros.length){
@@ -1101,7 +1704,8 @@ async function loadPresencaChecklist(){
   (data || []).forEach(p => presencaAtual[p.membro_id] = {
     presente: p.presente,
     pontual: p.pontual !== false,
-    ficouAteFim: p.ficou_ate_fim !== false
+    ficouAteFim: p.ficou_ate_fim !== false,
+    justificada: p.justificada === true
   });
 
   const ativos = membros.filter(m=>m.ativo && m.grupo===currentGrupo);
@@ -1124,7 +1728,7 @@ async function loadPresencaChecklist(){
       </div>
     </div>
   ` + ativos.map(m=>{
-    const p = presencaAtual[m.id] || {presente:false, pontual:true, ficouAteFim:true};
+    const p = presencaAtual[m.id] || {presente:false, pontual:true, ficouAteFim:true, justificada:false};
     return `
     <div class="presenca-card ${p.presente ? "is-presente" : ""}" data-linha="${m.id}">
       <div class="presenca-top">
@@ -1135,7 +1739,7 @@ async function loadPresencaChecklist(){
           <span class="slider"></span>
         </label>
       </div>
-      <div class="presenca-detalhes" id="det-${m.id}" style="display:${p.presente ? "flex" : "none"};">
+      <div class="presenca-detalhes" id="det-presente-${m.id}" style="display:${p.presente ? "flex" : "none"};">
         <div class="pill-group" data-membro="${m.id}" data-campo="pontual">
           <button type="button" class="pill-btn ${p.pontual ? "active" : ""}" data-valor="1">A horas</button>
           <button type="button" class="pill-btn ${!p.pontual ? "active" : ""}" data-valor="0" data-atraso="1">Atrasado</button>
@@ -1143,6 +1747,12 @@ async function loadPresencaChecklist(){
         <div class="pill-group" data-membro="${m.id}" data-campo="ficouAteFim">
           <button type="button" class="pill-btn ${p.ficouAteFim ? "active" : ""}" data-valor="1">Até ao fim</button>
           <button type="button" class="pill-btn ${!p.ficouAteFim ? "active" : ""}" data-valor="0" data-saiu="1">Saiu antes</button>
+        </div>
+      </div>
+      <div class="presenca-detalhes" id="det-ausente-${m.id}" style="display:${p.presente ? "none" : "flex"};">
+        <div class="pill-group" data-membro="${m.id}" data-campo="justificada">
+          <button type="button" class="pill-btn ${p.justificada ? "active" : ""}" data-valor="1">Falta justificada</button>
+          <button type="button" class="pill-btn ${!p.justificada ? "active" : ""}" data-valor="0">Falta não justificada</button>
         </div>
       </div>
     </div>
@@ -1171,7 +1781,7 @@ async function loadPresencaChecklist(){
       const valor = btn.dataset.valor === "1";
       grupo.querySelectorAll(".pill-btn").forEach(b=>b.classList.remove("active"));
       btn.classList.add("active");
-      if(!presencaAtual[membroId]) presencaAtual[membroId] = {presente:true, pontual:true, ficouAteFim:true};
+      if(!presencaAtual[membroId]) presencaAtual[membroId] = {presente:true, pontual:true, ficouAteFim:true, justificada:false};
       presencaAtual[membroId][campo] = valor;
       atualizarBadge(membroId);
     });
@@ -1204,12 +1814,14 @@ function aplicarGlobal(campo, valor){
 }
 
 function definirPresente(membroId, presente){
-  if(!presencaAtual[membroId]) presencaAtual[membroId] = {presente, pontual:true, ficouAteFim:true};
+  if(!presencaAtual[membroId]) presencaAtual[membroId] = {presente, pontual:true, ficouAteFim:true, justificada:false};
   else presencaAtual[membroId].presente = presente;
   const card = document.querySelector(`.presenca-card[data-linha="${membroId}"]`);
-  const det = document.getElementById(`det-${membroId}`);
+  const detPresente = document.getElementById(`det-presente-${membroId}`);
+  const detAusente = document.getElementById(`det-ausente-${membroId}`);
   if(card) card.classList.toggle("is-presente", presente);
-  if(det) det.style.display = presente ? "flex" : "none";
+  if(detPresente) detPresente.style.display = presente ? "flex" : "none";
+  if(detAusente) detAusente.style.display = presente ? "none" : "flex";
   atualizarBadge(membroId);
 }
 
@@ -1221,29 +1833,106 @@ function atualizarBadge(membroId){
   badge.dataset.pontos = pts;
 }
 
+/* ---------- fila local de presenças por sincronizar (funcionamento offline) ---------- */
+const PENDENTES_KEY = "aafm_presencas_pendentes";
+
+function lerPendentes(){
+  try{ return JSON.parse(localStorage.getItem(PENDENTES_KEY) || "{}"); }
+  catch(e){ return {}; }
+}
+function guardarPendentesLocal(atividadeId, atividadeTitulo, rows){
+  const pendentes = lerPendentes();
+  pendentes[atividadeId] = {titulo: atividadeTitulo, rows, ts: Date.now()};
+  localStorage.setItem(PENDENTES_KEY, JSON.stringify(pendentes));
+  atualizarBannerPendentes();
+}
+function removerPendenteLocal(atividadeId){
+  const pendentes = lerPendentes();
+  if(pendentes[atividadeId]){
+    delete pendentes[atividadeId];
+    localStorage.setItem(PENDENTES_KEY, JSON.stringify(pendentes));
+  }
+  atualizarBannerPendentes();
+}
+function atualizarBannerPendentes(){
+  const pendentes = lerPendentes();
+  const ids = Object.keys(pendentes);
+  const banner = document.getElementById("pendentes-banner");
+  const texto = document.getElementById("pendentes-texto");
+  if(!banner || !texto) return;
+  if(!ids.length){ banner.style.display = "none"; return; }
+  const titulos = ids.map(id => pendentes[id].titulo).join(", ");
+  texto.textContent = (ids.length === 1
+    ? "1 presença por sincronizar (guardada neste aparelho): "
+    : `${ids.length} presenças por sincronizar (guardadas neste aparelho): `) + titulos;
+  banner.style.display = "block";
+}
+async function sincronizarPendentes(avisar){
+  if(!sb || !navigator.onLine) return;
+  const pendentes = lerPendentes();
+  const ids = Object.keys(pendentes);
+  if(!ids.length) return;
+  let enviados = 0;
+  for(const atividadeId of ids){
+    try{
+      const {error} = await sb.from("aafm_presencas").upsert(pendentes[atividadeId].rows, {onConflict: "atividade_id,membro_id"});
+      if(!error){ removerPendenteLocal(atividadeId); enviados++; }
+    }catch(e){
+      // continua sem ligação — tenta de novo mais tarde
+    }
+  }
+  if(enviados){ loadPresencasResumo(); loadPresencaChecklist(); }
+  if(avisar) toast(enviados ? `${enviados} presença(s) sincronizada(s)` : "Ainda sem ligação — a tentar mais tarde");
+}
+window.addEventListener("online", ()=> sincronizarPendentes(true));
+document.getElementById("btn-sincronizar-pendentes").addEventListener("click", ()=> sincronizarPendentes(true));
+atualizarBannerPendentes(); // se já havia presenças por enviar de uma sessão anterior, mostra logo
+
 document.getElementById("btn-salvar-presenca").addEventListener("click", async ()=>{
   if(!requerSessao()) return;
   const atividadeId = document.getElementById("sel-atividade").value;
   if(!atividadeId) return toast("Escolha uma atividade");
   if(!sb) return toast("Configure o Supabase primeiro");
+  const selAtividade = document.getElementById("sel-atividade");
+  const atividadeTitulo = selAtividade.options[selAtividade.selectedIndex]?.textContent || "Atividade";
   const btn = document.getElementById("btn-salvar-presenca");
   btn.disabled = true;
   try{
     const linhas = document.querySelectorAll('#presenca-list [data-linha]');
     const rows = Array.from(linhas).map(row=>{
       const membroId = row.dataset.linha;
-      const p = presencaAtual[membroId] || {presente:false, pontual:true, ficouAteFim:true};
+      const p = presencaAtual[membroId] || {presente:false, pontual:true, ficouAteFim:true, justificada:false};
       return {
         atividade_id: atividadeId,
         membro_id: membroId,
         presente: !!p.presente,
         pontual: p.pontual !== false,
-        ficou_ate_fim: p.ficouAteFim !== false
+        ficou_ate_fim: p.ficouAteFim !== false,
+        justificada: p.justificada === true
       };
     });
-    const {error} = await sb.from("aafm_presencas").upsert(rows, {onConflict: "atividade_id,membro_id"});
-    if(error) return toast("Erro ao guardar");
+
+    if(!navigator.onLine){
+      guardarPendentesLocal(atividadeId, atividadeTitulo, rows);
+      toast("Sem ligação — presenças guardadas neste aparelho, serão enviadas quando a internet voltar");
+      return;
+    }
+
+    let error;
+    try{
+      const resp = await sb.from("aafm_presencas").upsert(rows, {onConflict: "atividade_id,membro_id"});
+      error = resp.error;
+    }catch(networkErr){
+      error = networkErr;
+    }
+    if(error){
+      guardarPendentesLocal(atividadeId, atividadeTitulo, rows);
+      toast("Sem ligação ao servidor — presenças guardadas neste aparelho, tenta sincronizar mais tarde");
+      return;
+    }
+    removerPendenteLocal(atividadeId);
     toast("Presenças guardadas");
+    loadPresencasResumo();
   } finally {
     btn.disabled = false;
   }
@@ -1251,7 +1940,13 @@ document.getElementById("btn-salvar-presenca").addEventListener("click", async (
 
 /* ---------- RANKING ---------- */
 document.getElementById("rk-tipo").addEventListener("change", renderRanking);
-document.getElementById("rk-periodo").addEventListener("change", renderRanking);
+document.getElementById("rk-periodo").addEventListener("change", ()=>{
+  const custom = document.getElementById("rk-periodo").value === "custom";
+  document.getElementById("rk-periodo-custom").style.display = custom ? "flex" : "none";
+  renderRanking();
+});
+document.getElementById("rk-data-inicio").addEventListener("change", renderRanking);
+document.getElementById("rk-data-fim").addEventListener("change", renderRanking);
 
 async function renderRanking(){
   const el = document.getElementById("ranking-list");
@@ -1262,7 +1957,12 @@ async function renderRanking(){
 
   let atividadesFiltradas = atividades.filter(a=>a.grupo===currentGrupo);
   if(tipoFiltro !== "todos") atividadesFiltradas = atividadesFiltradas.filter(a=>a.tipo===tipoFiltro);
-  if(periodo !== "todos"){
+  if(periodo === "custom"){
+    const inicio = document.getElementById("rk-data-inicio").value;
+    const fim = document.getElementById("rk-data-fim").value;
+    if(inicio) atividadesFiltradas = atividadesFiltradas.filter(a=> a.data >= inicio);
+    if(fim) atividadesFiltradas = atividadesFiltradas.filter(a=> a.data <= fim);
+  } else if(periodo !== "todos"){
     const limite = new Date();
     limite.setDate(limite.getDate() - parseInt(periodo,10));
     atividadesFiltradas = atividadesFiltradas.filter(a=> new Date(a.data+"T00:00:00") >= limite);
@@ -1272,13 +1972,13 @@ async function renderRanking(){
 
   if(!totalAtividades){ el.innerHTML = '<div class="empty">Nenhuma atividade neste período/tipo.</div>'; return; }
 
-  const {data, error} = await sb.from("aafm_presencas").select("membro_id, presente, pontual, ficou_ate_fim, atividade_id").eq("presente", true);
+  const {data, error} = await sb.from("aafm_presencas").select("membro_id, presente, pontual, ficou_ate_fim, justificada, atividade_id");
   if(error){ el.innerHTML = '<div class="empty">Erro ao carregar ranking.</div>'; return; }
 
   const contagem = {};
   (data || []).forEach(p=>{
     if(idsFiltrados.has(p.atividade_id)){
-      const pts = pontosPresenca({presente: p.presente, pontual: p.pontual !== false, ficouAteFim: p.ficou_ate_fim !== false});
+      const pts = pontosPresenca({presente: p.presente, pontual: p.pontual !== false, ficouAteFim: p.ficou_ate_fim !== false, justificada: p.justificada === true});
       contagem[p.membro_id] = (contagem[p.membro_id] || 0) + pts;
     }
   });
@@ -1299,20 +1999,28 @@ async function renderRanking(){
         <div class="rank-name">${escapeHtml(r.nome)}</div>
         <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(r.total/max*100).toFixed(0)}%"></div></div>
       </div>
-      <div class="rank-count">${r.total}/${maxPossivel} pts</div>
+      <div class="rank-count">${Number.isInteger(r.total) ? r.total : r.total.toFixed(1)}/${maxPossivel} pts</div>
     </div>
   `).join("");
 }
 
 /* ---------- PRESENÇA POR FOTO ---------- */
-document.getElementById("btn-foto-presenca").addEventListener("click", ()=>{
+function abrirSeletorFotoPresenca(usarCamera){
   const atividadeId = document.getElementById("sel-atividade").value;
   if(!atividadeId) return toast("Escolha uma atividade primeiro");
   if(!GEMINI_API_KEY && !RECONHECIMENTO_BACKEND_URL){
     return alert("Falta configurar a chave gratuita do Gemini.\n\n1. Vai a aistudio.google.com/apikey\n2. Cria uma chave grátis\n3. Cola-a em GEMINI_API_KEY no início do ficheiro");
   }
-  document.getElementById("input-foto-presenca").click();
-});
+  const input = document.getElementById("input-foto-presenca");
+  if(usarCamera){
+    input.setAttribute("capture", "environment");
+  } else {
+    input.removeAttribute("capture");
+  }
+  input.click();
+}
+document.getElementById("btn-foto-presenca-camera").addEventListener("click", ()=> abrirSeletorFotoPresenca(true));
+document.getElementById("btn-foto-presenca-galeria").addEventListener("click", ()=> abrirSeletorFotoPresenca(false));
 
 document.getElementById("input-foto-presenca").addEventListener("change", async (e)=>{
   const file = e.target.files[0];
@@ -1320,10 +2028,14 @@ document.getElementById("input-foto-presenca").addEventListener("change", async 
   const ativos = membros.filter(m=>m.ativo && m.grupo===currentGrupo);
   if(!ativos.length){ toast("Sem membros ativos neste grupo"); e.target.value=""; return; }
 
-  const btn = document.getElementById("btn-foto-presenca");
-  const textoOriginal = btn.textContent;
-  btn.textContent = "A ler a foto...";
-  btn.disabled = true;
+  const btnCamera = document.getElementById("btn-foto-presenca-camera");
+  const btnGaleria = document.getElementById("btn-foto-presenca-galeria");
+  const textoCamera = btnCamera.textContent;
+  const textoGaleria = btnGaleria.textContent;
+  btnCamera.textContent = "A ler a foto...";
+  btnGaleria.textContent = "A ler a foto...";
+  btnCamera.disabled = true;
+  btnGaleria.disabled = true;
 
   try{
     dbg(`foto: ficheiro selecionado (${file.type}, ${Math.round(file.size/1024)}KB)`);
@@ -1337,8 +2049,10 @@ document.getElementById("input-foto-presenca").addEventListener("change", async 
     dbg("ERRO ao ler a foto: " + err.message);
     alert("Erro ao ler a foto:\n\n" + err.message);
   }finally{
-    btn.textContent = textoOriginal;
-    btn.disabled = false;
+    btnCamera.textContent = textoCamera;
+    btnGaleria.textContent = textoGaleria;
+    btnCamera.disabled = false;
+    btnGaleria.disabled = false;
     e.target.value = "";
   }
 });
