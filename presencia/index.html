@@ -581,6 +581,11 @@
       <h2>Novo membro</h2>
       <label for="mb-nome">Nome</label>
       <input type="text" id="mb-nome" placeholder="Nome completo">
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-ghost" id="btn-foto-membro-camera" type="button" style="flex:1; padding:10px;">📷 Tirar foto</button>
+        <button class="btn-ghost" id="btn-foto-membro-galeria" type="button" style="flex:1; padding:10px;">🖼️ Da galeria</button>
+      </div>
+      <input type="file" id="input-foto-membro" accept="image/*" style="display:none;">
       <button class="btn-primary" id="btn-add-membro">Adicionar</button>
     </div>
     <div class="card">
@@ -760,6 +765,11 @@ const GEMINI_API_KEY = "";
 // /api/reconhecer-presencas, define o URL aqui. Se definido, o app usa
 // esse backend em vez de chamar o Gemini diretamente.
 const RECONHECIMENTO_BACKEND_URL = "https://medbi-license-server.onrender.com/api/reconhecer-presencas";
+
+// Opcional: mesmo backend, mas para a rota /api/ler-nome-membro (lê o nome
+// de uma foto ao criar um novo membro). Se definido, o app usa esse backend
+// em vez de chamar o Gemini diretamente, evitando expor a chave no ficheiro.
+const LER_NOME_BACKEND_URL = "https://medbi-license-server.onrender.com/api/ler-nome-membro";
 
 // A autorização para editar dados (adicionar/editar/remover membros e
 // atividades, marcar presenças) é feita por login real do Supabase Auth
@@ -2056,6 +2066,138 @@ document.getElementById("input-foto-presenca").addEventListener("change", async 
     e.target.value = "";
   }
 });
+
+/* ---------- NOVO MEMBRO POR FOTO (lê o nome de uma foto com IA) ---------- */
+function abrirSeletorFotoMembro(usarCamera){
+  if(!GEMINI_API_KEY && !LER_NOME_BACKEND_URL){
+    return alert("Falta configurar a chave gratuita do Gemini.\n\n1. Vai a aistudio.google.com/apikey\n2. Cria uma chave grátis\n3. Cola-a em GEMINI_API_KEY no início do ficheiro");
+  }
+  const input = document.getElementById("input-foto-membro");
+  if(usarCamera){
+    input.setAttribute("capture", "environment");
+  } else {
+    input.removeAttribute("capture");
+  }
+  input.click();
+}
+document.getElementById("btn-foto-membro-camera").addEventListener("click", ()=> abrirSeletorFotoMembro(true));
+document.getElementById("btn-foto-membro-galeria").addEventListener("click", ()=> abrirSeletorFotoMembro(false));
+
+document.getElementById("input-foto-membro").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const btnCamera = document.getElementById("btn-foto-membro-camera");
+  const btnGaleria = document.getElementById("btn-foto-membro-galeria");
+  const textoCamera = btnCamera.textContent;
+  const textoGaleria = btnGaleria.textContent;
+  btnCamera.textContent = "A ler a foto...";
+  btnGaleria.textContent = "A ler a foto...";
+  btnCamera.disabled = true;
+  btnGaleria.disabled = true;
+
+  try{
+    dbg(`foto membro: ficheiro selecionado (${file.type}, ${Math.round(file.size/1024)}KB)`);
+    const base64 = await fileToBase64(file);
+    dbg("foto membro: convertida para base64, a chamar reconhecimento...");
+    const nome = await reconhecerNomeFoto(base64, file.type);
+    if(nome){
+      document.getElementById("mb-nome").value = nome;
+      toast(`Nome lido: ${nome}`);
+    } else {
+      toast("Não consegui ler nenhum nome nessa foto");
+    }
+  }catch(err){
+    console.error(err);
+    dbg("ERRO ao ler a foto do membro: " + err.message);
+    alert("Erro ao ler a foto:\n\n" + err.message);
+  }finally{
+    btnCamera.textContent = textoCamera;
+    btnGaleria.textContent = textoGaleria;
+    btnCamera.disabled = false;
+    btnGaleria.disabled = false;
+    e.target.value = "";
+  }
+});
+
+async function reconhecerNomeFoto(base64, mimeType){
+  const prompt = `Esta é uma foto de um documento, crachá, cartão ou papel com o nome de uma pessoa (pode ser um nome escrito à mão ou impresso).
+
+Lê e identifica o nome completo da pessoa presente na foto.
+
+Responde APENAS com um objeto JSON, sem texto antes ou depois, sem markdown, exatamente neste formato:
+{"nome": "Nome Completo Lido"}
+
+Se não conseguires ler nenhum nome com confiança, responde: {"nome": ""}`;
+
+  // Se tiveres um backend próprio configurado, usa-o (evita expor a chave)
+  if(LER_NOME_BACKEND_URL){
+    dbg("foto membro: a chamar backend " + LER_NOME_BACKEND_URL);
+    let resp;
+    try{
+      resp = await fetch(LER_NOME_BACKEND_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ image_base64: base64, media_type: mimeType })
+      });
+    }catch(networkErr){
+      throw new Error("Não consegui contactar o backend (rede/CORS/backend em baixo): " + networkErr.message);
+    }
+    dbg("foto membro: backend respondeu, status " + resp.status);
+    if(!resp.ok){
+      let corpo = "";
+      try{ corpo = (await resp.text()).slice(0, 300); }catch(_){}
+      throw new Error(`Backend respondeu ${resp.status} ${resp.statusText}` + (corpo ? `: ${corpo}` : ""));
+    }
+    let json;
+    try{
+      json = await resp.json();
+    }catch(parseErr){
+      throw new Error("Backend respondeu algo que não é JSON válido: " + parseErr.message);
+    }
+    return (json.nome || "").trim();
+  }
+
+  // Caso contrário, chama o Gemini diretamente (grátis, funciona em qualquer lugar)
+  if(!GEMINI_API_KEY){
+    throw new Error("Configure a GEMINI_API_KEY no início do ficheiro (chave grátis em aistudio.google.com/apikey)");
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  let response;
+  try{
+    response = await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {inline_data: {mime_type: mimeType, data: base64}},
+            {text: prompt}
+          ]
+        }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+  }catch(networkErr){
+    throw new Error("Não consegui contactar o Gemini (rede/CORS): " + networkErr.message);
+  }
+  if(!response.ok){
+    const errTxt = await response.text();
+    console.error("Gemini erro:", errTxt);
+    throw new Error(`Gemini respondeu ${response.status}: ${errTxt.slice(0, 300)}`);
+  }
+  const data = await response.json();
+  const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if(!texto) throw new Error("Resposta vazia da IA (sem candidates[0].content.parts[0].text)");
+  const limpo = texto.replace(/```json|```/g, "").trim();
+  let json;
+  try{
+    json = JSON.parse(limpo);
+  }catch(parseErr){
+    throw new Error("A IA respondeu texto que não é JSON válido: " + limpo.slice(0, 200));
+  }
+  return (json.nome || "").trim();
+}
 
 function fileToBase64(file){
   return new Promise((resolve, reject)=>{
