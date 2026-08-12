@@ -200,6 +200,64 @@
   input:checked + .slider{background:var(--ok);}
   input:checked + .slider::before{transform:translateX(20px);}
 
+  /* cartão de presença com pontuação (pontual + ficou até ao fim) */
+  .presenca-card{
+    background:var(--white);
+    border:1px solid var(--grey-100);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    transition:border-color .15s, background .15s;
+  }
+  .presenca-card.is-presente{border-color:var(--grey-300);}
+  .presenca-card:last-child{margin-bottom:0;}
+  .presenca-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .presenca-top .check-name{font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pontos-badge{
+    font-size:10px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+    background:var(--grey-100);
+    color:var(--grey-600);
+    white-space:nowrap;
+  }
+  .pontos-badge[data-pontos="3"]{background:#e6f4ec; color:var(--ok);}
+  .pontos-badge[data-pontos="2"]{background:#fef3e0; color:#a3691f;}
+  .pontos-badge[data-pontos="1"]{background:#fbe9e7; color:var(--danger);}
+  .presenca-detalhes{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+    flex-wrap:wrap;
+  }
+  .pill-group{
+    display:flex;
+    flex:1;
+    min-width:130px;
+    background:var(--grey-100);
+    border-radius:8px;
+    padding:2px;
+    gap:2px;
+  }
+  .pill-btn{
+    flex:1;
+    background:transparent;
+    color:var(--grey-600);
+    font-size:11px;
+    font-weight:600;
+    padding:7px 6px;
+    border-radius:6px;
+  }
+  .pill-btn.active{background:var(--white); color:var(--blue-900); box-shadow:0 1px 2px rgba(15,36,64,.15);}
+  .pill-btn.active[data-atraso="1"]{color:#a3691f;}
+  .pill-btn.active[data-saiu="1"]{color:var(--danger);}
+
   /* ranking */
   .rank-row{
     display:flex;
@@ -519,8 +577,17 @@ const RECONHECIMENTO_BACKEND_URL = "https://medbi-license-server.onrender.com/ap
      atividade_id uuid references aafm_atividades(id) on delete cascade,
      membro_id uuid references aafm_membros(id) on delete cascade,
      presente boolean not null default false,
+     pontual boolean not null default true,       -- chegou a horas (false = atrasado)
+     ficou_ate_fim boolean not null default true,  -- ficou até ao fim (false = saiu antes)
      unique(atividade_id, membro_id)
    );
+   -- Pontuação: presente + a horas + ficou até ao fim = 3 pts
+   --            presente + (a horas OU ficou até ao fim, só um dos dois) = 2 pts
+   --            presente + atrasado + saiu antes = 1 pt · ausente = 0 pts
+
+   -- Se a tabela já existia (versão anterior sem pontual/ficou_ate_fim), correr:
+   -- alter table aafm_presencas add column pontual boolean not null default true;
+   -- alter table aafm_presencas add column ficou_ate_fim boolean not null default true;
 
    -- RLS: leitura é sempre pública. Escrita exige sessão iniciada + estar
    -- na lista própria "presenca_editores" (ter conta não chega — é preciso
@@ -683,10 +750,14 @@ document.getElementById("btn-exportar-ranking").addEventListener("click", ()=>{
 document.getElementById("btn-exportar-presenca").addEventListener("click", ()=>{
   const sel = document.getElementById("sel-atividade");
   const atividadeTitulo = sel.options[sel.selectedIndex]?.textContent || "Atividade";
-  const linhas = Array.from(document.querySelectorAll("#presenca-list .check-row")).map(row=>{
+  const linhas = Array.from(document.querySelectorAll("#presenca-list [data-linha]")).map(row=>{
+    const membroId = row.dataset.linha;
     const nome = row.querySelector(".check-name")?.textContent || "";
-    const presente = row.querySelector('input[type=checkbox]')?.checked;
-    return `${presente ? "✅" : "❌"} ${nome}`;
+    const p = presencaAtual[membroId];
+    if(!p || !p.presente) return `❌ ${nome} — ausente`;
+    const pontualidade = p.pontual ? "a horas" : "atrasado";
+    const permanencia = p.ficouAteFim ? "até ao fim" : "saiu antes do fim";
+    return `✅ ${nome} — ${pontualidade}, ${permanencia} (${pontosPresenca(p)} pts)`;
   });
   if(!linhas.length) return toast("Escolha uma atividade primeiro");
   partilharOuExportar(`Presenças — ${atividadeTitulo}`, linhas.join("\n"));
@@ -1010,7 +1081,12 @@ function renderPresencaSelect(){
 }
 document.getElementById("sel-atividade").addEventListener("change", loadPresencaChecklist);
 
-let presencaAtual = {}; // membro_id -> boolean
+let presencaAtual = {}; // membro_id -> {presente, pontual, ficouAteFim}
+
+function pontosPresenca(p){
+  if(!p || !p.presente) return 0;
+  return 1 + (p.pontual ? 1 : 0) + (p.ficouAteFim ? 1 : 0);
+}
 
 async function loadPresencaChecklist(){
   const atividadeId = document.getElementById("sel-atividade").value;
@@ -1022,7 +1098,11 @@ async function loadPresencaChecklist(){
   const {data, error} = await sb.from("aafm_presencas").select("*").eq("atividade_id", atividadeId);
   if(error){ toast("Erro ao carregar presenças"); return; }
   presencaAtual = {};
-  (data || []).forEach(p => presencaAtual[p.membro_id] = p.presente);
+  (data || []).forEach(p => presencaAtual[p.membro_id] = {
+    presente: p.presente,
+    pontual: p.pontual !== false,
+    ficouAteFim: p.ficou_ate_fim !== false
+  });
 
   const ativos = membros.filter(m=>m.ativo && m.grupo===currentGrupo);
   if(!ativos.length){ el.innerHTML = '<div class="empty">Sem membros ativos neste grupo.</div>'; return; }
@@ -1032,22 +1112,115 @@ async function loadPresencaChecklist(){
       <button class="btn-ghost" id="btn-marcar-todos" style="flex:1;">Marcar todos</button>
       <button class="btn-ghost" id="btn-marcar-nenhum" style="flex:1;">Marcar nenhum</button>
     </div>
-  ` + ativos.map(m=>`
-    <div class="check-row">
-      <span class="check-name">${escapeHtml(m.nome)}</span>
-      <label class="switch">
-        <input type="checkbox" data-membro="${m.id}" ${presencaAtual[m.id] ? "checked" : ""}>
-        <span class="slider"></span>
-      </label>
+    <div style="font-size:11px; color:var(--grey-600); margin-bottom:4px;">Aplicar a todos os marcados presentes (depois ajusta só as exceções):</div>
+    <div class="presenca-detalhes" style="margin-top:0; margin-bottom:12px;">
+      <div class="pill-group" id="global-pontual">
+        <button type="button" class="pill-btn" data-valor="1">Todos a horas</button>
+        <button type="button" class="pill-btn" data-valor="0" data-atraso="1">Todos atrasados</button>
+      </div>
+      <div class="pill-group" id="global-fim">
+        <button type="button" class="pill-btn" data-valor="1">Todos até ao fim</button>
+        <button type="button" class="pill-btn" data-valor="0" data-saiu="1">Todos saíram antes</button>
+      </div>
     </div>
-  `).join("");
+  ` + ativos.map(m=>{
+    const p = presencaAtual[m.id] || {presente:false, pontual:true, ficouAteFim:true};
+    return `
+    <div class="presenca-card ${p.presente ? "is-presente" : ""}" data-linha="${m.id}">
+      <div class="presenca-top">
+        <span class="check-name">${escapeHtml(m.nome)}</span>
+        <span class="pontos-badge" id="pts-${m.id}" data-pontos="${pontosPresenca(p)}">${pontosPresenca(p)} pts</span>
+        <label class="switch">
+          <input type="checkbox" class="chk-presente" data-membro="${m.id}" ${p.presente ? "checked" : ""}>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="presenca-detalhes" id="det-${m.id}" style="display:${p.presente ? "flex" : "none"};">
+        <div class="pill-group" data-membro="${m.id}" data-campo="pontual">
+          <button type="button" class="pill-btn ${p.pontual ? "active" : ""}" data-valor="1">A horas</button>
+          <button type="button" class="pill-btn ${!p.pontual ? "active" : ""}" data-valor="0" data-atraso="1">Atrasado</button>
+        </div>
+        <div class="pill-group" data-membro="${m.id}" data-campo="ficouAteFim">
+          <button type="button" class="pill-btn ${p.ficouAteFim ? "active" : ""}" data-valor="1">Até ao fim</button>
+          <button type="button" class="pill-btn ${!p.ficouAteFim ? "active" : ""}" data-valor="0" data-saiu="1">Saiu antes</button>
+        </div>
+      </div>
+    </div>
+  `;}).join("");
+
   document.getElementById("btn-marcar-todos").addEventListener("click", ()=>{
-    document.querySelectorAll('#presenca-list input[type=checkbox]').forEach(c=>c.checked = true);
+    document.querySelectorAll('#presenca-list .chk-presente').forEach(c=>{
+      c.checked = true;
+      definirPresente(c.dataset.membro, true);
+    });
   });
   document.getElementById("btn-marcar-nenhum").addEventListener("click", ()=>{
-    document.querySelectorAll('#presenca-list input[type=checkbox]').forEach(c=>c.checked = false);
+    document.querySelectorAll('#presenca-list .chk-presente').forEach(c=>{
+      c.checked = false;
+      definirPresente(c.dataset.membro, false);
+    });
+  });
+  document.querySelectorAll('#presenca-list .chk-presente').forEach(c=>{
+    c.addEventListener("change", ()=> definirPresente(c.dataset.membro, c.checked));
+  });
+  document.querySelectorAll('#presenca-list .pill-group[data-membro] .pill-btn').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const grupo = btn.parentElement;
+      const membroId = grupo.dataset.membro;
+      const campo = grupo.dataset.campo;
+      const valor = btn.dataset.valor === "1";
+      grupo.querySelectorAll(".pill-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      if(!presencaAtual[membroId]) presencaAtual[membroId] = {presente:true, pontual:true, ficouAteFim:true};
+      presencaAtual[membroId][campo] = valor;
+      atualizarBadge(membroId);
+    });
+  });
+
+  document.getElementById("global-pontual").querySelectorAll(".pill-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=> aplicarGlobal("pontual", btn.dataset.valor === "1"));
+  });
+  document.getElementById("global-fim").querySelectorAll(".pill-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=> aplicarGlobal("ficouAteFim", btn.dataset.valor === "1"));
   });
 }
+
+function aplicarGlobal(campo, valor){
+  let aplicados = 0;
+  document.querySelectorAll('#presenca-list [data-linha]').forEach(row=>{
+    const membroId = row.dataset.linha;
+    if(!presencaAtual[membroId] || !presencaAtual[membroId].presente) return; // só aplica a quem está marcado presente
+    presencaAtual[membroId][campo] = valor;
+    aplicados++;
+    const grupo = row.querySelector(`.pill-group[data-campo="${campo}"]`);
+    if(grupo){
+      grupo.querySelectorAll(".pill-btn").forEach(b=>{
+        b.classList.toggle("active", (b.dataset.valor === "1") === valor);
+      });
+    }
+    atualizarBadge(membroId);
+  });
+  toast(aplicados ? `Aplicado a ${aplicados} pessoa(s) presente(s)` : "Marca presenças primeiro");
+}
+
+function definirPresente(membroId, presente){
+  if(!presencaAtual[membroId]) presencaAtual[membroId] = {presente, pontual:true, ficouAteFim:true};
+  else presencaAtual[membroId].presente = presente;
+  const card = document.querySelector(`.presenca-card[data-linha="${membroId}"]`);
+  const det = document.getElementById(`det-${membroId}`);
+  if(card) card.classList.toggle("is-presente", presente);
+  if(det) det.style.display = presente ? "flex" : "none";
+  atualizarBadge(membroId);
+}
+
+function atualizarBadge(membroId){
+  const badge = document.getElementById(`pts-${membroId}`);
+  if(!badge) return;
+  const pts = pontosPresenca(presencaAtual[membroId]);
+  badge.textContent = pts + " pts";
+  badge.dataset.pontos = pts;
+}
+
 document.getElementById("btn-salvar-presenca").addEventListener("click", async ()=>{
   if(!requerSessao()) return;
   const atividadeId = document.getElementById("sel-atividade").value;
@@ -1056,12 +1229,18 @@ document.getElementById("btn-salvar-presenca").addEventListener("click", async (
   const btn = document.getElementById("btn-salvar-presenca");
   btn.disabled = true;
   try{
-    const checks = document.querySelectorAll('#presenca-list input[type=checkbox]');
-    const rows = Array.from(checks).map(c=>({
-      atividade_id: atividadeId,
-      membro_id: c.dataset.membro,
-      presente: c.checked
-    }));
+    const linhas = document.querySelectorAll('#presenca-list [data-linha]');
+    const rows = Array.from(linhas).map(row=>{
+      const membroId = row.dataset.linha;
+      const p = presencaAtual[membroId] || {presente:false, pontual:true, ficouAteFim:true};
+      return {
+        atividade_id: atividadeId,
+        membro_id: membroId,
+        presente: !!p.presente,
+        pontual: p.pontual !== false,
+        ficou_ate_fim: p.ficouAteFim !== false
+      };
+    });
     const {error} = await sb.from("aafm_presencas").upsert(rows, {onConflict: "atividade_id,membro_id"});
     if(error) return toast("Erro ao guardar");
     toast("Presenças guardadas");
@@ -1093,16 +1272,18 @@ async function renderRanking(){
 
   if(!totalAtividades){ el.innerHTML = '<div class="empty">Nenhuma atividade neste período/tipo.</div>'; return; }
 
-  const {data, error} = await sb.from("aafm_presencas").select("membro_id, presente, atividade_id").eq("presente", true);
+  const {data, error} = await sb.from("aafm_presencas").select("membro_id, presente, pontual, ficou_ate_fim, atividade_id").eq("presente", true);
   if(error){ el.innerHTML = '<div class="empty">Erro ao carregar ranking.</div>'; return; }
 
   const contagem = {};
   (data || []).forEach(p=>{
     if(idsFiltrados.has(p.atividade_id)){
-      contagem[p.membro_id] = (contagem[p.membro_id] || 0) + 1;
+      const pts = pontosPresenca({presente: p.presente, pontual: p.pontual !== false, ficouAteFim: p.ficou_ate_fim !== false});
+      contagem[p.membro_id] = (contagem[p.membro_id] || 0) + pts;
     }
   });
 
+  const maxPossivel = totalAtividades * 3;
   const ranking = membros
     .filter(m=>m.ativo && m.grupo===currentGrupo)
     .map(m=>({nome:m.nome, total: contagem[m.id] || 0}))
@@ -1110,7 +1291,7 @@ async function renderRanking(){
 
   if(!ranking.length){ el.innerHTML = '<div class="empty">Sem membros para mostrar.</div>'; return; }
 
-  const max = ranking[0].total || 1;
+  const max = Math.max(ranking[0].total, 1);
   el.innerHTML = ranking.map((r,i)=>`
     <div class="rank-row">
       <div class="rank-pos">${i+1}</div>
@@ -1118,7 +1299,7 @@ async function renderRanking(){
         <div class="rank-name">${escapeHtml(r.nome)}</div>
         <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(r.total/max*100).toFixed(0)}%"></div></div>
       </div>
-      <div class="rank-count">${r.total}/${totalAtividades}</div>
+      <div class="rank-count">${r.total}/${maxPossivel} pts</div>
     </div>
   `).join("");
 }
@@ -1265,14 +1446,15 @@ function aplicarPresencasReconhecidas(resultado, ativos){
     const alvo = normalizar(nome);
     const membro = ativos.find(m => normalizar(m.nome) === alvo);
     if(membro){
-      const checkbox = document.querySelector(`#presenca-list input[data-membro="${membro.id}"]`);
+      const checkbox = document.querySelector(`#presenca-list .chk-presente[data-membro="${membro.id}"]`);
       if(checkbox && !checkbox.checked){
         checkbox.checked = true;
+        definirPresente(membro.id, true);
         marcados++;
       }
     }
   });
-  toast(marcados ? `${marcados} presença(s) marcada(s) pela foto` : "Nenhum nome reconhecido");
+  toast(marcados ? `${marcados} presença(s) marcada(s) pela foto (revê pontualidade/permanência)` : "Nenhum nome reconhecido");
   mostrarNaoReconhecidos(naoReconhecidos);
 }
 
@@ -1317,8 +1499,8 @@ document.getElementById("btn-add-nao-reconhecidos").addEventListener("click", as
     }
     await loadMembros(); // recarrega membros e refaz a checklist de presença
     (data || []).forEach(m=>{
-      const chk = document.querySelector(`#presenca-list input[data-membro="${m.id}"]`);
-      if(chk) chk.checked = true;
+      const chk = document.querySelector(`#presenca-list .chk-presente[data-membro="${m.id}"]`);
+      if(chk){ chk.checked = true; definirPresente(m.id, true); }
     });
     // mantém na lista apenas os nomes que não foram selecionados/adicionados agora
     mostrarNaoReconhecidos(
