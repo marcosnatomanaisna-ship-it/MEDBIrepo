@@ -20512,5 +20512,228 @@ async function newsletterSubmit() {
     });
   }
 </script>
+
+<!-- ============================================================
+  Assistente de Estudo MEDBI MI (chat com Gemini 3.5 Flash)
+============================================================ -->
+<style>
+  #assist-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--gold);
+    border: none;
+    font-size: 24px;
+    box-shadow: 0 4px 14px rgba(10,35,66,0.4);
+    z-index: 999997;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  #assist-panel {
+    position: fixed;
+    inset: 0;
+    background: var(--cream);
+    z-index: 999999;
+    display: none;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  #assist-panel.open { display: flex; }
+  #assist-header {
+    background: var(--navy);
+    color: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+  #assist-header h3 { margin: 0; font-size: 16px; color: var(--gold); }
+  #assist-close {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  #assist-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .assist-bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+  }
+  .assist-bubble.user {
+    align-self: flex-end;
+    background: var(--teal);
+    color: var(--white);
+    border-bottom-right-radius: 4px;
+  }
+  .assist-bubble.bot {
+    align-self: flex-start;
+    background: var(--white);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .assist-bubble.typing { opacity: 0.6; font-style: italic; }
+  #assist-inputbar {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid var(--border);
+    background: var(--white);
+    flex-shrink: 0;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  #assist-input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    resize: none;
+    font-family: inherit;
+  }
+  #assist-send {
+    background: var(--teal);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  #assist-send:disabled { opacity: 0.5; }
+</style>
+
+<button id="assist-fab" aria-label="Abrir assistente de estudo">💬</button>
+
+<div id="assist-panel">
+  <div id="assist-header">
+    <h3>🩺 Assistente de Estudo</h3>
+    <button id="assist-close" aria-label="Fechar">✕</button>
+  </div>
+  <div id="assist-messages"></div>
+  <div id="assist-inputbar">
+    <textarea id="assist-input" rows="1" placeholder="Pergunta algo sobre Medicina Interna..."></textarea>
+    <button id="assist-send">➤</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const ASSIST_API_URL = API_BASE + '/assistant/chat';
+
+  const fab = document.getElementById('assist-fab');
+  const panel = document.getElementById('assist-panel');
+  const closeBtn = document.getElementById('assist-close');
+  const messagesEl = document.getElementById('assist-messages');
+  const input = document.getElementById('assist-input');
+  const sendBtn = document.getElementById('assist-send');
+
+  let assistHistory = [];
+  let assistSending = false;
+
+  fab.addEventListener('click', () => {
+    panel.classList.add('open');
+    if (messagesEl.children.length === 0) {
+      addAssistBubble('bot', 'Olá! Sou o teu assistente de estudo de Medicina Interna. Pergunta-me sobre semiologia, condutas clínicas, farmacologia ou qualquer dúvida do curso. 📚');
+    }
+    input.focus();
+  });
+
+  closeBtn.addEventListener('click', () => panel.classList.remove('open'));
+
+  function addAssistBubble(role, text) {
+    const div = document.createElement('div');
+    div.className = 'assist-bubble ' + (role === 'user' ? 'user' : 'bot');
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  async function assistSend() {
+    const text = input.value.trim();
+    if (!text || assistSending) return;
+
+    assistSending = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    input.style.height = 'auto';
+    addAssistBubble('user', text);
+    const typingBubble = addAssistBubble('bot', 'A pensar...');
+    typingBubble.classList.add('typing');
+
+    try {
+      const res = await fetch(ASSIST_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: assistHistory })
+      });
+      const data = await res.json();
+      typingBubble.remove();
+
+      if (!res.ok) {
+        addAssistBubble('bot', 'Desculpa, houve um erro: ' + (data.error || 'tenta novamente.'));
+      } else {
+        addAssistBubble('bot', data.reply);
+        if (Array.isArray(data.sources) && data.sources.length) {
+          const srcDiv = document.createElement('div');
+          srcDiv.className = 'assist-bubble bot';
+          srcDiv.style.fontSize = '11px';
+          srcDiv.style.opacity = '0.65';
+          srcDiv.style.paddingTop = '6px';
+          srcDiv.style.paddingBottom = '6px';
+          srcDiv.textContent = '📖 Fontes: ' + [...new Set(data.sources)].join(' · ');
+          messagesEl.appendChild(srcDiv);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        assistHistory.push({ role: 'user', content: text });
+        assistHistory.push({ role: 'assistant', content: data.reply });
+      }
+    } catch (err) {
+      typingBubble.remove();
+      addAssistBubble('bot', 'Não consegui ligar ao servidor. Verifica a tua ligação e tenta novamente.');
+    } finally {
+      assistSending = false;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', assistSend);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      assistSend();
+    }
+  });
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  });
+})();
+</script>
 </body>
 </html>
