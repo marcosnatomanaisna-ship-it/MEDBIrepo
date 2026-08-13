@@ -20594,6 +20594,11 @@ async function newsletterSubmit() {
     border-bottom-left-radius: 4px;
   }
   .assist-bubble.typing { opacity: 0.6; font-style: italic; }
+  .assist-bubble.bot p { margin: 0 0 8px; }
+  .assist-bubble.bot p:last-child { margin-bottom: 0; }
+  .assist-bubble.bot ul { margin: 4px 0 8px; padding-left: 20px; }
+  .assist-bubble.bot ul:last-child { margin-bottom: 0; }
+  .assist-bubble.bot li { margin-bottom: 4px; }
   #assist-inputbar {
     display: flex;
     gap: 8px;
@@ -20642,6 +20647,7 @@ async function newsletterSubmit() {
 
 <script>
 (function () {
+  const API_BASE = 'https://medbi-license-server.onrender.com/api';
   const ASSIST_API_URL = API_BASE + '/assistant/chat';
 
   const fab = document.getElementById('assist-fab');
@@ -20657,17 +20663,50 @@ async function newsletterSubmit() {
   fab.addEventListener('click', () => {
     panel.classList.add('open');
     if (messagesEl.children.length === 0) {
-      addAssistBubble('bot', 'Olá! Sou o teu assistente de estudo de Medicina Interna. Pergunta-me sobre semiologia, condutas clínicas, farmacologia ou qualquer dúvida do curso. 📚');
+      addAssistBubble('bot', 'Olá! Sou o teu assistente de estudo de Medicina Interna. Pergunta-me sobre quadro clínico, causas, diagnóstico ou tratamento de qualquer doença do curso. 📚');
     }
     input.focus();
   });
 
   closeBtn.addEventListener('click', () => panel.classList.remove('open'));
 
+  function renderAssistMarkdown(text) {
+    // Escapa HTML primeiro (segurança), depois aplica uma formatação
+    // simples: **negrito**, listas com "- " ou "* ", e quebras de linha.
+    const esc = String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const lines = esc.split('\n');
+    let html = '';
+    let inList = false;
+    for (let raw of lines) {
+      const line = raw.trim();
+      const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+      if (bulletMatch) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += '<li>' + bulletMatch[1] + '</li>';
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        if (line) html += '<p>' + line + '</p>';
+      }
+    }
+    if (inList) html += '</ul>';
+
+    // **negrito**
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    return html;
+  }
+
   function addAssistBubble(role, text) {
     const div = document.createElement('div');
     div.className = 'assist-bubble ' + (role === 'user' ? 'user' : 'bot');
-    div.textContent = text;
+    if (role === 'user') {
+      div.textContent = text;
+    } else {
+      div.innerHTML = renderAssistMarkdown(text);
+    }
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return div;
