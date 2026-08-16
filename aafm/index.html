@@ -1506,10 +1506,10 @@ const SECCOES_TUTORIAL = [
           <p>Como <strong>Membro</strong>, o teu acesso é só de consulta: podes ver e abrir os anexos existentes, mas não tens os botões de <strong>Editar</strong> ou <strong>Apagar</strong> — essas ações são reservadas ao Secretário, Presidente e Vice-Secretária.</p>`;
       }
       const notaPermissao = papel === 'secretario'
-        ? 'Como <strong>Secretário</strong>, podes editar ou apagar <strong>qualquer</strong> documento do arquivo, independentemente de quem o criou.'
+        ? ''
         : 'Só podes editar ou apagar os documentos que <strong>tu próprio criaste</strong>. Documentos criados por outra pessoa aparecem sem os botões de Editar/Apagar.';
       return `<p>Toca num documento da lista para o abrires. Aí podes <strong>Exportar PDF</strong> (gera um documento institucional pronto a imprimir), <strong>Editar</strong>, <strong>Editar nº</strong> (corrige só o número de referência, sem abrir o formulário completo) ou <strong>Apagar</strong>.</p>
-        <p>${notaPermissao}</p>
+        ${notaPermissao ? `<p>${notaPermissao}</p>` : ''}
         <p><strong>Apagar não é definitivo:</strong> o documento vai para o <strong>Lixo</strong> (menu ☰ → Lixo), onde fica 30 dias antes de ser eliminado para sempre. Nesse período podes <strong>recuperá-lo</strong> a qualquer momento. Passados os 30 dias, a eliminação é automática e definitiva.</p>`;
     }
   },
