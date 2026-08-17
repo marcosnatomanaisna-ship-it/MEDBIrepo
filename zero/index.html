@@ -3839,20 +3839,21 @@
     }
     return false; // já está na casa/início — deixa o botão de voltar sair da app normalmente
   }
-  let backGuardArmed = false;
+  // garante sempre 1 entrada extra no histórico do navegador. closeTopLayer()
+  // já sabe, a partir do estado real da UI (qual overlay está visível, qual
+  // 'state' de jogo está ativo), qual é o único passo a desfazer — por isso
+  // cada popstate fecha exatamente essa camada de topo e volta a armar a
+  // entrada extra, dando um recuo passo-a-passo em vez de saltar direto para
+  // o diálogo nativo "Sair da aplicação".
   function pushBackGuard(){
-    try{ history.pushState({zeroBack:true}, ''); backGuardArmed = true; }catch(e){}
+    try{ history.pushState({zeroBack:true}, ''); }catch(e){}
   }
-  // garante que existe sempre uma entrada de histórico "guardada" sempre que se entra
-  // num ecrã/estado que não seja a casa — caso contrário o botão físico de voltar do
-  // telemóvel salta direto para o diálogo nativo "Sair da aplicação" em vez de recuar
-  // um passo dentro da app.
   function ensureBackGuard(){
-    if(!backGuardArmed) pushBackGuard();
+    // no-op intencional: a entrada de guarda é sempre reposta no popstate,
+    // não precisa de ser re-armada em cada abertura de ecrã.
   }
   pushBackGuard();
   window.addEventListener('popstate', ()=>{
-    backGuardArmed = false;
     if(closeTopLayer()) pushBackGuard();
   });
 })();
