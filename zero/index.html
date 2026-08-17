@@ -84,7 +84,9 @@
   }
   #comboBadge.show{opacity:1; transform:translateY(0);}
   #levelWrap{text-align:right; opacity:0.55; font-size:11px; letter-spacing:2px;}
+  #levelCol{flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:10px;}
   #levelVal{font-family:'Sora',sans-serif; font-size:17px; font-weight:600; opacity:1;}
+  #levelVal.compoundVal{font-size:11.5px; line-height:1.3;}
   #missionTitleBar{
     font-family:'Sora',sans-serif; font-weight:700; font-size:12px; letter-spacing:1px;
     color:var(--gold); opacity:0; max-height:0; overflow:hidden;
@@ -102,12 +104,11 @@
   #corruptionLabel{font-size:9px; letter-spacing:3px; opacity:0.4; margin-top:5px;}
 
   #hintBtn{
-    position:fixed; right:max(18px, env(safe-area-inset-right));
-    bottom:max(96px, calc(env(safe-area-inset-bottom) + 96px));
-    z-index:8; width:52px; height:52px; border-radius:50%;
+    position:relative; flex:none;
+    z-index:8; width:44px; height:44px; border-radius:50%;
     background:rgba(244,211,94,0.12); border:1px solid rgba(244,211,94,0.35);
     display:flex; align-items:center; justify-content:center;
-    font-size:22px; cursor:pointer; pointer-events:auto;
+    font-size:19px; cursor:pointer; pointer-events:auto;
     box-shadow:0 4px 18px rgba(0,0,0,0.35);
     transition:transform .12s, opacity .2s;
   }
@@ -122,9 +123,8 @@
   }
 
   #achToast{
-    position:fixed; top:0; left:50%; z-index:20;
+    position:fixed; top:max(10px, env(safe-area-inset-top)); left:50%; z-index:20;
     width:min(300px, calc(100vw - 48px));
-    margin-top:max(10px, env(safe-area-inset-top));
     transform:translate(-50%,-140%);
     opacity:0;
     transition:transform .4s cubic-bezier(.2,.9,.3,1.3), opacity .3s;
@@ -326,6 +326,28 @@
   #casaScreenBody{flex:1; overflow-y:auto; -ms-overflow-style:none; scrollbar-width:none; text-align:left;}
   #casaScreenBody::-webkit-scrollbar{display:none;}
 
+  #shareCardModal{
+    position:fixed; inset:0; z-index:46; background:rgba(0,0,0,0.78);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  #shareCardModal.show{opacity:1; pointer-events:auto;}
+  .shareCardBox{
+    position:relative; background:rgba(var(--scr-a),0.98); border:1px solid rgba(var(--surf-rgb),0.1);
+    border-radius:20px; padding:16px 16px 18px; max-width:320px; width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5); text-align:center;
+  }
+  #shareCardImg{width:100%; border-radius:12px; display:block; background:rgba(var(--surf-rgb),0.06); aspect-ratio:1080/1350; object-fit:cover;}
+  .shareCardStatus{font-size:11px; opacity:0.5; margin:10px 0 4px 0;}
+  .shareCardActions{display:flex; gap:8px; margin-top:12px;}
+  .shareCardActions .cta{flex:1; padding:12px 10px; font-size:13px;}
+  .shareCardActions .ctaGhost{flex:1; padding:12px 10px; font-size:13px; justify-content:center;}
+  .shareCardClose{
+    position:absolute; top:-14px; right:-8px; width:32px; height:32px; border-radius:50%;
+    background:rgba(var(--scr-a),1); border:1px solid rgba(var(--surf-rgb),0.15);
+    display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;
+  }
+
   .tutBoardWrap{position:relative; margin:6px auto 40px auto; width:100%; max-width:150px;}
   .tutBoard{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; position:relative; z-index:2;}
   .tutChainSvg{position:absolute; inset:0; z-index:1; overflow:visible;}
@@ -433,8 +455,8 @@
   #gameOverScreen .title{font-size:28px; letter-spacing:3px; background:linear-gradient(90deg,#ff3b30,var(--warm)); -webkit-background-clip:text; background-clip:text;}
   .startDashboard{width:100%; max-width:340px; margin:0;}
   #startScreen{
-    overflow:hidden; justify-content:center; gap:clamp(10px,2.6vh,18px);
-    padding:max(18px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom)) 22px;
+    overflow:hidden; justify-content:center; gap:clamp(8px,2.1vh,14px);
+    padding:max(14px, env(safe-area-inset-top)) 22px max(14px, env(safe-area-inset-bottom)) 22px;
   }
   #startScreen .title{font-size:clamp(34px,10vh,52px); margin:0;}
   #startScreen .tagline{font-size:11.5px; margin:0; max-width:260px; line-height:1.4; opacity:0.5;}
@@ -444,6 +466,13 @@
   #startScreen .casaCardIcon{font-size:14px; margin-bottom:3px;}
   #startScreen .casaCardVal{font-size:14px;}
   #startScreen .casaCardLabel{font-size:7.5px; margin-top:2px;}
+  @media (max-height: 680px){
+    #startScreen .title{font-size:clamp(26px,7vh,40px);}
+    #startScreen .tagline{display:none;}
+    .freeplayGroup{padding:8px 12px 10px; gap:7px;}
+    #startScreen .cta{padding:11px 34px;}
+    .ctaGhost{padding:11px 20px;}
+  }
   .howtoDetails{width:100%; max-width:340px; margin-top:22px;}
   .howtoDetails summary{
     cursor:pointer; list-style:none; font-family:'Sora',sans-serif; font-size:11px;
@@ -458,6 +487,24 @@
   .statBlock span{display:block;}
   .statNum{font-family:'Sora',sans-serif; font-size:30px; font-weight:800;}
   .statLbl{font-size:10px; letter-spacing:2px; opacity:0.5; margin-top:4px;}
+  .freeplayGroup{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    padding:10px 14px 14px; border:1px solid rgba(var(--surf-rgb),0.10);
+    border-radius:20px; background:rgba(var(--surf-rgb),0.035);
+  }
+  .freeplayModeLabel{font-size:9.5px; letter-spacing:2px; opacity:0.55; text-align:center; margin:0; font-weight:600;}
+  .freeplayModeRow{display:flex; gap:7px; flex-wrap:wrap; justify-content:center;}
+  .modeChip{
+    font-family:'Sora',sans-serif; font-weight:700; letter-spacing:0.6px; font-size:11px;
+    background:rgba(var(--surf-rgb),0.05); color:var(--ink); opacity:0.55;
+    border:1px solid rgba(var(--surf-rgb),0.12); border-radius:999px;
+    padding:7px 13px; cursor:pointer; transition:transform .12s, background .15s, opacity .15s, border-color .15s;
+  }
+  .modeChip:active{transform:scale(0.94);}
+  .modeChip.active{
+    opacity:1; color:#1a1204; background:linear-gradient(90deg,var(--warm),var(--gold));
+    border-color:transparent;
+  }
   .ctaRow{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;}
   .ctaGhost{
     font-family:'Sora',sans-serif; font-weight:700; letter-spacing:1px; font-size:13px;
@@ -489,6 +536,23 @@
   }
   .shareToast.show{transform:translate(-50%,0); opacity:1;}
 
+  .casaCard{position:relative;}
+  .casaCardHint{cursor:pointer;}
+  .casaCardHintDot{
+    position:absolute; top:8px; right:8px; width:15px; height:15px; border-radius:50%;
+    background:rgba(var(--surf-rgb),0.1); border:1px solid rgba(var(--surf-rgb),0.18);
+    font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;
+    opacity:0.65; font-family:'Sora',sans-serif;
+  }
+  #statInfoToast{
+    position:fixed; left:50%; top:50%; z-index:60; max-width:78vw;
+    transform:translate(-50%,-50%) scale(0.94); opacity:0; transition:transform .2s, opacity .2s;
+    background:rgba(var(--scr-a),0.98); border:1px solid rgba(var(--surf-rgb),0.16);
+    border-radius:16px; padding:16px 18px; font-size:13px; line-height:1.5; text-align:center;
+    pointer-events:none; box-shadow:0 10px 30px rgba(0,0,0,0.35);
+  }
+  #statInfoToast.show{transform:translate(-50%,-50%) scale(1); opacity:1; pointer-events:auto;}
+
   @media (max-width:420px){
     .title{font-size:48px;}
     .howto{gap:12px 14px;}
@@ -498,7 +562,7 @@
 </head>
 <body>
 
-<canvas id="game"></canvas>
+<canvas id="game" role="img" aria-label="Tabuleiro do jogo ZERO — grelha de números para arrastar e ligar. Este ecrã de jogo é visual e não tem suporte a leitor de ecrã."></canvas>
 
 <div id="hud">
   <div id="hudTop">
@@ -509,14 +573,15 @@
       <div id="scoreLabel">PONTOS</div>
       <div id="comboBadge">×1</div>
     </div>
-    <div id="levelWrap"><span id="levelLabel">NÍVEL</span><br><span id="levelVal">1</span></div>
+    <div id="levelCol">
+      <div id="levelWrap"><span id="levelLabel">NÍVEL</span><br><span id="levelVal">1</span></div>
+      <div id="hintBtn" aria-label="Dica">💡<span class="hintCost">+8</span></div>
+    </div>
   </div>
   <div id="missionTitleBar"></div>
   <div id="corruptionOuter"><div id="corruptionInner"></div></div>
   <div id="corruptionLabel">ENERGIA</div>
 </div>
-
-<div id="hintBtn" aria-label="Dica">💡<span class="hintCost">+8</span></div>
 
 <div id="achToast">
   <div id="achToastBadge">★</div>
@@ -555,8 +620,20 @@
 </div>
 
 <div id="menuOverlay"></div>
+
+<div id="shareCardModal">
+  <div class="shareCardBox">
+    <img id="shareCardImg" alt="Cartão de resultado ZERO">
+    <div class="shareCardStatus" id="shareCardStatus">A gerar cartão…</div>
+    <div class="shareCardActions">
+      <button class="cta" id="shareCardSendBtn">PARTILHAR</button>
+      <button class="ctaGhost" id="shareCardDownloadBtn">⬇ GUARDAR</button>
+    </div>
+    <div class="shareCardClose" id="shareCardCloseBtn" role="button" tabindex="0" aria-label="Fechar">✕</div>
+  </div>
+</div>
 <div id="menuDrawer">
-  <div class="menuHeader">MENU<div class="menuCloseX" id="menuCloseBtn">✕</div></div>
+  <div class="menuHeader">MENU<div class="menuCloseX" id="menuCloseBtn" role="button" tabindex="0" aria-label="Fechar menu">✕</div></div>
   <div id="menuList">
     <div class="menuItem" id="menuResume"><span class="menuItemIcon">▶</span>Continuar</div>
     <div class="menuItem" id="menuCasa"><span class="menuItemIcon">⌂</span>Casa</div>
@@ -571,7 +648,7 @@
 
 <div id="casaScreen">
   <div class="casaScreenHeader">
-    <div id="casaScreenClose">‹</div>
+    <div id="casaScreenClose" role="button" tabindex="0" aria-label="Voltar">‹</div>
     <div id="casaScreenTitle"></div>
   </div>
   <div id="casaScreenBody"></div>
@@ -581,18 +658,27 @@
   <div class="title">ZERO</div>
   <div class="tagline">Liga números vizinhos até a soma dar exatamente zero.</div>
   <div id="startDashboard" class="startDashboard"></div>
+  <div class="freeplayGroup">
+    <div class="freeplayModeLabel">DIFICULDADE · MODO LIVRE</div>
+    <div class="freeplayModeRow" id="freeplayModeRow">
+      <button type="button" class="modeChip" data-mode="facil">FÁCIL</button>
+      <button type="button" class="modeChip" data-mode="normal">NORMAL</button>
+      <button type="button" class="modeChip" data-mode="dificil">DIFÍCIL</button>
+      <button type="button" class="modeChip" data-mode="zen">🧘 ZEN</button>
+    </div>
+    <button class="cta" id="startBtn">▶ JOGAR MODO LIVRE</button>
+  </div>
   <div class="ctaRow">
-    <button class="cta" id="startBtn">MODO LIVRE</button>
     <button class="ctaGhost" id="missionsBtn">🚀 MISSÕES</button>
   </div>
   <div class="casaNavGrid" id="startMenuList">
-    <div class="casaNavBtn" id="casaHowTo"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#ff7a45" stroke-width="1.7"/><path d="M9.3 9.5a2.7 2.7 0 015.2.9c0 1.8-2.5 2-2.5 3.8" stroke="#ff7a45" stroke-width="1.7" stroke-linecap="round" fill="none"/><circle cx="12" cy="17.3" r="1.1" fill="#ff7a45"/></svg></span>Como Jogar</div>
-    <div class="casaNavBtn" id="casaStats"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="13" width="4" height="7" rx="1" fill="#3fa9f5"/><rect x="10" y="8" width="4" height="12" rx="1" fill="#f4d35e"/><rect x="16" y="4" width="4" height="16" rx="1" fill="#ff7a45"/></svg></span>Estatísticas</div>
-    <div class="casaNavBtn" id="casaAch"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17.6l-6.1 3.4 1.5-6.8-5.2-4.7 6.9-.7z" fill="#f4d35e"/></svg></span>Conquistas</div>
-    <div class="casaNavBtn" id="casaGoals"><span class="casaNavIcon">🎯</span>Objetivos</div>
-    <div class="casaNavBtn" id="casaHistory"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#f4d35e" stroke-width="1.7"/><path d="M12 6.5v6l4 2.3" stroke="#f4d35e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>Histórico</div>
-    <div class="casaNavBtn" id="casaSettings"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><g fill="#3fa9f5"><rect x="10.6" y="1.3" width="2.8" height="4" rx="1"/><rect x="10.6" y="18.7" width="2.8" height="4" rx="1"/><rect x="1.3" y="10.6" width="4" height="2.8" rx="1"/><rect x="18.7" y="10.6" width="4" height="2.8" rx="1"/><rect x="4.5" y="4.5" width="2.8" height="4" rx="1" transform="rotate(45 5.9 6.5)"/><rect x="16.7" y="15.7" width="2.8" height="4" rx="1" transform="rotate(45 18.1 17.7)"/><rect x="4.5" y="15.7" width="2.8" height="4" rx="1" transform="rotate(-45 5.9 17.7)"/><rect x="16.7" y="4.5" width="2.8" height="4" rx="1" transform="rotate(-45 18.1 6.5)"/><circle cx="12" cy="12" r="6.3"/></g><circle cx="12" cy="12" r="2.9" fill="#141922"/></svg></span>Definições</div>
-    <div class="casaNavBtn" id="casaSkins"><span class="casaNavIcon">🎨</span>Paletas</div>
+    <div class="casaNavBtn" id="casaHowTo" role="button" tabindex="0"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#ff7a45" stroke-width="1.7"/><path d="M9.3 9.5a2.7 2.7 0 015.2.9c0 1.8-2.5 2-2.5 3.8" stroke="#ff7a45" stroke-width="1.7" stroke-linecap="round" fill="none"/><circle cx="12" cy="17.3" r="1.1" fill="#ff7a45"/></svg></span>Como Jogar</div>
+    <div class="casaNavBtn" id="casaStats" role="button" tabindex="0"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="13" width="4" height="7" rx="1" fill="#3fa9f5"/><rect x="10" y="8" width="4" height="12" rx="1" fill="#f4d35e"/><rect x="16" y="4" width="4" height="16" rx="1" fill="#ff7a45"/></svg></span>Estatísticas</div>
+    <div class="casaNavBtn" id="casaAch" role="button" tabindex="0"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17.6l-6.1 3.4 1.5-6.8-5.2-4.7 6.9-.7z" fill="#f4d35e"/></svg></span>Conquistas</div>
+    <div class="casaNavBtn" id="casaGoals" role="button" tabindex="0"><span class="casaNavIcon">🎯</span>Objetivos</div>
+    <div class="casaNavBtn" id="casaHistory" role="button" tabindex="0"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#f4d35e" stroke-width="1.7"/><path d="M12 6.5v6l4 2.3" stroke="#f4d35e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>Histórico</div>
+    <div class="casaNavBtn" id="casaSettings" role="button" tabindex="0"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><g fill="#3fa9f5"><rect x="10.6" y="1.3" width="2.8" height="4" rx="1"/><rect x="10.6" y="18.7" width="2.8" height="4" rx="1"/><rect x="1.3" y="10.6" width="4" height="2.8" rx="1"/><rect x="18.7" y="10.6" width="4" height="2.8" rx="1"/><rect x="4.5" y="4.5" width="2.8" height="4" rx="1" transform="rotate(45 5.9 6.5)"/><rect x="16.7" y="15.7" width="2.8" height="4" rx="1" transform="rotate(45 18.1 17.7)"/><rect x="4.5" y="15.7" width="2.8" height="4" rx="1" transform="rotate(-45 5.9 17.7)"/><rect x="16.7" y="4.5" width="2.8" height="4" rx="1" transform="rotate(-45 18.1 6.5)"/><circle cx="12" cy="12" r="6.3"/></g><circle cx="12" cy="12" r="2.9" fill="#141922"/></svg></span>Definições</div>
+    <div class="casaNavBtn" id="casaSkins" role="button" tabindex="0"><span class="casaNavIcon">🎨</span>Paletas</div>
   </div>
 </div>
 
@@ -638,6 +724,7 @@
 </div>
 
 <div class="shareToast" id="shareToast">Copiado!</div>
+<div id="statInfoToast"></div>
 
 <script>
 (function(){
@@ -711,6 +798,22 @@
   let mode = 'classic'; // 'classic' | 'mission'
   let missionIndex = null, currentMission = null, missionProgress = null;
 
+  // ---------- dificuldade / modo zen (só afeta o Modo Livre — as missões têm curva própria) ----------
+  const FREEPLAY_KEY = 'zero_freeplay_mode';
+  const FREEPLAY_MODES = ['facil','normal','dificil','zen'];
+  const FREEPLAY_FILL_MULT = {facil:0.6, normal:1, dificil:1.5, zen:0};
+  const FREEPLAY_RELIEF_MULT = {facil:1.3, normal:1, dificil:0.75, zen:1};
+  const FREEPLAY_ROCK_MULT = {facil:0.4, normal:1, dificil:1.7, zen:0.6};
+  const FREEPLAY_MAG_BONUS = {facil:-1, normal:0, dificil:1, zen:0};
+  function loadFreeplayMode(){
+    try{
+      const v = localStorage.getItem(FREEPLAY_KEY);
+      return FREEPLAY_MODES.includes(v) ? v : 'normal';
+    }catch(e){ return 'normal'; }
+  }
+  function saveFreeplayMode(v){ try{ localStorage.setItem(FREEPLAY_KEY, v); }catch(e){} }
+  let freeplayMode = loadFreeplayMode();
+
   // 25 adjetivos × 20 substantivos = 500 combinações, cada uma usada exatamente uma vez,
   // garantindo que nenhum nome de missão se repete.
   const MISSION_ADJECTIVES = [
@@ -723,18 +826,25 @@
     'Vertigem','Colisão','Ruptura','Convergência','Deriva','Pulsação','Fronteira','Órbita',
     'Erupção','Cadência','Marca','Epifania'
   ];
-  function goalDesc(type, target){
+  function goalFragment(type, target){
     switch(type){
-      case 'clears': return 'Zera '+target+' cadeias.';
-      case 'score':  return 'Faz '+target.toLocaleString('pt-PT')+' pontos numa só partida.';
-      case 'chain':  return 'Zera uma cadeia com '+target+'+ números.';
-      case 'stars':  return 'Zera '+target+' cadeias com estrela.';
-      case 'combo':  return 'Alcança um combo ×'+target+'.';
-      case 'duo':    return 'Zera '+target+' cadeias de apenas 2 números.';
-      case 'zero':   return 'Zera '+target+' cadeias com um bloco Zero.';
-      case 'big':    return 'Zera uma cadeia com um número de valor '+target+'+ (positivo ou negativo).';
-      case 'level':  return 'Alcança o nível '+target+' numa só partida.';
+      case 'clears': return 'zera '+target+' cadeias';
+      case 'score':  return 'faz '+target.toLocaleString('pt-PT')+' pontos numa só partida';
+      case 'chain':  return 'zera uma cadeia com '+target+'+ números';
+      case 'stars':  return 'zera '+target+' cadeias com estrela';
+      case 'combo':  return 'alcança um combo ×'+target;
+      case 'duo':    return 'zera '+target+' cadeias de apenas 2 números';
+      case 'zero':   return 'zera '+target+' cadeias com um bloco Zero';
+      case 'big':    return 'zera uma cadeia com um número de valor '+target+'+ (positivo ou negativo)';
+      case 'level':  return 'alcança o nível '+target+' numa só partida';
     }
+  }
+  function capFirst(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  function goalDesc(type, target){
+    return capFirst(goalFragment(type,target))+'.';
+  }
+  function goalDescCompound(g1, g2){
+    return capFirst(goalFragment(g1.type,g1.target))+' e '+goalFragment(g2.type,g2.target)+'.';
   }
   function goalHudLabel(type){
     return {
@@ -764,13 +874,40 @@
         case 'big':    target = Math.min(9, 5 + Math.floor(cycle/6)); break;
         case 'level':  target = Math.min(30, startLevel + 2 + Math.floor(cycle/4)); break;
       }
+      const goal1 = {type, target};
+      let desc = goalDesc(type, target), compound = null, hudLabel = goalHudLabel(type);
+      // a cada 6ª missão junta-se um 2º objetivo, mais leve, de outro tipo — para que a
+      // missão exija uma combinação diferente em vez de só um alvo numérico maior.
+      if(i>=5 && i%6===5){
+        const partnerType = types[(i + 1 + Math.floor(i/6)) % types.length];
+        if(partnerType !== type){
+          const pCycle = Math.max(0, cycle - 1);
+          let partnerTarget;
+          switch(partnerType){
+            case 'clears': partnerTarget = Math.min(80, 4 + pCycle*2); break;
+            case 'score':  partnerTarget = Math.min(50000, 200 + pCycle*120); break;
+            case 'chain':  partnerTarget = Math.min(10, 3 + Math.floor(pCycle/2)); break;
+            case 'stars':  partnerTarget = Math.min(30, 2 + pCycle*2); break;
+            case 'combo':  partnerTarget = Math.min(6, 2 + Math.floor(pCycle/2)); break;
+            case 'duo':    partnerTarget = Math.min(20, 2 + Math.floor(pCycle/3)); break;
+            case 'zero':   partnerTarget = Math.min(15, 2 + Math.floor(pCycle/4)); break;
+            case 'big':    partnerTarget = Math.min(9, 4 + Math.floor(pCycle/6)); break;
+            case 'level':  partnerTarget = Math.min(30, startLevel + 1 + Math.floor(pCycle/4)); break;
+          }
+          const goal2 = {type:partnerType, target:partnerTarget};
+          compound = [goal1, goal2];
+          desc = goalDescCompound(goal1, goal2);
+          hudLabel = goalHudLabel(type)+' + '+goalHudLabel(partnerType);
+        }
+      }
       missions.push({
         id: 'm'+(i+1),
         title,
-        desc: goalDesc(type, target),
-        goal: {type, target},
+        desc,
+        goal: goal1,
+        compound,
         startLevel,
-        hudLabel: goalHudLabel(type)
+        hudLabel
       });
     }
     return missions;
@@ -797,6 +934,10 @@
       case 'level': return p.maxLevel;
       default: return 0;
     }
+  }
+  function missionIsComplete(m, p){
+    if(m.compound) return m.compound.every(g => missionGoalValue({goal:g}, p) >= g.target);
+    return missionGoalValue(m, p) >= m.goal.target;
   }
 
   // ---------- skins (cosmetic rewards) ----------
@@ -1136,6 +1277,11 @@
     processAchQueue();
   }
   const FLAME_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2c1.2 3-1.8 4.2-1.8 7.2A3.8 3.8 0 0014 13a3.6 3.6 0 003.6-3.6c0-1.6-.8-2.6-.8-2.6s.9 1.6.9 3.4A5.6 5.6 0 1112 4.4c0 0-.9.4-.9-.4 0-.7.5-1.2.9-2z" fill="#ff7a45"/></svg>';
+  function positionAchToast(){
+    const toast = document.getElementById('achToast');
+    const hudBottom = hudEl.getBoundingClientRect().bottom;
+    toast.style.top = (hudBottom + 10) + 'px';
+  }
   function processAchQueue(){
     if(achShowing || achQueue.length===0) return;
     achShowing = true;
@@ -1147,6 +1293,7 @@
     document.getElementById('achToastBadge').innerHTML = a.type==='streak' ? FLAME_SVG : (a.icon||'★');
     document.getElementById('achToastTitle').textContent = a.title;
     document.getElementById('achToastDesc').textContent = a.desc;
+    positionAchToast();
     toast.classList.add('show');
     setTimeout(()=>{
       toast.classList.remove('show');
@@ -1287,6 +1434,11 @@
   }
   function saveOnboarded(){ try{ localStorage.setItem(ONBOARD_KEY,'1'); }catch(e){} }
   let onboarded = loadOnboarded();
+  const HOWTO_SEEN_KEY = 'zero_howto_seen';
+  function hasSeenHowTo(){
+    try{ return localStorage.getItem(HOWTO_SEEN_KEY)==='1'; }catch(e){ return false; }
+  }
+  function markHowToSeen(){ try{ localStorage.setItem(HOWTO_SEEN_KEY,'1'); }catch(e){} }
   let onboardIntroDismissed = false; // session-only: avoids re-showing modal twice in one visit
   let onboardWaitingClear = false;   // true while corruption is frozen, waiting for player's first clear
   let onboardHint = null;            // [{row,col},{row,col}] pair highlighted for the player to try
@@ -1299,9 +1451,31 @@
   function closeOnboardIntro(){
     document.getElementById('onboardIntro').classList.remove('show');
   }
+  function positionOnboardCoach(){
+    const el = document.getElementById('onboardCoach');
+    if(onboardHint && cellSize){
+      // point the tip at the highlighted pair without covering it: below if there's room, otherwise above
+      const rows = [onboardHint[0].row, onboardHint[1].row];
+      const topY = gridOY + Math.min(...rows)*(cellSize+GAP);
+      const bottomY = gridOY + Math.max(...rows)*(cellSize+GAP) + cellSize;
+      const spaceBelow = H - bottomY;
+      if(spaceBelow > 140){
+        el.style.top = (bottomY + 14) + 'px';
+        el.style.bottom = 'auto';
+      } else {
+        el.style.bottom = (H - topY + 14) + 'px';
+        el.style.top = 'auto';
+      }
+    } else {
+      const hudBottom = hudEl.getBoundingClientRect().bottom;
+      el.style.top = (hudBottom + 14) + 'px';
+      el.style.bottom = 'auto';
+    }
+  }
   function showOnboardCoach(text, autoHideMs){
     const el = document.getElementById('onboardCoach');
     document.getElementById('onboardCoachText').textContent = text;
+    positionOnboardCoach();
     el.classList.add('show');
     clearTimeout(onboardCoachTimer);
     if(autoHideMs){
@@ -1357,8 +1531,9 @@
     setTimeout(()=> container.remove(), 2500);
   }
 
+  const hudEl = document.getElementById('hud');
   function layoutGrid(){
-    const hudH = 128;
+    const hudH = Math.ceil(hudEl.getBoundingClientRect().height) + 10;
     const bottomMargin = 24;
     const sidePad = 14;
     const availW = W - sidePad*2;
@@ -1372,8 +1547,16 @@
   }
 
   // ---------- tile generation ----------
-  function maxMag(){ return Math.min(9, 5 + Math.floor((level-1)/3)); }
-  function rockChance(){ return level<2 ? 0 : Math.min(0.14, 0.04*(level-1)); }
+  function maxMag(){
+    let m = 5 + Math.floor((level-1)/3);
+    if(mode==='classic') m += FREEPLAY_MAG_BONUS[freeplayMode];
+    return Math.min(9, Math.max(3, m));
+  }
+  function rockChance(){
+    let c = level<2 ? 0 : Math.min(0.14, 0.04*(level-1));
+    if(mode==='classic') c *= FREEPLAY_ROCK_MULT[freeplayMode];
+    return c;
+  }
 
   function genTile(){
     const r = Math.random();
@@ -1459,6 +1642,13 @@
     if(!cell) return;
     const lastP = path[path.length-1];
     if(lastP.row===r && lastP.col===c) return;
+    // desfazer tudo de uma vez: arrastar de volta até à 1ª peça cancela a seleção extra inteira
+    if(path.length>2 && path[0].row===r && path[0].col===c){
+      path = [{row:r,col:c}];
+      pathSum = cell.val;
+      vibrate(6);
+      return;
+    }
     // backtrack support
     if(path.length>=2){
       const prev = path[path.length-2];
@@ -1548,6 +1738,7 @@
 
     let relief = 8 + path.length*2;
     if(hasStar) relief += 15;
+    if(mode==='classic') relief *= FREEPLAY_RELIEF_MULT[freeplayMode];
     if(corruption>=90) stats.closeCalls += 1;
     corruption = Math.max(0, corruption - relief);
 
@@ -1606,7 +1797,7 @@
       if(path.length===2) missionProgress.duoClears += 1;
       missionProgress.maxBigNum = Math.max(missionProgress.maxBigNum, chainMaxAbs);
       missionProgress.maxLevel = Math.max(missionProgress.maxLevel, level);
-      if(missionGoalValue(currentMission, missionProgress) >= currentMission.goal.target){
+      if(missionIsComplete(currentMission, missionProgress)){
         missionSucceed();
       }
     }
@@ -1658,7 +1849,8 @@
 
   // ---------- update ----------
   function update(dt){
-    const fillRate = Math.min(6, 1.6 + level*0.35);
+    let fillRate = Math.min(6, 1.6 + level*0.35);
+    if(mode==='classic') fillRate *= FREEPLAY_FILL_MULT[freeplayMode];
     if(!onboardWaitingClear){
       corruption = Math.min(100, corruption + fillRate*dt);
     }
@@ -1957,19 +2149,32 @@
   const levelValEl = document.getElementById('levelVal');
   const levelLabelEl = document.getElementById('levelLabel');
   const corrInner = document.getElementById('corruptionInner');
+  const corrLabelEl = document.getElementById('corruptionLabel');
   const missionTitleBarEl = document.getElementById('missionTitleBar');
   function updateHUD(){
     scoreValEl.textContent = Math.floor(score).toLocaleString('pt-PT');
     corrInner.style.width = corruption+'%';
+    corrLabelEl.textContent = (mode==='classic' && freeplayMode==='zen') ? 'ZEN — SEM PRESSÃO' : 'ENERGIA';
     if(mode==='mission' && currentMission && missionProgress){
       levelLabelEl.textContent = currentMission.hudLabel;
-      const val = Math.min(currentMission.goal.target, missionGoalValue(currentMission, missionProgress));
-      levelValEl.textContent = val+'/'+currentMission.goal.target;
+      if(currentMission.compound){
+        const parts = currentMission.compound.map(g=>{
+          const v = Math.min(g.target, missionGoalValue({goal:g}, missionProgress));
+          return v+'/'+g.target;
+        });
+        levelValEl.innerHTML = parts.join('<br>');
+        levelValEl.classList.add('compoundVal');
+      } else {
+        const val = Math.min(currentMission.goal.target, missionGoalValue(currentMission, missionProgress));
+        levelValEl.textContent = val+'/'+currentMission.goal.target;
+        levelValEl.classList.remove('compoundVal');
+      }
       missionTitleBarEl.innerHTML = currentMission.title + (missionStreak.current>=2 ? ' <span class="streakFlame">🔥×'+missionStreak.current+'</span>' : '');
       missionTitleBarEl.classList.add('show');
     } else {
       levelLabelEl.textContent = 'NÍVEL';
       levelValEl.textContent = level;
+      levelValEl.classList.remove('compoundVal');
       missionTitleBarEl.classList.remove('show');
     }
   }
@@ -2053,9 +2258,12 @@
   const casaScreenEl = document.getElementById('casaScreen');
   const casaScreenTitleEl = document.getElementById('casaScreenTitle');
   const casaScreenBodyEl = document.getElementById('casaScreenBody');
-  function openCasaScreen(title, html){
+  function openCasaScreen(title, html, closeIcon){
     casaScreenTitleEl.textContent = title;
     casaScreenBodyEl.innerHTML = html;
+    const closeBtn = document.getElementById('casaScreenClose');
+    closeBtn.textContent = closeIcon || '‹';
+    closeBtn.setAttribute('aria-label', closeIcon ? 'Fechar' : 'Voltar');
     casaScreenEl.classList.add('show');
     sndMenu();
   }
@@ -2064,6 +2272,12 @@
     sndMenu();
   }
   function renderHowToHTML(){
+    const goal = `
+      <div class="menuInfoRow" style="margin-bottom:14px;">
+        <b>OBJETIVO</b>
+        <span>Liga números vizinhos — mesmo só <em style="font-style:normal; color:var(--ink); font-weight:600;">2</em> (ex: +3 e −3) — até a soma dar <em style="font-style:normal; color:var(--ink); font-weight:600;">zero</em> e pontuar. Faz o máximo antes que a energia encha e o jogo termine.</span>
+      </div>
+    `;
     const board = `
       <div class="tutLabel">LIGAÇÃO EM CADEIA</div>
       <div class="tutBoardWrap">
@@ -2100,9 +2314,12 @@
       ['OBSTÁCULOS','Os blocos cinzentos com ✕ bloqueiam a passagem — a cadeia não pode atravessá-los.'],
       ['ESTRELAS','Números com brilho dourado valem o dobro dos pontos ao zerar.'],
       ['COMBO','Zera cadeias seguidas rapidamente para multiplicar a pontuação.'],
-      ['ENERGIA','A barra no topo enche sozinha — limpa cadeias para a esvaziar antes que rebente.']
+      ['ENERGIA','A barra no topo enche sozinha — limpa cadeias para a esvaziar antes que rebente.'],
+      ['DESFAZER','Enganaste-te a meio de uma cadeia? Arrasta de volta até à primeira peça para cancelar a seleção toda de uma vez.'],
+      ['MODO LIVRE','Antes de jogar, escolhe Fácil, Normal, Difícil — ou Zen, sem barra de energia, só para praticar.'],
+      ['OBJETIVOS DIÁRIOS','Todos os dias recebes 3 desafios novos (ex: zerar 5 cadeias, alcançar combo ×3). Progrides neles em qualquer partida do dia e, ao cumprir um, é marcado como concluído. Reiniciam com novos desafios no dia seguinte.']
     ].map(([t,d])=>`<div class="menuInfoRow"><b>${t}</b><span>${d}</span></div>`).join('');
-    return board + rows;
+    return goal + board + rows;
   }
   function renderStatsHTML(){
     const streakActive = streak.lastDate && dayDiff(streak.lastDate, todayStr()) <= 1;
@@ -2300,17 +2517,18 @@
     const streakActive = streak.lastDate && dayDiff(streak.lastDate, todayStr()) <= 1;
     const displayStreak = streakActive ? streak.count : 0;
     const cards = [
-      ['🏆','Recorde', best.toLocaleString('pt-PT')],
-      ['🚀','Missões', (missionState.unlocked-1)+'/'+MISSIONS.length],
-      ['📈','Nível máximo', stats.maxLevel||0],
-      ['🎯','Objetivos hoje', daily.claimed.length+'/'+daily.goalIds.length],
-      ['<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17.6l-6.1 3.4 1.5-6.8-5.2-4.7 6.9-.7z" fill="#f4d35e"/></svg>','Conquistas', unlocked.size+'/'+ACHIEVEMENTS.length],
-      ['<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5" stroke="#3fa9f5" stroke-width="1.7"/><path d="M3 9.5h18" stroke="#3fa9f5" stroke-width="1.7"/><path d="M8 2.5v4M16 2.5v4" stroke="#ff7a45" stroke-width="1.7"/><circle cx="7.5" cy="13.5" r="1" fill="#f4d35e"/><circle cx="12" cy="13.5" r="1" fill="#f4d35e"/><circle cx="16.5" cy="13.5" r="1" fill="#f4d35e"/><circle cx="7.5" cy="17.5" r="1" fill="#f4d35e"/><circle cx="12" cy="17.5" r="1" fill="#f4d35e"/><circle cx="16.5" cy="17.5" r="1" fill="#f4d35e"/></svg>','Sequência de dias', displayStreak],
-      ['<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6.5 8.5h11a4 4 0 013.9 4.9l-.8 3.4a2.6 2.6 0 01-4.6.9L14.7 16H9.3l-1.3 1.7a2.6 2.6 0 01-4.6-.9l-.8-3.4a4 4 0 013.9-4.9z" fill="#ff7a45"/><path d="M8 10.8v3.4M6.3 12.5h3.4" stroke="#141922" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="11.3" r="1" fill="#141922"/><circle cx="18" cy="13.3" r="1" fill="#141922"/></svg>','Partidas jogadas', stats.gamesPlayed||0],
-      ['🔥','Sequência 3★', missionStreak.current],
+      ['🏆','Recorde', best.toLocaleString('pt-PT'), null],
+      ['🚀','Missões', (missionState.unlocked-1)+'/'+MISSIONS.length, null],
+      ['📈','Nível máximo', stats.maxLevel||0, null],
+      ['🎯','Objetivos hoje', daily.claimed.length+'/'+daily.goalIds.length, null],
+      ['<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17.6l-6.1 3.4 1.5-6.8-5.2-4.7 6.9-.7z" fill="#f4d35e"/></svg>','Conquistas', unlocked.size+'/'+ACHIEVEMENTS.length, null],
+      ['<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5" stroke="#3fa9f5" stroke-width="1.7"/><path d="M3 9.5h18" stroke="#3fa9f5" stroke-width="1.7"/><path d="M8 2.5v4M16 2.5v4" stroke="#ff7a45" stroke-width="1.7"/><circle cx="7.5" cy="13.5" r="1" fill="#f4d35e"/><circle cx="12" cy="13.5" r="1" fill="#f4d35e"/><circle cx="16.5" cy="13.5" r="1" fill="#f4d35e"/><circle cx="7.5" cy="17.5" r="1" fill="#f4d35e"/><circle cx="12" cy="17.5" r="1" fill="#f4d35e"/><circle cx="16.5" cy="17.5" r="1" fill="#f4d35e"/></svg>','Sequência de dias', displayStreak, 'Há quantos dias seguidos jogas pelo menos uma partida, sem faltar nenhum dia. Se saltares um dia, volta a 0.'],
+      ['<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6.5 8.5h11a4 4 0 013.9 4.9l-.8 3.4a2.6 2.6 0 01-4.6.9L14.7 16H9.3l-1.3 1.7a2.6 2.6 0 01-4.6-.9l-.8-3.4a4 4 0 013.9-4.9z" fill="#ff7a45"/><path d="M8 10.8v3.4M6.3 12.5h3.4" stroke="#141922" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="11.3" r="1" fill="#141922"/><circle cx="18" cy="13.3" r="1" fill="#141922"/></svg>','Partidas jogadas', stats.gamesPlayed||0, null],
+      ['🔥','Sequência 3★', missionStreak.current, 'Quantas missões seguidas completaste com 3 estrelas, sem falhar nenhuma pelo meio. Se completares uma com menos estrelas, volta a 0.'],
     ];
-    return cards.map(([icon,label,val])=>`
-      <div class="casaCard">
+    return cards.map(([icon,label,val,info])=>`
+      <div class="casaCard${info?' casaCardHint':''}"${info?` data-info="${info.replace(/"/g,'&quot;')}"`:''}>
+        ${info?'<div class="casaCardHintDot">?</div>':''}
         <div class="casaCardIcon">${icon}</div>
         <div class="casaCardVal">${val}</div>
         <div class="casaCardLabel">${label}</div>
@@ -2346,6 +2564,10 @@
   document.getElementById('menuCasa').addEventListener('click', ()=>{ sndMenu(); goHome(); });
   document.getElementById('missionsBtn').addEventListener('click', openWorldsScreen);
   document.getElementById('casaHowTo').addEventListener('click', ()=> openCasaScreen('COMO JOGAR', renderHowToHTML()));
+  if(!hasSeenHowTo()){
+    markHowToSeen();
+    openCasaScreen('COMO JOGAR', renderHowToHTML(), '×');
+  }
   document.getElementById('casaStats').addEventListener('click', ()=> openCasaScreen('ESTATÍSTICAS', renderStatsHTML()));
   document.getElementById('casaAch').addEventListener('click', ()=> openCasaScreen('CONQUISTAS ('+unlocked.size+'/'+ACHIEVEMENTS.length+')', renderAchHTML()));
   document.getElementById('casaGoals').addEventListener('click', ()=> openCasaScreen('OBJETIVOS DIÁRIOS ('+daily.claimed.length+'/'+daily.goalIds.length+')', renderGoalsHTML()));
@@ -2661,6 +2883,29 @@
   }
 
   document.getElementById('startBtn').addEventListener('click', startGame);
+  // Suporte a teclado para elementos clicáveis sem <button> nativo (role="button")
+  document.querySelectorAll('[role="button"]').forEach(el=>{
+    el.addEventListener('keydown', e=>{
+      if(e.key==='Enter' || e.key===' '){
+        e.preventDefault();
+        el.click();
+      }
+    });
+  });
+  function updateFreeplayModeUI(){
+    document.querySelectorAll('.modeChip').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.mode===freeplayMode);
+    });
+  }
+  document.querySelectorAll('.modeChip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      freeplayMode = btn.dataset.mode;
+      saveFreeplayMode(freeplayMode);
+      updateFreeplayModeUI();
+      vibrate(6);
+    });
+  });
+  updateFreeplayModeUI();
   document.getElementById('retryBtn').addEventListener('click', startGame);
   document.getElementById('gameOverHomeBtn').addEventListener('click', ()=>{ sndMenu(); goHome(); });
   document.getElementById('missionIntroStartBtn').addEventListener('click', beginCurrentMission);
@@ -2696,27 +2941,168 @@
     shareToastEl.classList.add('show');
     setTimeout(()=> shareToastEl.classList.remove('show'), 2200);
   }
+
+  const statInfoToastEl = document.getElementById('statInfoToast');
+  let statInfoTimer = null;
+  function showStatInfo(msg){
+    statInfoToastEl.textContent = msg;
+    statInfoToastEl.classList.add('show');
+    clearTimeout(statInfoTimer);
+    statInfoTimer = setTimeout(()=> statInfoToastEl.classList.remove('show'), 3600);
+  }
+  document.getElementById('startDashboard').addEventListener('click', e=>{
+    const card = e.target.closest('.casaCardHint');
+    if(!card) return;
+    sndMenu();
+    showStatInfo(card.getAttribute('data-info'));
+  });
+  statInfoToastEl.addEventListener('click', ()=> statInfoToastEl.classList.remove('show'));
+  // ---------- cartão de resultado partilhável ----------
+  async function generateResultCardBlob(){
+    const W = 1080, H = 1350;
+    const cvs = document.createElement('canvas');
+    cvs.width = W; cvs.height = H;
+    const ctx = cvs.getContext('2d');
+    const skin = currentSkin();
+    const warm = skin.warm, cool = skin.cool, gold = skin.gold;
+
+    try{ await document.fonts.ready; }catch(e){}
+
+    // fundo
+    ctx.fillStyle = '#0d1015';
+    ctx.fillRect(0,0,W,H);
+    const rg = ctx.createRadialGradient(W/2,H*0.32,40, W/2,H*0.32,H*0.75);
+    rg.addColorStop(0,'#171b23');
+    rg.addColorStop(1,'#0d1015');
+    ctx.fillStyle = rg;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.textAlign = 'center';
+
+    // título ZERO
+    const titleGrad = ctx.createLinearGradient(W*0.2,0,W*0.8,0);
+    titleGrad.addColorStop(0, cool);
+    titleGrad.addColorStop(0.5, '#eaf2f5');
+    titleGrad.addColorStop(1, warm);
+    ctx.fillStyle = titleGrad;
+    ctx.font = '800 120px Sora, sans-serif';
+    ctx.fillText('ZERO', W/2, 220);
+
+    ctx.fillStyle = 'rgba(234,242,245,0.55)';
+    ctx.font = '500 30px Inter, sans-serif';
+    ctx.fillText('Liga números vizinhos até a soma dar exatamente zero', W/2, 275);
+
+    // pontuação
+    const finalScore = Math.floor(score);
+    ctx.fillStyle = 'rgba(234,242,245,0.4)';
+    ctx.font = '700 32px Sora, sans-serif';
+    ctx.save(); ctx.letterSpacing = '6px';
+    ctx.fillText('PONTOS', W/2, 470);
+    ctx.restore();
+
+    const scoreGrad = ctx.createLinearGradient(0,0,W,0);
+    scoreGrad.addColorStop(0, warm);
+    scoreGrad.addColorStop(1, gold);
+    ctx.fillStyle = scoreGrad;
+    ctx.font = '800 200px Sora, sans-serif';
+    ctx.fillText(finalScore.toLocaleString('pt-PT'), W/2, 650);
+
+    // linha divisória
+    ctx.strokeStyle = 'rgba(234,242,245,0.12)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(W*0.15,730); ctx.lineTo(W*0.85,730); ctx.stroke();
+
+    // stats secundárias
+    const stats3 = [
+      ['RECORDE', Math.max(best, finalScore).toLocaleString('pt-PT'), gold],
+      ['NÍVEL', String(level), cool],
+      ['MAIOR CADEIA', String(sessionMaxChain), warm]
+    ];
+    const colW = W/3;
+    stats3.forEach((s,i)=>{
+      const cx = colW*i + colW/2;
+      ctx.fillStyle = s[2];
+      ctx.font = '800 64px Sora, sans-serif';
+      ctx.fillText(s[1], cx, 860);
+      ctx.fillStyle = 'rgba(234,242,245,0.45)';
+      ctx.font = '700 22px Sora, sans-serif';
+      ctx.save(); ctx.letterSpacing = '2px';
+      ctx.fillText(s[0], cx, 895);
+      ctx.restore();
+    });
+
+    // rodapé
+    ctx.fillStyle = 'rgba(234,242,245,0.55)';
+    ctx.font = '600 34px Sora, sans-serif';
+    ctx.fillText('Consegues bater este recorde?', W/2, H-110);
+
+    return new Promise(resolve=> cvs.toBlob(resolve, 'image/png', 0.95));
+  }
+
   document.getElementById('shareBtn').addEventListener('click', async ()=>{
     const finalScore = Math.floor(score);
     const text = 'Fiz '+finalScore.toLocaleString('pt-PT')+' pontos em ZERO! 🎯 Consegues bater?';
     const fullText = text+' '+location.href;
-    const shareData = { title:'ZERO', text, url: location.href };
-    if(navigator.share){
-      try{
-        await navigator.share(shareData);
-        return;
-      }catch(e){
-        if(e && e.name==='AbortError') return; // user closed the native share sheet, do nothing
-        // otherwise (e.g. blocked by an insecure origin) fall through to the options below
-      }
-    }
+
+    const modal = document.getElementById('shareCardModal');
+    const imgEl = document.getElementById('shareCardImg');
+    const statusEl = document.getElementById('shareCardStatus');
+    const sendBtn = document.getElementById('shareCardSendBtn');
+    const dlBtn = document.getElementById('shareCardDownloadBtn');
+
+    imgEl.src = '';
+    statusEl.textContent = 'A gerar cartão…';
+    sendBtn.disabled = true; dlBtn.disabled = true;
+    modal.classList.add('show');
+
+    let file = null, objectUrl = null;
     try{
-      await navigator.clipboard.writeText(fullText);
-      showShareToast('Copiado para a área de transferência!');
+      const blob = await generateResultCardBlob();
+      if(blob){
+        file = new File([blob], 'zero-resultado.png', {type:'image/png'});
+        objectUrl = URL.createObjectURL(blob);
+        imgEl.src = objectUrl;
+        statusEl.textContent = 'O teu cartão de resultado';
+      } else {
+        statusEl.textContent = 'Não foi possível gerar a imagem — podes partilhar só o texto.';
+      }
     }catch(e){
-      window.prompt('Copia o texto para partilhar:', fullText);
+      statusEl.textContent = 'Não foi possível gerar a imagem — podes partilhar só o texto.';
     }
+    sendBtn.disabled = false; dlBtn.disabled = false;
+
+    const closeModal = ()=>{
+      modal.classList.remove('show');
+      if(objectUrl){ setTimeout(()=> URL.revokeObjectURL(objectUrl), 500); }
+    };
+    document.getElementById('shareCardCloseBtn').onclick = closeModal;
+
+    dlBtn.onclick = ()=>{
+      if(!file){ window.prompt('Copia o texto para partilhar:', fullText); return; }
+      const a = document.createElement('a');
+      a.href = objectUrl; a.download = 'zero-resultado.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      showShareToast('Imagem guardada!');
+    };
+
+    sendBtn.onclick = async ()=>{
+      if(file && navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({ files:[file], title:'ZERO', text }); closeModal(); return; }
+        catch(e){ if(e && e.name==='AbortError') return; }
+      }
+      if(navigator.share){
+        try{ await navigator.share({ title:'ZERO', text, url: location.href }); closeModal(); return; }
+        catch(e){ if(e && e.name==='AbortError') return; }
+      }
+      try{
+        await navigator.clipboard.writeText(fullText);
+        showShareToast('Copiado para a área de transferência!');
+      }catch(e){
+        window.prompt('Copia o texto para partilhar:', fullText);
+      }
+    };
   });
+
 
   // ---------- auto-pause when app goes to background ----------
   function pauseAllAudio(){
@@ -2755,7 +3141,7 @@
   window.addEventListener('focus', handleAppVisible);
 
   // ---------- cloud save (via window.storage, personal — synced across devices for this user) ----------
-  const CLOUD_KEYS = [BEST_KEY, MISSION_KEY, MISSION_STREAK_KEY, SKIN_KEY, SETTINGS_KEY, STATS_KEY, ACH_KEY, STREAK_KEY, DAILY_KEY, HISTORY_KEY, ONBOARD_KEY];
+  const CLOUD_KEYS = [BEST_KEY, MISSION_KEY, MISSION_STREAK_KEY, SKIN_KEY, SETTINGS_KEY, STATS_KEY, ACH_KEY, STREAK_KEY, DAILY_KEY, HISTORY_KEY, ONBOARD_KEY, HOWTO_SEEN_KEY];
   const LAST_SAVED_KEY = 'zero_last_saved';
   const CLOUD_STORAGE_KEY = 'cloud_save';
   let cloudSaveTimer = null;
