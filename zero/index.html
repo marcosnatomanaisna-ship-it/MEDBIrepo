@@ -367,22 +367,6 @@
   .menuAchTitle{font-family:'Sora',sans-serif; font-size:12.5px; font-weight:700;}
   .menuAchDesc{font-size:11px; opacity:0.65; margin-top:2px; line-height:1.4;}
   .menuCasaEmpty{font-size:12px; opacity:0.5; padding:14px 2px; text-align:center;}
-  .lbRow{display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12.5px;}
-  .lbRow.me{background:rgba(244,211,94,0.08); border-radius:10px; padding-left:8px; padding-right:8px;}
-  .lbRank{flex:none; width:24px; text-align:center; font-family:'Sora',sans-serif; font-weight:700; opacity:0.6; font-size:12px;}
-  .lbName{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .lbScore{flex:none; font-family:'Space Mono',monospace; color:var(--gold); font-size:13px;}
-  .lbNickRow{display:flex; gap:8px; padding:2px 2px 16px 2px;}
-  .lbNickRow input{
-    flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
-    border-radius:10px; padding:10px 12px; color:var(--ink); font-family:'Inter',sans-serif; font-size:13px;
-  }
-  .lbNickRow button{
-    flex:none; background:var(--ink); color:#0a0b0e; border:none; border-radius:10px;
-    padding:0 16px; font-family:'Sora',sans-serif; font-weight:700; font-size:12px; cursor:pointer;
-  }
-  .lbNickRow button:active{transform:scale(0.96);}
-  .lbSyncNote{font-size:10px; opacity:0.4; text-align:center; padding:2px 6px 12px 6px; line-height:1.4;}
   .casaGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
   .casaCard{
     background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
@@ -595,7 +579,6 @@
     <div class="casaNavBtn" id="casaHistory"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#f4d35e" stroke-width="1.7"/><path d="M12 6.5v6l4 2.3" stroke="#f4d35e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>Histórico</div>
     <div class="casaNavBtn" id="casaSettings"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><g fill="#3fa9f5"><rect x="10.6" y="1.3" width="2.8" height="4" rx="1"/><rect x="10.6" y="18.7" width="2.8" height="4" rx="1"/><rect x="1.3" y="10.6" width="4" height="2.8" rx="1"/><rect x="18.7" y="10.6" width="4" height="2.8" rx="1"/><rect x="4.5" y="4.5" width="2.8" height="4" rx="1" transform="rotate(45 5.9 6.5)"/><rect x="16.7" y="15.7" width="2.8" height="4" rx="1" transform="rotate(45 18.1 17.7)"/><rect x="4.5" y="15.7" width="2.8" height="4" rx="1" transform="rotate(-45 5.9 17.7)"/><rect x="16.7" y="4.5" width="2.8" height="4" rx="1" transform="rotate(-45 18.1 6.5)"/><circle cx="12" cy="12" r="6.3"/></g><circle cx="12" cy="12" r="2.9" fill="#141922"/></svg></span>Definições</div>
     <div class="casaNavBtn" id="casaSkins"><span class="casaNavIcon">🎨</span>Paletas</div>
-    <div class="casaNavBtn" id="casaRanking"><span class="casaNavIcon">🏆</span>Ranking</div>
   </div>
 </div>
 
@@ -2570,7 +2553,6 @@
     sndMissionComplete();
     vibrate([15,40,15,40,25]);
     scheduleCloudSave();
-    pushLeaderboardScore();
     showMissionResult(true, starsEarned);
   }
   function goHome(){
@@ -2606,7 +2588,6 @@
     sndGameOver();
     vibrate([25,50,25]);
     scheduleCloudSave();
-    pushLeaderboardScore();
     if(mode==='mission'){
       registerMissionOutcome(false);
       showMissionResult(false, 0);
@@ -2769,83 +2750,6 @@
       }
     }catch(e){}
   }
-
-  // ---------- leaderboard (via backend próprio MEDBI, partilhado entre todos os jogadores) ----------
-  const RANKING_API = 'https://medbi-license-server.onrender.com/api';
-  const RANKING_APP_ID = 'zero';
-  const NICK_KEY = 'zero_nickname';
-  function loadNickname(){ try{ return localStorage.getItem(NICK_KEY) || ''; }catch(e){ return ''; } }
-  function saveNickname(n){ try{ localStorage.setItem(NICK_KEY, n); }catch(e){} }
-  let nickname = loadNickname();
-  function slugifyNick(s){
-    return (s||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'jogador';
-  }
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-  async function pushLeaderboardScore(){
-    if(!nickname) return;
-    try{
-      await fetch(RANKING_API+'/score', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          appId: RANKING_APP_ID,
-          nickname: nickname.slice(0,18),
-          score: best,
-          level: stats.maxLevel||0
-        })
-      });
-    }catch(e){}
-  }
-  async function fetchLeaderboard(){
-    try{
-      const res = await fetch(RANKING_API+'/leaderboard?appId='+RANKING_APP_ID+'&limit=30');
-      const data = await res.json();
-      return (data.entries||[]).map(e=>({...e, score:Number(e.score)}));
-    }catch(e){ return []; }
-  }
-  function renderLeaderboardShell(entries, unavailable){
-    const nickRow = `
-      <div class="lbNickRow">
-        <input type="text" id="lbNickInput" maxlength="18" placeholder="O teu nome" value="${escapeHtml(nickname)}">
-        <button id="lbNickSave">Guardar</button>
-      </div>`;
-    if(unavailable){
-      return nickRow + `<div class="menuCasaEmpty">O ranking só está disponível a jogar dentro da app Claude.</div>`;
-    }
-    if(!entries){
-      return nickRow + `<div class="menuCasaEmpty">A carregar…</div>`;
-    }
-    if(!entries.length){
-      return nickRow + `<div class="menuCasaEmpty">Ainda ninguém pontuou. Define o teu nome e joga para apareceres aqui!</div>`;
-    }
-    const rows = entries.map((e,i)=>{
-      const mine = nickname && e.name && e.name.toLowerCase()===nickname.toLowerCase();
-      return `<div class="lbRow ${mine?'me':''}"><div class="lbRank">${i+1}</div><div class="lbName">${escapeHtml(e.name)}</div><div class="lbScore">${Math.floor(e.score).toLocaleString('pt-PT')}</div></div>`;
-    }).join('');
-    return nickRow + rows + `<div class="lbSyncNote">Ranking partilhado por todos os jogadores desta app. Guarda o teu nome para entrares na lista na próxima vez que bateres o recorde.</div>`;
-  }
-  async function openLeaderboardScreen(){
-    openCasaScreen('RANKING', renderLeaderboardShell(null, false));
-    const entries = await fetchLeaderboard();
-    const bodyEl = document.getElementById('casaScreenBody');
-    if(bodyEl) bodyEl.innerHTML = renderLeaderboardShell(entries, false);
-  }
-  document.getElementById('casaRanking').addEventListener('click', openLeaderboardScreen);
-  casaScreenBodyEl.addEventListener('click', e=>{
-    const saveBtn = e.target.closest('#lbNickSave');
-    if(!saveBtn) return;
-    const input = document.getElementById('lbNickInput');
-    if(!input) return;
-    const val = input.value.trim().slice(0,18);
-    if(!val) return;
-    nickname = val;
-    saveNickname(nickname);
-    sndTap();
-    pushLeaderboardScore();
-    openLeaderboardScreen();
-  });
 
   cloudSyncOnBoot();
 
