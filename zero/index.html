@@ -13,9 +13,6 @@
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="description" content="Liga números vizinhos até a soma dar exatamente zero. Um puzzle rápido e viciante.">
 <title>ZERO</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0d1015;
@@ -124,6 +121,48 @@
     padding:2px 6px; color:var(--gold); letter-spacing:0.5px;
   }
 
+  #boostRow{
+    display:flex; gap:14px; margin-top:10px; pointer-events:none;
+  }
+  .boostGroup{
+    display:flex; align-items:center; gap:5px; pointer-events:none;
+  }
+  .boostBtn{
+    position:relative; pointer-events:auto; cursor:pointer;
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px;
+    background:rgba(var(--surf-rgb),0.08); border:1px solid rgba(var(--surf-rgb),0.2);
+    box-shadow:0 4px 16px rgba(0,0,0,0.32);
+    transition:transform .12s, opacity .2s, background .2s, border-color .2s;
+  }
+  .boostBtn:active{transform:scale(0.9);}
+  .boostBtn.disabled{opacity:0.32; pointer-events:none;}
+  .boostGroup.tutorialHidden{opacity:0; pointer-events:none;}
+  .boostBtn .boostCount{
+    position:absolute; bottom:-7px; right:-6px;
+    background:rgb(var(--scr-c)); border:1px solid rgba(var(--surf-rgb),0.15);
+    border-radius:999px; font-family:'Sora',sans-serif; font-size:12px; font-weight:800;
+    padding:2px 7px; color:var(--gold); letter-spacing:0.3px;
+  }
+  .boostInfoDot{
+    position:relative; flex:none; width:17px; height:17px; border-radius:50%;
+    background:rgba(var(--surf-rgb),0.14); border:1px solid rgba(var(--surf-rgb),0.22);
+    font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;
+    opacity:0.75; font-family:'Sora',sans-serif; pointer-events:auto; cursor:pointer;
+  }
+  #freezeBtn.active{
+    background:rgba(120,200,255,0.22); border-color:rgba(120,200,255,0.65);
+    animation:boostPulse 1s ease-in-out infinite;
+  }
+  @keyframes boostPulse{
+    0%,100%{box-shadow:0 4px 16px rgba(0,0,0,0.32);}
+    50%{box-shadow:0 4px 16px rgba(120,200,255,0.55);}
+  }
+  #corruptionInner.frozen{
+    background:linear-gradient(90deg,#7cc8ff,#bfe6ff 60%,#7cc8ff 100%);
+  }
+
   #achToast{
     position:fixed; top:max(10px, env(safe-area-inset-top)); left:50%; z-index:20;
     width:min(300px, calc(100vw - 48px));
@@ -181,7 +220,13 @@
     cursor:pointer; transition:background .15s, transform .1s;
   }
   .menuItem:active{transform:scale(0.97); background:rgba(var(--surf-rgb),0.09);}
-  .menuItem.danger{color:#ff8a80; border-color:rgba(255,59,48,0.25);}
+  .menuItem.danger{
+    color:#ff3b30; border-color:rgba(255,59,48,0.5);
+    background:rgba(255,59,48,0.10);
+    justify-content:center; text-align:center; font-weight:700;
+  }
+  .menuItem.danger:active{background:rgba(255,59,48,0.18);}
+  .menuItem.danger .menuItemIcon{flex:none; width:auto;}
   .menuItemIcon{flex:none; width:20px; text-align:center; opacity:0.85;}
   #menuFooter{margin-top:auto; padding-top:14px; font-size:10px; letter-spacing:2px; opacity:0.35; text-align:center;}
   #pauseOverlay{
@@ -198,6 +243,13 @@
     cursor:pointer;
   }
   #pauseResumeBtn:active{transform:scale(0.97);}
+  #pauseHomeBtn{
+    display:flex; align-items:center; gap:10px;
+    background:transparent; color:var(--ink); border:1px solid rgba(var(--surf-rgb),0.22); border-radius:999px;
+    padding:12px 26px; font-family:'Sora',sans-serif; font-weight:700; font-size:14px;
+    cursor:pointer; opacity:0.85;
+  }
+  #pauseHomeBtn:active{transform:scale(0.97);}
   .menuToggleRow{
     display:flex; align-items:center; justify-content:space-between;
     background:rgba(var(--surf-rgb),0.04); border:1px solid rgba(var(--surf-rgb),0.08);
@@ -230,6 +282,14 @@
   .worldTitle{font-family:'Sora',sans-serif; font-weight:700; font-size:13px;}
   .worldDesc{font-size:10.5px; opacity:0.55; margin-top:2px;}
   .worldStatus{flex:none; font-family:'Space Mono',monospace; font-size:12px; opacity:0.75;}
+  .worldRow{flex-wrap:wrap;}
+  .worldSwatch{flex:none; width:14px; height:34px; border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.25);}
+  .worldRow.activeWorld{background:rgba(var(--surf-rgb),0.05); border-radius:10px; border-bottom-color:transparent; box-shadow:inset 0 0 0 1px rgba(var(--surf-rgb),0.16);}
+  .worldActiveTag{display:inline-block; font-size:8.5px; letter-spacing:1.5px; font-weight:800; color:var(--gold); background:rgba(244,211,94,0.14); border:1px solid rgba(244,211,94,0.35); border-radius:99px; padding:1.5px 6px; margin-left:6px; vertical-align:middle;}
+  .worldUseBtn{flex:none; width:max-content; margin-top:8px; margin-left:46px; font-family:'Sora',sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--ink); opacity:0.7; background:rgba(var(--surf-rgb),0.06); border:1px solid rgba(var(--surf-rgb),0.14); border-radius:8px; padding:6px 14px; text-align:center; cursor:pointer;}
+  .worldUseBtn:active{opacity:1; background:rgba(var(--surf-rgb),0.12);}
+  .worldAutoBanner{font-size:10.5px; opacity:0.6; padding:8px 6px 14px 6px; text-align:center; cursor:pointer; letter-spacing:0.3px;}
+  .worldAutoBanner.on{color:var(--gold); opacity:0.85;}
   .missionBackBtn{
     display:flex; align-items:center; gap:6px; font-family:'Sora',sans-serif; font-weight:700;
     font-size:11px; letter-spacing:1.5px; opacity:0.6; padding:6px 2px 16px 2px; cursor:pointer;
@@ -572,7 +632,6 @@
 
 <div id="hud">
   <div id="hudTop">
-    <div id="menuBtn" aria-label="Menu"><span></span><span></span><span></span></div>
     <div id="pauseBtn" aria-label="Pausa"><span></span><span></span></div>
     <div id="scoreWrap">
       <div id="scoreVal">0</div>
@@ -583,6 +642,11 @@
       <div id="levelWrap"><span id="levelLabel">NÍVEL</span><br><span id="levelVal">1</span></div>
       <div id="hintBtn" aria-label="Dica">💡<span class="hintCost">+8</span></div>
     </div>
+  </div>
+  <div id="boostRow">
+    <div id="freezeGroup" class="boostGroup"><div id="freezeBtn" class="boostBtn" aria-label="Congelar energia">❄️<span class="boostCount">2</span></div><span class="boostInfoDot" data-info="Ganha +1 carga extra (até 3) sempre que atingires um combo de ×4 ou mais, e mais 1 sempre que sobrevives a um momento crítico com a energia acima de 90%.">?</span></div>
+    <div id="shuffleGroup" class="boostGroup"><div id="shuffleBtn" class="boostBtn" aria-label="Baralhar tabuleiro">🔀<span class="boostCount">2</span></div><span class="boostInfoDot" data-info="Ganha +1 carga extra (até 3) sempre que limpares uma ★ dentro de uma cadeia de 4 ou mais números.">?</span></div>
+    <div id="removeGroup" class="boostGroup"><div id="removeBtn" class="boostBtn" aria-label="Remover pedra">💥<span class="boostCount">2</span></div><span class="boostInfoDot" data-info="Ganha +1 carga extra (até 3) sempre que ligares uma cadeia de 5 ou mais números.">?</span></div>
   </div>
   <div id="missionTitleBar"></div>
   <div id="corruptionOuter"><div id="corruptionInner"></div></div>
@@ -625,8 +689,6 @@
   </div>
 </div>
 
-<div id="menuOverlay"></div>
-
 <div id="shareCardModal">
   <div class="shareCardBox">
     <img id="shareCardImg" alt="Cartão de resultado ZERO">
@@ -638,18 +700,10 @@
     <div class="shareCardClose" id="shareCardCloseBtn" role="button" tabindex="0" aria-label="Fechar">✕</div>
   </div>
 </div>
-<div id="menuDrawer">
-  <div class="menuHeader">MENU<div class="menuCloseX" id="menuCloseBtn" role="button" tabindex="0" aria-label="Fechar menu">✕</div></div>
-  <div id="menuList">
-    <div class="menuItem" id="menuResume"><span class="menuItemIcon">▶</span>Continuar</div>
-    <div class="menuItem" id="menuCasa"><span class="menuItemIcon">⌂</span>Casa</div>
-  </div>
-  <div id="menuFooter">ZERO</div>
-</div>
-
 <div id="pauseOverlay">
   <div id="pauseTitle">PAUSA</div>
   <button id="pauseResumeBtn"><span>▶</span>Continuar</button>
+  <button id="pauseHomeBtn"><span>⌂</span>Casa</button>
 </div>
 
 <div id="casaScreen">
@@ -952,6 +1006,31 @@
     'Zona Vermelha','Limiar','Última Fronteira','Anomalia','Zero Absoluto'
   ];
   const MISSION_MILESTONE_STEP = 50;
+  // Identidade visual + musical de cada mundo (progressão de longo prazo, distinta das paletas cosméticas).
+  // tint/tint2: cor ambiente do fundo; shape: forma das partículas; count/speedMul: densidade e ritmo;
+  // musicShift: transposição relativa do tema musical; musicVoices: nº de vozes na harmonia.
+  const WORLD_THEMES = [
+    {tint:'#3fa9f5', tint2:'#8fd8ff', shape:'circle',  count:8,  speedMul:0.55, glow:0.16, musicShift:1.00, musicVoices:2},
+    {tint:'#ff9d5c', tint2:'#ffce8a', shape:'circle',  count:9,  speedMul:0.62, glow:0.18, musicShift:1.03, musicVoices:2},
+    {tint:'#3ddc97', tint2:'#8ff5c8', shape:'ring',    count:10, speedMul:0.68, glow:0.19, musicShift:1.06, musicVoices:2},
+    {tint:'#f4c542', tint2:'#ffe08a', shape:'diamond', count:10, speedMul:0.74, glow:0.21, musicShift:1.09, musicVoices:3},
+    {tint:'#ff7a45', tint2:'#ffb08a', shape:'spark',   count:11, speedMul:0.82, glow:0.23, musicShift:1.12, musicVoices:3},
+    {tint:'#ff4d4d', tint2:'#ff8f8f', shape:'diamond', count:12, speedMul:0.88, glow:0.25, musicShift:0.94, musicVoices:3},
+    {tint:'#ff3d9a', tint2:'#ff8fc6', shape:'spark',   count:12, speedMul:0.94, glow:0.26, musicShift:0.97, musicVoices:3},
+    {tint:'#a259ff', tint2:'#d1a8ff', shape:'ring',    count:13, speedMul:0.98, glow:0.27, musicShift:1.15, musicVoices:4},
+    {tint:'#6b5ce7', tint2:'#b3a8ff', shape:'spark',   count:14, speedMul:1.02, glow:0.29, musicShift:1.18, musicVoices:4},
+    {tint:'#4747ff', tint2:'#9a9aff', shape:'ring',    count:14, speedMul:1.06, glow:0.30, musicShift:0.90, musicVoices:4},
+    {tint:'#17e6c0', tint2:'#8ffff0', shape:'ring',    count:13, speedMul:0.90, glow:0.26, musicShift:1.20, musicVoices:4},
+    {tint:'#e6e6ff', tint2:'#c9c3ff', shape:'diamond', count:16, speedMul:1.10, glow:0.33, musicShift:1.25, musicVoices:5},
+    {tint:'#3fa9f5', tint2:'#ffffff', shape:'ring',    count:15, speedMul:1.05, glow:0.31, musicShift:0.85, musicVoices:5},
+    {tint:'#00e5ff', tint2:'#c77dff', shape:'spark',   count:16, speedMul:1.14, glow:0.33, musicShift:1.28, musicVoices:5},
+    {tint:'#2196f3', tint2:'#e6f4ff', shape:'spark',   count:17, speedMul:1.22, glow:0.35, musicShift:1.31, musicVoices:5},
+    {tint:'#ff1744', tint2:'#ff8a80', shape:'diamond', count:18, speedMul:1.28, glow:0.37, musicShift:0.80, musicVoices:5},
+    {tint:'#ffd700', tint2:'#ffffff', shape:'ring',    count:18, speedMul:1.24, glow:0.39, musicShift:1.34, musicVoices:6},
+    {tint:'#8a8fff', tint2:'#7cffb2', shape:'spark',   count:19, speedMul:1.32, glow:0.41, musicShift:1.37, musicVoices:6},
+    {tint:'#c77dff', tint2:'#ff5da2', shape:'diamond', count:19, speedMul:1.38, glow:0.43, musicShift:0.75, musicVoices:6},
+    {tint:'#ffffff', tint2:'#f4d35e', shape:'spark',   count:22, speedMul:1.50, glow:0.48, musicShift:1.40, musicVoices:6}
+  ];
   function missionGoalValue(m,p){
     switch(m.goal.type){
       case 'score': return p.score;
@@ -1010,6 +1089,32 @@
     document.documentElement.style.setProperty('--gold', sk.gold);
   }
 
+  // ---------- mundos (progressão visual/ambiente de longo prazo — não é cosmética, é ganha ao avançar nas missões) ----------
+  const WORLD_THEME_KEY = 'zero_world_theme';
+  function worldCountTotal(){ return WORLD_NAMES.length; }
+  function maxUnlockedWorldIdx(){
+    return Math.min(worldCountTotal()-1, Math.floor(Math.max(0, missionState.unlocked-1) / WORLD_SIZE));
+  }
+  function loadWorldThemeState(){
+    try{
+      const s = JSON.parse(localStorage.getItem(WORLD_THEME_KEY));
+      return Object.assign({selected:0, auto:true}, s||{});
+    }catch(e){ return {selected:0, auto:true}; }
+  }
+  function saveWorldThemeState(s){ try{ localStorage.setItem(WORLD_THEME_KEY, JSON.stringify(s)); }catch(e){} }
+  let worldThemeState = loadWorldThemeState();
+  function activeWorldIdx(){
+    const cap = maxUnlockedWorldIdx();
+    if(worldThemeState.auto) return cap;
+    return Math.min(worldThemeState.selected, cap);
+  }
+  function currentWorldTheme(){ return WORLD_THEMES[activeWorldIdx()] || WORLD_THEMES[0]; }
+  function setActiveWorld(idx, auto){
+    worldThemeState = { selected: auto ? maxUnlockedWorldIdx() : Math.min(idx, maxUnlockedWorldIdx()), auto: !!auto };
+    saveWorldThemeState(worldThemeState);
+    worldParticles = [];
+  }
+
   // ---------- settings (sound / vibration) ----------
   const SETTINGS_KEY = 'zero_settings';
   function loadSettings(){
@@ -1032,7 +1137,7 @@
   }
   applyTheme();
 
-  // ---------- audio engine (procedural, no external files) ----------
+  // ---------- audio engine (procedural, no external files — sons e música gerados por código, com reverb e texturas de ruído para dar mais corpo) ----------
   let actx = null;
   function ensureCtx(){
     if(!actx){
@@ -1045,7 +1150,41 @@
     if(!settings.sound || settings.muted) return null;
     return ensureCtx();
   }
-  function tone(freq, dur, type, gainPeak, delay, sweepTo){
+  // reverb algorítmico (impulse response gerada em código, sem ficheiros externos) — dá profundidade/"sala" aos sons
+  let reverbNode = null, reverbReturn = null, noiseBuffer = null;
+  function ensureReverb(){
+    const ac = ensureCtx();
+    if(!ac) return null;
+    if(!reverbNode){
+      const dur = 1.7, decay = 2.6, rate = ac.sampleRate;
+      const len = Math.floor(rate*dur);
+      const buf = ac.createBuffer(2, len, rate);
+      for(let ch=0; ch<2; ch++){
+        const data = buf.getChannelData(ch);
+        for(let i=0;i<len;i++){
+          data[i] = (Math.random()*2-1) * Math.pow(1-i/len, decay);
+        }
+      }
+      reverbNode = ac.createConvolver();
+      reverbNode.buffer = buf;
+      reverbReturn = ac.createGain();
+      reverbReturn.gain.value = 0.9;
+      reverbNode.connect(reverbReturn).connect(ac.destination);
+    }
+    return reverbNode;
+  }
+  function ensureNoiseBuffer(){
+    const ac = ensureCtx();
+    if(!ac) return null;
+    if(!noiseBuffer){
+      const len = ac.sampleRate*2;
+      noiseBuffer = ac.createBuffer(1, len, ac.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for(let i=0;i<len;i++) data[i] = Math.random()*2-1;
+    }
+    return noiseBuffer;
+  }
+  function tone(freq, dur, type, gainPeak, delay, sweepTo, filterFreq, reverbAmt){
     const ac = ensureAudio();
     if(!ac) return;
     const vol = (settings.sfxVolume==null?1:settings.sfxVolume);
@@ -1059,51 +1198,137 @@
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime((gainPeak||0.18)*vol, t0+0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
-    osc.connect(gain).connect(ac.destination);
+    let node = osc;
+    if(filterFreq){
+      const filt = ac.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = filterFreq;
+      filt.Q.value = 0.8;
+      osc.connect(filt);
+      node = filt;
+    }
+    node.connect(gain);
+    gain.connect(ac.destination);
+    if(reverbAmt){
+      const rv = ensureReverb();
+      if(rv){ const send = ac.createGain(); send.gain.value = reverbAmt; gain.connect(send).connect(rv); }
+    }
     osc.start(t0);
     osc.stop(t0+dur+0.02);
+  }
+  // rajada de ruído filtrado — para "shimmer"/brilho percussivo em conquistas, recordes e novos mundos
+  function noiseBurst(dur, gainPeak, filterFreq, filterType, delay, reverbAmt){
+    const ac = ensureAudio();
+    if(!ac) return;
+    const vol = (settings.sfxVolume==null?1:settings.sfxVolume);
+    if(vol<=0) return;
+    const buf = ensureNoiseBuffer();
+    if(!buf) return;
+    const t0 = ac.currentTime + (delay||0);
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const filt = ac.createBiquadFilter();
+    filt.type = filterType||'bandpass';
+    filt.frequency.setValueAtTime(filterFreq||2000, t0);
+    filt.Q.value = 1.1;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime((gainPeak||0.1)*vol, t0+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    src.connect(filt).connect(gain).connect(ac.destination);
+    if(reverbAmt){
+      const rv = ensureReverb();
+      if(rv){ const send = ac.createGain(); send.gain.value = reverbAmt; gain.connect(send).connect(rv); }
+    }
+    src.start(t0);
+    src.stop(t0+dur+0.05);
   }
   function sndTap(){ tone(320,0.05,'sine',0.06); }
   function sndFizzle(){ tone(160,0.16,'sawtooth',0.09,0,110); }
   function sndClear(comboMultiplier){
     const base = 420 + Math.min(comboMultiplier,6)*70;
-    tone(base,0.11,'sine',0.14);
+    tone(base,0.11,'sine',0.14,0,null,null,0.06);
     tone(base*1.5,0.14,'sine',0.09,0.045);
+    tone(base*2,0.09,'triangle',0.035,0.03); // harmónico extra para mais brilho/corpo
   }
   function sndCombo(m){
-    for(let i=0;i<Math.min(m,4);i++) tone(500+i*140,0.08,'triangle',0.11,i*0.05);
+    for(let i=0;i<Math.min(m,4);i++) tone(500+i*140,0.08,'triangle',0.11,i*0.05,null,null,0.08);
   }
   function sndAchievement(){
     tone(523,0.1,'triangle',0.12,0);
     tone(659,0.1,'triangle',0.12,0.09);
-    tone(784,0.18,'triangle',0.13,0.18);
+    tone(784,0.18,'triangle',0.13,0.18,null,null,0.16);
+    noiseBurst(0.3,0.05,3200,'highpass',0.16,0.2); // brilho/"sparkle"
   }
   function sndRecord(){
-    [523,659,784,1046].forEach((f,i)=> tone(f,0.16,'triangle',0.13,i*0.09));
+    tone(130.81,0.5,'sine',0.09,0,null,320,0.18); // sub-bass p/ peso
+    [523,659,784,1046].forEach((f,i)=> tone(f,0.16,'triangle',0.13,i*0.09,null,null,0.14));
+    noiseBurst(0.5,0.06,4200,'highpass',0.28,0.28);
   }
   function sndMissionComplete(){
     // fanfare triunfante, distinta do recorde clássico e das conquistas
-    [392,494,587,784].forEach((f,i)=> tone(f,0.16,'triangle',0.15,i*0.07));
-    tone(1046,0.4,'sine',0.13,0.31);
-    tone(1568,0.3,'sine',0.07,0.34);
+    tone(98,0.55,'sine',0.08,0,null,260,0.2); // pedal grave
+    [392,494,587,784].forEach((f,i)=> tone(f,0.16,'triangle',0.15,i*0.07,null,null,0.16));
+    tone(1046,0.4,'sine',0.13,0.31,null,null,0.2);
+    tone(1568,0.3,'sine',0.07,0.34,null,null,0.2);
+    noiseBurst(0.4,0.05,3600,'highpass',0.33,0.24);
   }
   function sndMissionUnlock(){
     // chime ascendente e leve, distinto da fanfarra de missão cumprida
     tone(660,0.08,'sine',0.09,0);
     tone(880,0.08,'sine',0.1,0.06);
     tone(1174,0.1,'sine',0.1,0.12);
-    tone(1568,0.26,'sine',0.11,0.18,2093);
+    tone(1568,0.26,'sine',0.11,0.18,2093,null,0.12);
+  }
+  function sndWorldUnlock(){
+    // "portal" — varrimento de ruído + arpejo ascendente + sino grave; distinto de tudo o resto, para um mundo novo
+    noiseBurst(0.9,0.05,220,'bandpass',0,0.3);
+    ensureReverb();
+    const ac = ensureAudio();
+    if(ac){
+      const t0 = ac.currentTime;
+      const src = ac.createBufferSource();
+      src.buffer = ensureNoiseBuffer();
+      const filt = ac.createBiquadFilter();
+      filt.type='bandpass'; filt.Q.value=2.2;
+      filt.frequency.setValueAtTime(200, t0);
+      filt.frequency.exponentialRampToValueAtTime(3400, t0+0.9);
+      const g = ac.createGain();
+      const vol = (settings.sfxVolume==null?1:settings.sfxVolume);
+      g.gain.setValueAtTime(0.0001,t0);
+      g.gain.exponentialRampToValueAtTime(0.05*vol, t0+0.45);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+0.9);
+      src.connect(filt).connect(g).connect(ac.destination);
+      if(reverbNode){ const send=ac.createGain(); send.gain.value=0.32; g.connect(send).connect(reverbNode); }
+      src.start(t0); src.stop(t0+0.95);
+    }
+    [220,330,440,660,880].forEach((f,i)=> tone(f,0.22,'triangle',0.1,0.18+i*0.09,null,null,0.24));
+    tone(1760,0.5,'sine',0.09,0.62,null,null,0.3);
   }
   function sndGameOver(){
-    tone(300,0.3,'sawtooth',0.1,0,90);
+    tone(300,0.3,'sawtooth',0.1,0,90,700);
+    noiseBurst(0.22,0.05,500,'lowpass',0.02,0.1);
   }
   function sndMenu(){ tone(280,0.06,'sine',0.05); }
+  function sndFreeze(){
+    tone(880,0.18,'sine',0.08,0,1320,null,0.14);
+    tone(1320,0.22,'sine',0.05,0.06,1760,null,0.14);
+    noiseBurst(0.3,0.04,5200,'highpass',0.02,0.12);
+  }
+  function sndShuffle(){
+    noiseBurst(0.22,0.06,2400,'bandpass',0,0.1);
+    [340,420,300,380].forEach((f,i)=> tone(f,0.06,'square',0.05,i*0.045));
+  }
+  function sndRemove(){
+    tone(150,0.2,'square',0.11,0,80,320);
+    noiseBurst(0.24,0.06,700,'lowpass',0.02,0.1);
+  }
   function vibrate(pattern){
     if(!settings.vibration || settings.muted) return;
     try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
   }
 
-  // ---------- background music (procedural ambient loop) ----------
+  // ---------- background music (procedural, harmonia/densidade evoluem com o mundo atual) ----------
   let musicGain = null, musicLoopHandle = null, musicChordIdx = 0, musicStep = 0;
   const MUSIC_CHORDS = [
     [130.81,164.81,196.00,246.94], // Cmaj7
@@ -1111,6 +1336,11 @@
     [98.00,123.47,146.83,196.00],  // G
     [87.31,110.00,130.81,174.61]   // F
   ];
+  function currentChordSet(){
+    const theme = currentWorldTheme();
+    const shift = theme.musicShift||1;
+    return MUSIC_CHORDS.map(chord => chord.map(f=> f*shift));
+  }
   function ensureMusicGain(){
     const ac = ensureCtx();
     if(!ac) return null;
@@ -1118,6 +1348,8 @@
       musicGain = ac.createGain();
       musicGain.gain.value = 0;
       musicGain.connect(ac.destination);
+      const rv = ensureReverb();
+      if(rv){ const send = ac.createGain(); send.gain.value = 0.22; musicGain.connect(send).connect(rv); }
     }
     return {ac, gain:musicGain};
   }
@@ -1139,14 +1371,27 @@
   }
   function musicTick(){
     if(!settings.music || settings.muted) return;
-    const chord = MUSIC_CHORDS[musicChordIdx % MUSIC_CHORDS.length];
+    const theme = currentWorldTheme();
+    const chords = currentChordSet();
+    const chord = chords[musicChordIdx % chords.length];
     if(musicStep % 8 === 0){
       chord.forEach((f,i)=> playMusicNote(f, 7.5, 'sine', 0.05, i*0.15));
+      if((theme.musicVoices||2) >= 4){
+        // camada extra de vozes graves para mundos mais avançados — harmonia mais rica
+        playMusicNote(chord[0]/2, 7.2, 'sine', 0.03, 0.3);
+      }
+      if((theme.musicVoices||2) >= 6){
+        playMusicNote(chord[chord.length-1]*2, 6.8, 'triangle', 0.02, 0.5);
+      }
       musicChordIdx++;
     }
     if(musicStep % 2 === 1){
       const note = chord[Math.floor(Math.random()*chord.length)] * 2;
       playMusicNote(note, 1.6, 'triangle', 0.035);
+      if((theme.musicVoices||2) >= 5 && Math.random()<0.5){
+        const note2 = chord[Math.floor(Math.random()*chord.length)] * 4;
+        playMusicNote(note2, 0.9, 'sine', 0.018, 0.12); // sparkle de arpejo, só em mundos avançados
+      }
     }
     musicStep++;
   }
@@ -1310,14 +1555,16 @@
   const FLAME_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2c1.2 3-1.8 4.2-1.8 7.2A3.8 3.8 0 0014 13a3.6 3.6 0 003.6-3.6c0-1.6-.8-2.6-.8-2.6s.9 1.6.9 3.4A5.6 5.6 0 1112 4.4c0 0-.9.4-.9-.4 0-.7.5-1.2.9-2z" fill="#ff7a45"/></svg>';
   function positionAchToast(){
     const toast = document.getElementById('achToast');
-    const hudBottom = hudEl.getBoundingClientRect().bottom;
-    toast.style.top = (hudBottom + 10) + 'px';
+    const hudTopEl = document.getElementById('hudTop');
+    const refBottom = hudTopEl.getBoundingClientRect().bottom;
+    toast.style.top = (refBottom + 8) + 'px';
   }
   function processAchQueue(){
     if(achShowing || achQueue.length===0) return;
     achShowing = true;
     const a = achQueue.shift();
     if(a.type==='unlock') sndMissionUnlock();
+    else if(a.type==='world') sndWorldUnlock();
     else sndAchievement();
     vibrate([12,30,12]);
     const toast = document.getElementById('achToast');
@@ -1452,6 +1699,7 @@
   let pointerActive = false;
   let floaters = [];
   let bursts = []; // particle bursts
+  let worldParticles = []; // atmosfera ambiente do mundo atual (progressão visual de longo prazo)
   let shakeT=0, shakeMag=0;
   let pulseT=0;
   let sessionStartBest=0, newRecordFired=false, recordFlashT=0;
@@ -1544,11 +1792,17 @@
       onboardHint = null;
       hideOnboardCoach();
       hintBtnEl.classList.remove('tutorialHidden');
+      freezeGroupEl.classList.remove('tutorialHidden');
+      shuffleGroupEl.classList.remove('tutorialHidden');
+      removeGroupEl.classList.remove('tutorialHidden');
       return;
     }
     onboardWaitingClear = true;
     onboardHint = findHintPair();
     hintBtnEl.classList.add('tutorialHidden');
+    freezeGroupEl.classList.add('tutorialHidden');
+    shuffleGroupEl.classList.add('tutorialHidden');
+    removeGroupEl.classList.add('tutorialHidden');
     showOnboardCoach('Arrasta o dedo por 2+ números vizinhos até a soma dar 0. Experimenta o par a brilhar ✨');
   }
   function spawnConfetti(){
@@ -1756,6 +2010,9 @@
       onboarded = true;
       saveOnboarded();
       hintBtnEl.classList.remove('tutorialHidden');
+      freezeGroupEl.classList.remove('tutorialHidden');
+      shuffleGroupEl.classList.remove('tutorialHidden');
+      removeGroupEl.classList.remove('tutorialHidden');
       showOnboardCoach('Boa! A barra no topo é a energia — esvazia-a a zerar cadeias antes que encha.', 3400);
     }
     let hasStar = false, hasZero = false, chainMaxAbs = 0;
@@ -1767,8 +2024,17 @@
     }
     const now = performance.now()/1000;
     if(now - lastClearTime < COMBO_WINDOW){ comboMult = Math.min(6, comboMult+1); }
-    else comboMult = 1;
+    else { comboMult = 1; comboBonusGivenThisStreak = false; }
     lastClearTime = now;
+    // recompensas — exigem jogadas difíceis, não acontecem "de borla":
+    // combo de ×4+ dá carga extra de "congelar"; ★ dentro de uma cadeia de 4+ dá carga extra de "baralhar";
+    // cadeia longa (5+ números) dá carga extra de "remover pedra"
+    if(comboMult>=4 && !comboBonusGivenThisStreak){
+      comboBonusGivenThisStreak = true;
+      earnFreezeCharge();
+    }
+    if(hasStar && path.length>=4) earnShuffleCharge();
+    if(path.length>=5) earnRemoveCharge();
 
     let base = path.length*12*comboMult;
     if(hasStar) base *= 2;
@@ -1777,7 +2043,8 @@
     let relief = 8 + path.length*2;
     if(hasStar) relief += 15;
     if(mode==='classic') relief *= FREEPLAY_RELIEF_MULT[freeplayMode];
-    if(corruption>=90) stats.closeCalls += 1;
+    // ajuda de emergência: sobreviver a um momento crítico (energia ≥90%) dá carga extra de "congelar"
+    if(corruption>=90){ stats.closeCalls += 1; earnFreezeCharge(); }
     corruption = Math.max(0, corruption - relief);
 
     const midP = path[path.length-1];
@@ -1876,6 +2143,41 @@
     ensureBoardHasPairs(1, 25);
   }
 
+  // ---------- boosts ----------
+  function shuffleBoard(){
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const t = genTile();
+      grid[r][c] = {...t, row:r, col:c, displayRow:r, alpha:1};
+    }
+    ensureBoardHasPairs(4, 25);
+    path = []; pathSum = 0;
+    shakeT = Math.max(shakeT, reducedMotion? 2 : 0.22);
+    shakeMag = Math.max(shakeMag, reducedMotion? 2 : 7);
+  }
+  function removeStoneBoost(){
+    // procura uma pedra (rock) no tabuleiro; se não houver nenhuma,
+    // remove uma peça aleatória para abrir espaço à mesma
+    const rocks = [];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      if(grid[r][c] && grid[r][c].type==='rock') rocks.push({row:r,col:c});
+    }
+    let targets;
+    if(rocks.length){
+      targets = [rocks[Math.floor(Math.random()*rocks.length)]];
+    } else {
+      const any = [];
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){ if(grid[r][c]) any.push({row:r,col:c}); }
+      if(!any.length) return false;
+      targets = [any[Math.floor(Math.random()*any.length)]];
+    }
+    for(const p of targets){
+      bursts.push(makeBurst(p.row, p.col, themeRockFill()));
+      grid[p.row][p.col] = null;
+    }
+    applyGravity();
+    return true;
+  }
+
   let comboTimer=null;
   function flashCombo(m){
     const el = document.getElementById('comboBadge');
@@ -1889,7 +2191,8 @@
   function update(dt){
     let fillRate = Math.min(6, 1.6 + level*0.35);
     if(mode==='classic') fillRate *= FREEPLAY_FILL_MULT[freeplayMode];
-    if(!onboardWaitingClear){
+    const isFrozen = performance.now() < freezeUntil;
+    if(!onboardWaitingClear && !isFrozen){
       corruption = Math.min(100, corruption + fillRate*dt);
     }
     if(corruption>=100 && state===STATE.PLAYING){
@@ -1912,6 +2215,67 @@
     if(shakeT>0) shakeT -= dt;
     if(recordFlashT>0) recordFlashT -= dt;
     pulseT = (pulseT + dt) % 1000;
+    stepWorldParticles(dt);
+  }
+
+  // ---------- partículas ambiente do mundo (atmosfera que evolui com a progressão) ----------
+  function spawnWorldParticle(){
+    return {
+      x: Math.random()*W, y: Math.random()*H,
+      r: 1.3+Math.random()*2.4,
+      vy: -(5+Math.random()*9),
+      vx: (Math.random()-0.5)*5,
+      phase: Math.random()*Math.PI*2,
+      spin: (Math.random()-0.5)*2
+    };
+  }
+  function stepWorldParticles(dt){
+    const theme = currentWorldTheme();
+    while(worldParticles.length < theme.count) worldParticles.push(spawnWorldParticle());
+    if(worldParticles.length > theme.count) worldParticles.length = theme.count;
+    for(const p of worldParticles){
+      p.phase += dt*0.7;
+      p.y += p.vy*dt*theme.speedMul;
+      p.x += Math.sin(p.phase)*9*dt;
+      if(p.y < -12){ p.y = (H||1)+12; p.x = Math.random()*(W||1); }
+      if(p.y > (H||1)+12){ p.y = -12; p.x = Math.random()*(W||1); }
+    }
+  }
+  function drawWorldParticles(){
+    const theme = currentWorldTheme();
+    if(!worldParticles.length) return;
+    ctx.save();
+    for(const p of worldParticles){
+      const tw = 0.55 + 0.45*Math.sin(p.phase*1.6);
+      ctx.globalAlpha = theme.glow * tw;
+      ctx.fillStyle = theme.tint2;
+      ctx.strokeStyle = theme.tint2;
+      if(theme.shape==='circle'){
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+      } else if(theme.shape==='ring'){
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r*1.8, 0, Math.PI*2);
+        ctx.stroke();
+      } else if(theme.shape==='diamond'){
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.phase*p.spin*0.4);
+        ctx.beginPath();
+        ctx.moveTo(0,-p.r*1.8); ctx.lineTo(p.r*1.8,0); ctx.lineTo(0,p.r*1.8); ctx.lineTo(-p.r*1.8,0);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      } else { // spark
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(p.x-p.r*2, p.y); ctx.lineTo(p.x+p.r*2, p.y);
+        ctx.moveTo(p.x, p.y-p.r*2); ctx.lineTo(p.x, p.y+p.r*2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   // ---------- render ----------
@@ -1945,6 +2309,29 @@
     grad.addColorStop(1, bgStops[2]);
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,W,H);
+
+    // atmosfera do mundo atual (dois focos de cor + vinheta) — progressão visual de longo prazo, sem depender de som
+    const wTheme = currentWorldTheme();
+    const breathe = 0.85 + 0.15*Math.sin(pulseT*1.3);
+    ctx.save();
+    const wGrad1 = ctx.createRadialGradient(W*0.28, H*0.16, 0, W*0.28, H*0.16, Math.max(W,H)*0.62);
+    wGrad1.addColorStop(0, rgbaFromHex(wTheme.tint, wTheme.glow*0.5*breathe));
+    wGrad1.addColorStop(1, rgbaFromHex(wTheme.tint, 0));
+    ctx.fillStyle = wGrad1;
+    ctx.fillRect(0,0,W,H);
+    const wGrad2 = ctx.createRadialGradient(W*0.78, H*0.88, 0, W*0.78, H*0.88, Math.max(W,H)*0.7);
+    wGrad2.addColorStop(0, rgbaFromHex(wTheme.tint2, wTheme.glow*0.4*(1.15-breathe*0.3)));
+    wGrad2.addColorStop(1, rgbaFromHex(wTheme.tint2, 0));
+    ctx.fillStyle = wGrad2;
+    ctx.fillRect(0,0,W,H);
+    // vinheta subtil para dar profundidade e focar o olhar no tabuleiro
+    const vig = ctx.createRadialGradient(W*0.5, H*0.48, Math.max(W,H)*0.32, W*0.5, H*0.48, Math.max(W,H)*0.78);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, isLightTheme() ? 'rgba(20,23,28,0.10)' : 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+    drawWorldParticles();
 
     // cells
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
@@ -2192,7 +2579,9 @@
   function updateHUD(){
     scoreValEl.textContent = Math.floor(score).toLocaleString('pt-PT');
     corrInner.style.width = corruption+'%';
-    corrLabelEl.textContent = (mode==='classic' && freeplayMode==='zen') ? 'ZEN — SEM PRESSÃO' : 'ENERGIA';
+    const isFrozen = performance.now() < freezeUntil;
+    corrInner.classList.toggle('frozen', isFrozen);
+    corrLabelEl.textContent = (mode==='classic' && freeplayMode==='zen') ? 'ZEN — SEM PRESSÃO' : (isFrozen ? 'ENERGIA CONGELADA ❄️' : 'ENERGIA');
     if(mode==='mission' && currentMission && missionProgress){
       levelLabelEl.textContent = currentMission.hudLabel;
       if(currentMission.compound){
@@ -2228,38 +2617,23 @@
   const HINT_COOLDOWN_MS = 4000;
   const HINT_SHOW_MS = 2200;
   const HINT_MAX_PER_GAME = 3;
-  const menuBtnEl = document.getElementById('menuBtn');
-  const menuOverlayEl = document.getElementById('menuOverlay');
-  const menuDrawerEl = document.getElementById('menuDrawer');
-
-  function openMenu(){
-    if(state!==STATE.PLAYING) return;
-    activeHint = null;
-    menuOpen = true;
-    menuOverlayEl.classList.add('show');
-    menuDrawerEl.classList.add('show');
-    sndMenu();
-  }
-  function closeMenu(){
-    menuOpen = false;
-    menuOverlayEl.classList.remove('show');
-    menuDrawerEl.classList.remove('show');
-    last = 0;
-  }
-
   const pauseOverlayEl = document.getElementById('pauseOverlay');
   function openPause(){
     if(state!==STATE.PLAYING) return;
     activeHint = null;
     paused = true;
+    menuOpen = true;
     pauseOverlayEl.classList.add('show');
     sndMenu();
   }
   function closePause(){
     paused = false;
+    menuOpen = false;
     pauseOverlayEl.classList.remove('show');
     last = 0;
   }
+  function openMenu(){ openPause(); }
+  function closeMenu(){ closePause(); }
 
   const hintBtnEl = document.getElementById('hintBtn');
   const hintCostEl = hintBtnEl.querySelector('.hintCost');
@@ -2291,6 +2665,140 @@
   }
   hintBtnEl.addEventListener('click', requestHint);
   updateHintBadge();
+
+  // ---------- boost buttons (além da dica) ----------
+  let freezeUntil = 0;
+  let freezesUsedThisGame = 0;
+  let freezeBonus = 0;
+  const FREEZE_DURATION_MS = 6000;
+  const FREEZE_MAX_PER_GAME = 2;
+  const FREEZE_BONUS_CAP = 3;
+
+  let shuffleCooldownUntil = 0;
+  let shufflesUsedThisGame = 0;
+  let shuffleBonus = 0;
+  const SHUFFLE_COST = 6;
+  const SHUFFLE_COOLDOWN_MS = 2500;
+  const SHUFFLE_MAX_PER_GAME = 2;
+  const SHUFFLE_BONUS_CAP = 3;
+
+  let removeCooldownUntil = 0;
+  let removesUsedThisGame = 0;
+  let removeBonus = 0;
+  const REMOVE_COST = 5;
+  const REMOVE_COOLDOWN_MS = 2500;
+  const REMOVE_MAX_PER_GAME = 2;
+  const REMOVE_BONUS_CAP = 3;
+
+  let comboBonusGivenThisStreak = false;
+
+  const freezeBtnEl = document.getElementById('freezeBtn');
+  const shuffleBtnEl = document.getElementById('shuffleBtn');
+  const removeBtnEl = document.getElementById('removeBtn');
+  const freezeGroupEl = document.getElementById('freezeGroup');
+  const shuffleGroupEl = document.getElementById('shuffleGroup');
+  const removeGroupEl = document.getElementById('removeGroup');
+  const freezeCountEl = freezeBtnEl.querySelector('.boostCount');
+  const shuffleCountEl = shuffleBtnEl.querySelector('.boostCount');
+  const removeCountEl = removeBtnEl.querySelector('.boostCount');
+
+  function updateFreezeBadge(){
+    const left = Math.max(0, FREEZE_MAX_PER_GAME + freezeBonus - freezesUsedThisGame);
+    if(freezeCountEl) freezeCountEl.textContent = left;
+    freezeBtnEl.classList.toggle('disabled', left<=0);
+  }
+  function updateShuffleBadge(){
+    const left = Math.max(0, SHUFFLE_MAX_PER_GAME + shuffleBonus - shufflesUsedThisGame);
+    if(shuffleCountEl) shuffleCountEl.textContent = left;
+    shuffleBtnEl.classList.toggle('disabled', left<=0);
+  }
+  function updateRemoveBadge(){
+    const left = Math.max(0, REMOVE_MAX_PER_GAME + removeBonus - removesUsedThisGame);
+    if(removeCountEl) removeCountEl.textContent = left;
+    removeBtnEl.classList.toggle('disabled', left<=0);
+  }
+
+  function boostFloater(text, color){
+    floaters.push({x:W/2, y:H*0.3, text, life:1.1, maxLife:1.1, color: color||themeGold()});
+  }
+  function sndBoostGain(){
+    tone(700,0.08,'sine',0.07,0);
+    tone(1000,0.09,'sine',0.06,0.05);
+  }
+  // ganhar cargas extra de boost jogando bem, além das cargas fixas por partida
+  function earnFreezeCharge(){
+    if(freezeBonus>=FREEZE_BONUS_CAP) return;
+    freezeBonus++;
+    updateFreezeBadge();
+    boostFloater('+1 ❄️ CONGELAR', '#7cc8ff');
+    sndBoostGain();
+    vibrate(8);
+  }
+  function earnShuffleCharge(){
+    if(shuffleBonus>=SHUFFLE_BONUS_CAP) return;
+    shuffleBonus++;
+    updateShuffleBadge();
+    boostFloater('+1 🔀 BARALHAR');
+    sndBoostGain();
+    vibrate(8);
+  }
+  function earnRemoveCharge(){
+    if(removeBonus>=REMOVE_BONUS_CAP) return;
+    removeBonus++;
+    updateRemoveBadge();
+    boostFloater('+1 💥 REMOVER');
+    sndBoostGain();
+    vibrate(8);
+  }
+
+  function requestFreeze(){
+    if(state!==STATE.PLAYING || menuOpen || paused || onboardWaitingClear) return;
+    if(freezesUsedThisGame >= FREEZE_MAX_PER_GAME + freezeBonus) return;
+    const now = performance.now();
+    if(now < freezeUntil) return;
+    freezesUsedThisGame++;
+    freezeUntil = now + FREEZE_DURATION_MS;
+    updateFreezeBadge();
+    freezeBtnEl.classList.add('active');
+    setTimeout(()=> freezeBtnEl.classList.remove('active'), FREEZE_DURATION_MS);
+    boostFloater('TEMPO CONGELADO ❄️', '#7cc8ff');
+    sndFreeze();
+    vibrate(12);
+  }
+  function requestShuffle(){
+    if(state!==STATE.PLAYING || menuOpen || paused || onboardWaitingClear) return;
+    if(shufflesUsedThisGame >= SHUFFLE_MAX_PER_GAME + shuffleBonus) return;
+    const now = performance.now();
+    if(now < shuffleCooldownUntil) return;
+    shuffleBoard();
+    corruption = Math.min(100, corruption + SHUFFLE_COST);
+    shuffleCooldownUntil = now + SHUFFLE_COOLDOWN_MS;
+    shufflesUsedThisGame++;
+    updateShuffleBadge();
+    boostFloater('TABULEIRO BARALHADO 🔀');
+    sndShuffle();
+    vibrate([10,20,10]);
+  }
+  function requestRemove(){
+    if(state!==STATE.PLAYING || menuOpen || paused || onboardWaitingClear) return;
+    if(removesUsedThisGame >= REMOVE_MAX_PER_GAME + removeBonus) return;
+    const now = performance.now();
+    if(now < removeCooldownUntil) return;
+    if(!removeStoneBoost()) return;
+    corruption = Math.min(100, corruption + REMOVE_COST);
+    removeCooldownUntil = now + REMOVE_COOLDOWN_MS;
+    removesUsedThisGame++;
+    updateRemoveBadge();
+    boostFloater('PEDRA REMOVIDA 💥');
+    sndRemove();
+    vibrate(16);
+  }
+  freezeBtnEl.addEventListener('click', requestFreeze);
+  shuffleBtnEl.addEventListener('click', requestShuffle);
+  removeBtnEl.addEventListener('click', requestRemove);
+  updateFreezeBadge();
+  updateShuffleBadge();
+  updateRemoveBadge();
 
   // ---------- casa screen (full-screen, not a menu) ----------
   const casaScreenEl = document.getElementById('casaScreen');
@@ -2479,7 +2987,10 @@
   }
   function renderWorldsHTML(){
     const worldCount = Math.ceil(MISSIONS.length / WORLD_SIZE);
-    let html = '';
+    const activeIdx = activeWorldIdx();
+    let html = `<div class="worldAutoBanner ${worldThemeState.auto?'on':''}" data-worldauto="1">
+      <span>${worldThemeState.auto ? '◎ A seguir o teu progresso automaticamente' : '◎ Ambiente fixo — toca para voltar ao automático'}</span>
+    </div>`;
     for(let w=0; w<worldCount; w++){
       const [startIdx, endIdx] = worldRange(w);
       const total = endIdx - startIdx + 1;
@@ -2488,14 +2999,18 @@
       const name = WORLD_NAMES[w] || ('Mundo '+(w+1));
       const hasMilestone = (endIdx+1) % MISSION_MILESTONE_STEP === 0;
       const pct = Math.round((done/total)*100);
-      html += `<div class="worldRow ${locked?'locked':''}" data-world="${w}">
+      const theme = WORLD_THEMES[w] || WORLD_THEMES[0];
+      const isActive = !locked && activeIdx===w;
+      html += `<div class="worldRow ${locked?'locked':''} ${isActive?'activeWorld':''}" data-world="${w}">
+        <div class="worldSwatch" style="background:linear-gradient(135deg,${theme.tint},${theme.tint2});"></div>
         <div class="worldNum">${w+1}</div>
         <div class="worldInfo">
-          <div class="worldTitle">${name}${hasMilestone?' 🏅':''}</div>
+          <div class="worldTitle">${name}${hasMilestone?' 🏅':''}${isActive?' <span class="worldActiveTag">ATUAL</span>':''}</div>
           <div class="worldDesc">Missões ${startIdx+1}–${endIdx+1}</div>
           <div class="goalBar" style="margin-top:7px;"><i style="width:${pct}%"></i></div>
         </div>
         <div class="worldStatus">${locked?'🔒':done+'/'+total}</div>
+        ${(!locked && !isActive) ? `<div class="worldUseBtn" data-worlduse="${w}">USAR</div>` : ''}
       </div>`;
     }
     return html;
@@ -2521,7 +3036,7 @@
     return html;
   }
   function openWorldsScreen(){
-    openCasaScreen('MISSÕES ('+(missionState.unlocked-1)+'/'+MISSIONS.length+')', renderWorldsHTML());
+    openCasaScreen('MUNDOS E MISSÕES ('+(missionState.unlocked-1)+'/'+MISSIONS.length+')', renderWorldsHTML());
     const curWorld = Math.floor(Math.max(0, missionState.unlocked-1) / WORLD_SIZE);
     requestAnimationFrame(()=>{
       const el = casaScreenBodyEl.querySelector('[data-world="'+curWorld+'"]');
@@ -2556,6 +3071,7 @@
     const displayStreak = streakActive ? streak.count : 0;
     const cards = [
       ['🏆','Recorde', best.toLocaleString('pt-PT'), null],
+      ['🌍','Mundo atual', WORLD_NAMES[activeWorldIdx()]||'—', 'O mundo atual muda o ambiente visual e a música do jogo. Desbloqueias um novo mundo a cada 25 missões completadas — vê e escolhe em Missões, na Casa.'],
       ['🚀','Missões', (missionState.unlocked-1)+'/'+MISSIONS.length, null],
       ['📈','Nível máximo', stats.maxLevel||0, null],
       ['🎯','Objetivos hoje', daily.claimed.length+'/'+daily.goalIds.length, null],
@@ -2576,7 +3092,8 @@
   let menuBtnLongPressTimer = null;
   let menuBtnLongPressed = false;
   const MENU_LONGPRESS_MS = 550;
-  menuBtnEl.addEventListener('pointerdown', ()=>{
+  const pauseBtnEl = document.getElementById('pauseBtn');
+  pauseBtnEl.addEventListener('pointerdown', ()=>{
     menuBtnLongPressed = false;
     clearTimeout(menuBtnLongPressTimer);
     menuBtnLongPressTimer = setTimeout(()=>{
@@ -2584,22 +3101,17 @@
       toggleMasterMute();
     }, MENU_LONGPRESS_MS);
   });
-  menuBtnEl.addEventListener('pointerup', ()=>{ clearTimeout(menuBtnLongPressTimer); });
-  menuBtnEl.addEventListener('pointerleave', ()=>{ clearTimeout(menuBtnLongPressTimer); });
-  menuBtnEl.addEventListener('pointercancel', ()=>{ clearTimeout(menuBtnLongPressTimer); });
-  menuBtnEl.addEventListener('click', (e)=>{
+  pauseBtnEl.addEventListener('pointerup', ()=>{ clearTimeout(menuBtnLongPressTimer); });
+  pauseBtnEl.addEventListener('pointerleave', ()=>{ clearTimeout(menuBtnLongPressTimer); });
+  pauseBtnEl.addEventListener('pointercancel', ()=>{ clearTimeout(menuBtnLongPressTimer); });
+  pauseBtnEl.addEventListener('click', (e)=>{
     if(menuBtnLongPressed){ menuBtnLongPressed = false; e.preventDefault(); return; }
-    openMenu();
+    openPause();
   });
-  const pauseBtnEl = document.getElementById('pauseBtn');
-  pauseBtnEl.addEventListener('click', openPause);
   const pauseResumeBtnEl = document.getElementById('pauseResumeBtn');
   pauseResumeBtnEl.addEventListener('click', closePause);
-  document.getElementById('menuCloseBtn').addEventListener('click', ()=>{ sndMenu(); closeMenu(); });
-  document.getElementById('menuResume').addEventListener('click', ()=>{ sndMenu(); closeMenu(); });
   document.getElementById('casaScreenClose').addEventListener('click', closeCasaScreen);
-  menuOverlayEl.addEventListener('click', closeMenu);
-  document.getElementById('menuCasa').addEventListener('click', ()=>{ sndMenu(); goHome(); });
+  document.getElementById('pauseHomeBtn').addEventListener('click', ()=>{ sndMenu(); goHome(); });
   document.getElementById('missionsBtn').addEventListener('click', openWorldsScreen);
   document.getElementById('casaHowTo').addEventListener('click', ()=> openCasaScreen('COMO JOGAR', renderHowToHTML()));
   if(!hasSeenHowTo()){
@@ -2622,10 +3134,25 @@
     const muteBanner = e.target.closest('#masterMuteBanner');
     const missionRow = e.target.closest('.missionRow');
     const worldRow = e.target.closest('.worldRow');
+    const worldUseBtn = e.target.closest('.worldUseBtn');
+    const worldAutoBanner = e.target.closest('.worldAutoBanner');
     const backBtn = e.target.closest('.missionBackBtn');
     const skinRow = e.target.closest('.skinRow');
     if(muteBanner){
       toggleMasterMute();
+    } else if(worldAutoBanner){
+      if(!worldThemeState.auto){
+        setActiveWorld(0, true);
+        sndTap();
+        openWorldsScreen();
+        scheduleCloudSave();
+      }
+    } else if(worldUseBtn){
+      const idx = parseInt(worldUseBtn.dataset.worlduse, 10);
+      setActiveWorld(idx, false);
+      sndTap();
+      openWorldsScreen();
+      scheduleCloudSave();
     } else if(backBtn){
       sndMenu();
       openWorldsScreen();
@@ -2733,6 +3260,11 @@
     sessionMaxChain=0;
     hintsUsedThisGame=0; hintCooldownUntil=0;
     updateHintBadge();
+    freezeUntil=0; freezesUsedThisGame=0; freezeBonus=0; freezeBtnEl.classList.remove('active');
+    shuffleCooldownUntil=0; shufflesUsedThisGame=0; shuffleBonus=0;
+    removeCooldownUntil=0; removesUsedThisGame=0; removeBonus=0;
+    comboBonusGivenThisStreak=false;
+    updateFreezeBadge(); updateShuffleBadge(); updateRemoveBadge();
     buildInitialGrid();
     last=0;
   }
@@ -2865,6 +3397,17 @@
       });
       processAchQueue();
     }
+    const prevWorldIdx = Math.floor(Math.max(0, prevUnlocked-1) / WORLD_SIZE);
+    const newWorldIdx = Math.floor(Math.max(0, missionState.unlocked-1) / WORLD_SIZE);
+    if(newWorldIdx > prevWorldIdx && WORLD_THEMES[newWorldIdx]){
+      const wName = WORLD_NAMES[newWorldIdx] || ('Mundo '+(newWorldIdx+1));
+      achQueue.push({
+        type:'world', icon:'🌍',
+        title:'Novo Mundo: '+wName,
+        desc:'A atmosfera do jogo mudou. Vê e escolhe mundos em Missões, na Casa.'
+      });
+      processAchQueue();
+    }
     checkMissionMilestone(missionIndex+1);
     const finalScore = Math.floor(score);
     if(finalScore > best){ best = finalScore; saveBest(best); }
@@ -2879,8 +3422,6 @@
   }
   function goHome(){
     menuOpen = false;
-    menuOverlayEl.classList.remove('show');
-    menuDrawerEl.classList.remove('show');
     paused = false;
     pauseOverlayEl.classList.remove('show');
     pointerActive = false;
@@ -3002,6 +3543,13 @@
     showStatInfo(card.getAttribute('data-info'));
   });
   statInfoToastEl.addEventListener('click', ()=> statInfoToastEl.classList.remove('show'));
+  document.querySelectorAll('.boostInfoDot').forEach(dot=>{
+    dot.addEventListener('click', e=>{
+      e.stopPropagation();
+      sndMenu();
+      showStatInfo(dot.getAttribute('data-info'));
+    });
+  });
   // Fecha o tooltip ao tocar em qualquer ponto do ecrã (não só ao fim do tempo).
   // Ignora toques no próprio tooltip (já tratado acima) e nos cartões "?" (esses
   // trocam para a explicação nova, em vez de simplesmente fechar).
@@ -3195,7 +3743,7 @@
   window.addEventListener('focus', handleAppVisible);
 
   // ---------- cloud save (via window.storage, personal — synced across devices for this user) ----------
-  const CLOUD_KEYS = [BEST_KEY, MISSION_KEY, MISSION_STREAK_KEY, SKIN_KEY, SETTINGS_KEY, STATS_KEY, ACH_KEY, STREAK_KEY, DAILY_KEY, HISTORY_KEY, ONBOARD_KEY, HOWTO_SEEN_KEY];
+  const CLOUD_KEYS = [BEST_KEY, MISSION_KEY, MISSION_STREAK_KEY, SKIN_KEY, SETTINGS_KEY, STATS_KEY, ACH_KEY, STREAK_KEY, DAILY_KEY, HISTORY_KEY, ONBOARD_KEY, HOWTO_SEEN_KEY, WORLD_THEME_KEY];
   const LAST_SAVED_KEY = 'zero_last_saved';
   const CLOUD_STORAGE_KEY = 'cloud_save';
   let cloudSaveTimer = null;
