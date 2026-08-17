@@ -43,10 +43,12 @@
   html,body{
     margin:0; padding:0; width:100%; height:100%;
     background:var(--bg); overflow:hidden; overscroll-behavior:none;
-    touch-action:none; user-select:none; -webkit-user-select:none;
+    user-select:none; -webkit-user-select:none;
     font-family:'Inter',sans-serif; color:var(--ink);
   }
-  #game{display:block; width:100vw; height:100vh;}
+  /* bloqueio de scroll/touch: só na casa (#startScreen) e no jogo (#game) — as outras screens
+     precisam de poder fazer scroll (missões, conquistas, definições, etc.) */
+  #game{display:block; width:100vw; height:100vh; height:100dvh; touch-action:none;}
 
   #hud{
     position:fixed; top:0; left:0; right:0;
@@ -310,7 +312,7 @@
     position:fixed; inset:0; z-index:35;
     background:rgb(var(--scr-b));
     background-image:radial-gradient(ellipse at 50% 30%, rgb(var(--scr-a)) 0%, rgb(var(--scr-b)) 70%);
-    padding: max(18px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom)) 22px;
+    padding: max(18px, env(safe-area-inset-top)) 22px max(18px, calc(env(safe-area-inset-bottom) + 16px)) 22px;
     display:flex; flex-direction:column;
     transform:translateY(100%);
     transition:transform .32s cubic-bezier(.2,.9,.3,1.1);
@@ -323,7 +325,7 @@
     font-size:19px; cursor:pointer; flex:none;
   }
   #casaScreenTitle{font-family:'Sora',sans-serif; font-weight:700; font-size:13px; letter-spacing:2px; opacity:0.85; text-align:left;}
-  #casaScreenBody{flex:1; overflow-y:auto; -ms-overflow-style:none; scrollbar-width:none; text-align:left;}
+  #casaScreenBody{flex:1; min-height:0; overflow-y:auto; touch-action:pan-y; -ms-overflow-style:none; scrollbar-width:none; text-align:left; padding-bottom:48px;}
   #casaScreenBody::-webkit-scrollbar{display:none;}
 
   #shareCardModal{
@@ -428,7 +430,7 @@
   .screen{
     position:fixed; inset:0; z-index:10;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:24px; overflow-y:auto;
+    text-align:center; padding:24px; overflow-y:auto; touch-action:pan-y;
     background:rgb(var(--scr-b));
     background-image:radial-gradient(ellipse at 50% 35%, rgb(var(--scr-a)) 0%, rgb(var(--scr-b)) 70%);
     transition:opacity .35s ease;
@@ -455,8 +457,12 @@
   #gameOverScreen .title{font-size:28px; letter-spacing:3px; background:linear-gradient(90deg,#ff3b30,var(--warm)); -webkit-background-clip:text; background-clip:text;}
   .startDashboard{width:100%; max-width:340px; margin:0;}
   #startScreen{
-    overflow:hidden; justify-content:center; gap:clamp(8px,2.1vh,14px);
-    padding:max(14px, env(safe-area-inset-top)) 22px max(14px, env(safe-area-inset-bottom)) 22px;
+    overflow-y:auto; overflow-x:hidden; touch-action:none; justify-content:center;
+    padding:max(14px, env(safe-area-inset-top)) 22px max(28px, calc(env(safe-area-inset-bottom) + 20px)) 22px;
+  }
+  #startScreenInner{
+    display:flex; flex-direction:column; align-items:center; width:100%;
+    gap:clamp(8px,2.1vh,14px); transform-origin:50% 50%; transition:transform .12s ease;
   }
   #startScreen .title{font-size:clamp(34px,10vh,52px); margin:0;}
   #startScreen .tagline{font-size:11.5px; margin:0; max-width:260px; line-height:1.4; opacity:0.5;}
@@ -655,6 +661,7 @@
 </div>
 
 <div class="screen" id="startScreen">
+ <div id="startScreenInner">
   <div class="title">ZERO</div>
   <div class="tagline">Liga números vizinhos até a soma dar exatamente zero.</div>
   <div id="startDashboard" class="startDashboard"></div>
@@ -680,6 +687,7 @@
     <div class="casaNavBtn" id="casaSettings" role="button" tabindex="0"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><g fill="#3fa9f5"><rect x="10.6" y="1.3" width="2.8" height="4" rx="1"/><rect x="10.6" y="18.7" width="2.8" height="4" rx="1"/><rect x="1.3" y="10.6" width="4" height="2.8" rx="1"/><rect x="18.7" y="10.6" width="4" height="2.8" rx="1"/><rect x="4.5" y="4.5" width="2.8" height="4" rx="1" transform="rotate(45 5.9 6.5)"/><rect x="16.7" y="15.7" width="2.8" height="4" rx="1" transform="rotate(45 18.1 17.7)"/><rect x="4.5" y="15.7" width="2.8" height="4" rx="1" transform="rotate(-45 5.9 17.7)"/><rect x="16.7" y="4.5" width="2.8" height="4" rx="1" transform="rotate(-45 18.1 6.5)"/><circle cx="12" cy="12" r="6.3"/></g><circle cx="12" cy="12" r="2.9" fill="#141922"/></svg></span>Definições</div>
     <div class="casaNavBtn" id="casaSkins" role="button" tabindex="0"><span class="casaNavIcon">🎨</span>Paletas</div>
   </div>
+ </div>
 </div>
 
 <div class="screen hidden" id="gameOverScreen">
@@ -743,8 +751,31 @@
     canvas.style.width = W+'px'; canvas.style.height = H+'px';
     ctx.setTransform(DPR,0,0,DPR,0,0);
     layoutGrid();
+    fitStartScreen();
   }
   window.addEventListener('resize', resize);
+
+  // ---------- garante que a casa cabe sempre num só ecrã (sem scroll) ----------
+  // Mede o conteúdo real da casa e, se não couber na altura disponível, reduz a
+  // escala do wrapper até caber — cobre telemóveis mais baixos e o modo app
+  // instalado/APK, onde a altura visível muda em relação ao browser.
+  function fitStartScreen(){
+    const outer = document.getElementById('startScreen');
+    const inner = document.getElementById('startScreenInner');
+    if(!outer || !inner) return;
+    inner.style.transform = '';
+    const cs = getComputedStyle(outer);
+    const padTop = parseFloat(cs.paddingTop)||0;
+    const padBottom = parseFloat(cs.paddingBottom)||0;
+    const available = outer.clientHeight - padTop - padBottom;
+    const needed = inner.scrollHeight;
+    if(available > 0 && needed > available){
+      const scale = Math.max(0.7, available / needed);
+      inner.style.transform = `scale(${scale})`;
+    }
+  }
+  window.addEventListener('load', fitStartScreen);
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(fitStartScreen).catch(()=>{}); }
 
   // ---------- config ----------
   const COLS = 4, ROWS = 6, GAP = 10;
@@ -1486,6 +1517,13 @@
     document.getElementById('onboardCoach').classList.remove('show');
     clearTimeout(onboardCoachTimer);
   }
+  // A dica desaparece assim que o jogador tocar em qualquer parte do ecrã,
+  // em vez de obrigar a esperar o temporizador (ou, no caso da 1ª dica, a
+  // completar a jogada) — evita que a mensagem fique a tapar o jogo.
+  document.addEventListener('pointerdown', ()=>{
+    const el = document.getElementById('onboardCoach');
+    if(el.classList.contains('show')) hideOnboardCoach();
+  }, {capture:true, passive:true});
   function findHintPair(){
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const a = grid[r][c];
@@ -2854,6 +2892,7 @@
     document.getElementById('missionIntroScreen').classList.add('hidden');
     document.getElementById('startDashboard').innerHTML = `<div class="casaGrid">${casaCardsHTML()}</div>`;
     document.getElementById('startScreen').classList.remove('hidden');
+    fitStartScreen();
     ctx.setTransform(DPR,0,0,DPR,0,0);
     ctx.clearRect(0,0,W,H);
   }
@@ -2932,7 +2971,13 @@
     document.getElementById('missionResultScreen').classList.add('hidden');
     goHome();
   });
-  document.addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+  // Bloqueia o scroll/bounce por touch em toda a app, EXCETO dentro das zonas que
+  // precisam de scroll normal: o painel casaScreenBody (missões, conquistas, definições, etc.)
+  // e as screens genéricas que não sejam a casa (fim de jogo, intro/resultado de missão).
+  document.addEventListener('touchmove', e=>{
+    if(e.target.closest('#casaScreenBody, .screen:not(#startScreen)')) return;
+    e.preventDefault();
+  }, {passive:false});
 
   // ---------- share score ----------
   const shareToastEl = document.getElementById('shareToast');
@@ -2957,6 +3002,15 @@
     showStatInfo(card.getAttribute('data-info'));
   });
   statInfoToastEl.addEventListener('click', ()=> statInfoToastEl.classList.remove('show'));
+  // Fecha o tooltip ao tocar em qualquer ponto do ecrã (não só ao fim do tempo).
+  // Ignora toques no próprio tooltip (já tratado acima) e nos cartões "?" (esses
+  // trocam para a explicação nova, em vez de simplesmente fechar).
+  document.addEventListener('click', e=>{
+    if(!statInfoToastEl.classList.contains('show')) return;
+    if(e.target.closest('#statInfoToast, .casaCardHint')) return;
+    clearTimeout(statInfoTimer);
+    statInfoToastEl.classList.remove('show');
+  });
   // ---------- cartão de resultado partilhável ----------
   async function generateResultCardBlob(){
     const W = 1080, H = 1350;
