@@ -2623,6 +2623,7 @@
     activeHint = null;
     paused = true;
     menuOpen = true;
+    ensureBackGuard();
     pauseOverlayEl.classList.add('show');
     sndMenu();
   }
@@ -2811,6 +2812,7 @@
     closeBtn.textContent = closeIcon || '‹';
     closeBtn.setAttribute('aria-label', closeIcon ? 'Fechar' : 'Voltar');
     casaScreenEl.classList.add('show');
+    ensureBackGuard();
     sndMenu();
   }
   function closeCasaScreen(){
@@ -3289,6 +3291,7 @@
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('missionResultScreen').classList.add('hidden');
+    ensureBackGuard();
     maybeStartOnboardGuide();
   }
   function startMission(i){
@@ -3305,6 +3308,7 @@
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('missionResultScreen').classList.add('hidden');
     document.getElementById('missionIntroScreen').classList.remove('hidden');
+    ensureBackGuard();
   }
   function beginCurrentMission(){
     if(mode!=='mission' || !currentMission) return;
@@ -3324,6 +3328,7 @@
     checkDailyGoals();
     state = STATE.PLAYING;
     document.getElementById('missionIntroScreen').classList.add('hidden');
+    ensureBackGuard();
     maybeStartOnboardGuide();
   }
   function showMissionResult(success, starsEarned){
@@ -3351,7 +3356,7 @@
     }
     const hasNext = missionIndex+1 < MISSIONS.length;
     nextBtn.style.display = (success && hasNext) ? '' : 'none';
-    setTimeout(()=> document.getElementById('missionResultScreen').classList.remove('hidden'), 260);
+    setTimeout(()=>{ document.getElementById('missionResultScreen').classList.remove('hidden'); ensureBackGuard(); }, 260);
   }
   function checkMissionMilestone(missionNumber){
     if(missionNumber % MISSION_MILESTONE_STEP !== 0) return;
@@ -3459,7 +3464,7 @@
     }
     document.getElementById('finalScore').textContent = Math.floor(score).toLocaleString('pt-PT');
     document.getElementById('finalBest').textContent = best.toLocaleString('pt-PT');
-    setTimeout(()=> document.getElementById('gameOverScreen').classList.remove('hidden'), 260);
+    setTimeout(()=>{ document.getElementById('gameOverScreen').classList.remove('hidden'); ensureBackGuard(); }, 260);
   }
 
   document.getElementById('startBtn').addEventListener('click', startGame);
@@ -3834,11 +3839,20 @@
     }
     return false; // já está na casa/início — deixa o botão de voltar sair da app normalmente
   }
+  let backGuardArmed = false;
   function pushBackGuard(){
-    try{ history.pushState({zeroBack:true}, ''); }catch(e){}
+    try{ history.pushState({zeroBack:true}, ''); backGuardArmed = true; }catch(e){}
+  }
+  // garante que existe sempre uma entrada de histórico "guardada" sempre que se entra
+  // num ecrã/estado que não seja a casa — caso contrário o botão físico de voltar do
+  // telemóvel salta direto para o diálogo nativo "Sair da aplicação" em vez de recuar
+  // um passo dentro da app.
+  function ensureBackGuard(){
+    if(!backGuardArmed) pushBackGuard();
   }
   pushBackGuard();
   window.addEventListener('popstate', ()=>{
+    backGuardArmed = false;
     if(closeTopLayer()) pushBackGuard();
   });
 })();
