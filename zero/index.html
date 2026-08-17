@@ -1,0 +1,2874 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1015">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ZERO">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="description" content="Liga números vizinhos até a soma dar exatamente zero. Um puzzle rápido e viciante.">
+<title>ZERO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1015;
+    --warm:#ff7a45;
+    --cool:#3fa9f5;
+    --gold:#f4d35e;
+    --rock:#3a4048;
+    --ink:#eaf2f5;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:var(--bg); overflow:hidden; overscroll-behavior:none;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+    font-family:'Inter',sans-serif; color:var(--ink);
+  }
+  #game{display:block; width:100vw; height:100vh;}
+
+  #hud{
+    position:fixed; top:0; left:0; right:0;
+    padding: max(14px, env(safe-area-inset-top)) 20px 0 20px;
+    pointer-events:none; z-index:5;
+  }
+  #hudTop{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+  #menuBtn{
+    flex:none; width:38px; height:38px; border-radius:11px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    pointer-events:auto; cursor:pointer;
+  }
+  #menuBtn span{display:block; width:16px; height:2px; border-radius:2px; background:var(--ink); opacity:0.85;}
+  #pauseBtn{
+    flex:none; width:38px; height:38px; border-radius:11px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    pointer-events:auto; cursor:pointer;
+  }
+  #pauseBtn span{display:block; width:4px; height:14px; border-radius:2px; background:var(--ink); opacity:0.85;}
+  #scoreWrap{display:flex; flex-direction:column; line-height:1; flex:1;}
+  #scoreVal{font-family:'Sora',sans-serif; font-weight:800; font-size:32px; letter-spacing:0.3px;}
+  @keyframes recordGlow{
+    0%{ color:var(--ink); text-shadow:none; }
+    25%{ color:var(--gold); text-shadow:0 0 18px rgba(244,211,94,0.9); }
+    100%{ color:var(--ink); text-shadow:none; }
+  }
+  #scoreVal.recordPulse{ animation:recordGlow 1.4s ease-out; }
+  #scoreLabel{font-size:10px; letter-spacing:3px; opacity:0.45; margin-top:2px;}
+  #comboBadge{
+    font-family:'Sora',sans-serif; font-weight:700; font-size:13px;
+    color:var(--gold); opacity:0; transform:translateY(-4px);
+    transition:opacity .15s, transform .15s; margin-top:6px;
+  }
+  #comboBadge.show{opacity:1; transform:translateY(0);}
+  #levelWrap{text-align:right; opacity:0.55; font-size:11px; letter-spacing:2px;}
+  #levelVal{font-family:'Sora',sans-serif; font-size:17px; font-weight:600; opacity:1;}
+  #missionTitleBar{
+    font-family:'Sora',sans-serif; font-weight:700; font-size:12px; letter-spacing:1px;
+    color:var(--gold); opacity:0; max-height:0; overflow:hidden;
+    margin-top:0; text-align:center;
+    transition:opacity .2s, max-height .2s, margin-top .2s;
+  }
+  #missionTitleBar.show{opacity:1; max-height:24px; margin-top:10px;}
+  #missionTitleBar .streakFlame{color:var(--gold); opacity:0.9;}
+
+  #corruptionOuter{
+    margin-top:14px; height:7px; border-radius:99px; background:rgba(255,255,255,0.08);
+    overflow:hidden;
+  }
+  #corruptionInner{height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--cool),var(--gold) 60%,#ff3b30 100%); transition:width .15s linear;}
+  #corruptionLabel{font-size:9px; letter-spacing:3px; opacity:0.4; margin-top:5px;}
+
+  #hintBtn{
+    position:fixed; right:max(18px, env(safe-area-inset-right));
+    bottom:max(18px, env(safe-area-inset-bottom));
+    z-index:8; width:52px; height:52px; border-radius:50%;
+    background:rgba(244,211,94,0.12); border:1px solid rgba(244,211,94,0.35);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; cursor:pointer; pointer-events:auto;
+    box-shadow:0 4px 18px rgba(0,0,0,0.35);
+    transition:transform .12s, opacity .2s;
+  }
+  #hintBtn:active{transform:scale(0.92);}
+  #hintBtn.disabled{opacity:0.35; pointer-events:none;}
+  #hintBtn.tutorialHidden{opacity:0; pointer-events:none;}
+  #hintBtn .hintCost{
+    position:absolute; bottom:-6px; right:-4px;
+    background:#0a0b0e; border:1px solid rgba(255,255,255,0.15);
+    border-radius:999px; font-family:'Sora',sans-serif; font-size:9px; font-weight:700;
+    padding:2px 6px; color:var(--gold); letter-spacing:0.5px;
+  }
+
+  #achToast{
+    position:fixed; top:0; left:50%; z-index:20;
+    width:min(300px, calc(100vw - 48px));
+    margin-top:max(10px, env(safe-area-inset-top));
+    transform:translate(-50%,-140%);
+    opacity:0;
+    transition:transform .4s cubic-bezier(.2,.9,.3,1.3), opacity .3s;
+    background:rgba(16,18,22,0.92); border:1px solid rgba(244,211,94,0.35);
+    border-radius:14px; padding:10px 14px;
+    display:flex; align-items:center; gap:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(244,211,94,0.12);
+    pointer-events:none;
+  }
+  #achToast.show{ transform:translate(-50%,0); opacity:1; }
+  #achToastBadge{
+    flex:none; width:32px; height:32px; border-radius:50%;
+    background:rgba(244,211,94,0.15); color:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; box-shadow:inset 0 0 0 1px rgba(244,211,94,0.4);
+  }
+  #achToastTitle{font-family:'Sora',sans-serif; font-weight:700; font-size:13px; color:var(--gold); letter-spacing:0.5px;}
+  #achToastDesc{font-size:11px; opacity:0.7; margin-top:2px; line-height:1.35;}
+
+  #menuOverlay{
+    position:fixed; inset:0; z-index:29; background:rgba(0,0,0,0.55);
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  #menuOverlay.show{opacity:1; pointer-events:auto;}
+  #menuDrawer{
+    position:fixed; top:0; left:0; bottom:0; z-index:30;
+    width:min(82vw, 320px);
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom)) 18px;
+    background:linear-gradient(180deg, rgba(19,21,26,0.99), rgba(10,11,14,0.99));
+    border-right:1px solid rgba(255,255,255,0.08);
+    box-shadow:16px 0 40px rgba(0,0,0,0.45);
+    transform:translateX(-100%);
+    transition:transform .32s cubic-bezier(.2,.9,.3,1.1);
+    display:flex; flex-direction:column;
+  }
+  #menuDrawer.show{transform:translateX(0);}
+  .menuHeader{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:15px; letter-spacing:3px;
+    opacity:0.55; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .menuCloseX{
+    width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center;
+    font-size:16px; cursor:pointer; opacity:0.8; line-height:1;
+  }
+  #menuList{display:flex; flex-direction:column; gap:8px;}
+  .menuItem{
+    display:flex; align-items:center; gap:12px; text-align:left;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px; padding:14px 14px; color:var(--ink);
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:500;
+    cursor:pointer; transition:background .15s, transform .1s;
+  }
+  .menuItem:active{transform:scale(0.97); background:rgba(255,255,255,0.09);}
+  .menuItem.danger{color:#ff8a80; border-color:rgba(255,59,48,0.25);}
+  .menuItemIcon{flex:none; width:20px; text-align:center; opacity:0.85;}
+  #menuFooter{margin-top:auto; padding-top:14px; font-size:10px; letter-spacing:2px; opacity:0.35; text-align:center;}
+  #pauseOverlay{
+    position:fixed; inset:0; z-index:31; background:rgba(8,9,12,0.82);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  #pauseOverlay.show{opacity:1; pointer-events:auto;}
+  #pauseTitle{font-family:'Sora',sans-serif; font-weight:800; font-size:26px; letter-spacing:4px; opacity:0.9;}
+  #pauseResumeBtn{
+    display:flex; align-items:center; gap:10px;
+    background:var(--ink); color:#0a0b0e; border:none; border-radius:999px;
+    padding:14px 28px; font-family:'Sora',sans-serif; font-weight:700; font-size:14px;
+    cursor:pointer;
+  }
+  #pauseResumeBtn:active{transform:scale(0.97);}
+  .menuToggleRow{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px; padding:14px 14px; margin-bottom:8px;
+  }
+  .menuToggleLabel{display:flex; align-items:center; gap:12px; font-size:14px; font-weight:500;}
+  .menuToggleLabel .menuItemIcon{width:20px; text-align:center; opacity:0.85;}
+  .switchEl{position:relative; width:44px; height:26px; border-radius:99px; background:rgba(255,255,255,0.12); transition:background .2s; flex:none; cursor:pointer;}
+  .switchEl i{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,0.4); font-style:normal;}
+  .switchEl.on{background:linear-gradient(90deg,var(--warm),var(--gold));}
+  .switchEl.on i{transform:translateX(18px);}
+  .volRow{padding:4px 2px 16px 2px;}
+  .volLabel{font-size:11.5px; opacity:0.6; margin-bottom:9px; display:flex; justify-content:space-between;}
+  .volSlider{-webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:99px; background:rgba(255,255,255,0.14); outline:none; cursor:pointer; display:block;}
+  .volSlider::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:linear-gradient(90deg,var(--warm),var(--gold)); box-shadow:0 1px 3px rgba(0,0,0,0.4); cursor:pointer;}
+  .volSlider::-moz-range-thumb{width:18px; height:18px; border-radius:50%; border:none; background:linear-gradient(90deg,var(--warm),var(--gold)); box-shadow:0 1px 3px rgba(0,0,0,0.4); cursor:pointer;}
+  .goalRow{padding:12px 2px; border-bottom:1px solid rgba(255,255,255,0.06);}
+  .goalRow.done .goalDesc{opacity:0.55; text-decoration:line-through;}
+  .goalTop{display:flex; align-items:center; justify-content:space-between; margin-bottom:7px;}
+  .goalDesc{font-size:12.5px; font-weight:500;}
+  .goalCheck{flex:none; width:18px; height:18px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:11px;}
+  .goalRow.done .goalCheck{background:linear-gradient(90deg,var(--warm),var(--gold)); border-color:transparent; color:#1a1204;}
+  .goalBar{height:5px; border-radius:99px; background:rgba(255,255,255,0.08); overflow:hidden;}
+  .goalBar i{display:block; height:100%; background:linear-gradient(90deg,var(--cool),var(--gold)); border-radius:99px; font-style:normal;}
+  .worldRow{display:flex; align-items:center; gap:12px; padding:14px 4px; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:background .12s;}
+  .worldRow:active{background:rgba(255,255,255,0.05);}
+  .worldRow.locked{opacity:0.38; cursor:default;}
+  .worldNum{flex:none; width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:14px;}
+  .worldInfo{flex:1; min-width:0;}
+  .worldTitle{font-family:'Sora',sans-serif; font-weight:700; font-size:13px;}
+  .worldDesc{font-size:10.5px; opacity:0.55; margin-top:2px;}
+  .worldStatus{flex:none; font-family:'Space Mono',monospace; font-size:12px; opacity:0.75;}
+  .missionBackBtn{
+    display:flex; align-items:center; gap:6px; font-family:'Sora',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:1.5px; opacity:0.6; padding:6px 2px 16px 2px; cursor:pointer;
+  }
+  .missionRow.milestone{
+    background:rgba(244,211,94,0.07); border-radius:10px; border-bottom-color:transparent;
+    box-shadow:inset 0 0 0 1px rgba(244,211,94,0.25);
+  }
+  .missionRow{display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:background .12s;}
+  .missionRow:active{background:rgba(255,255,255,0.05);}
+  .missionRow.locked{opacity:0.38; cursor:default;}
+  .missionRow.done{background:rgba(244,211,94,0.05);}
+  .missionNum{flex:none; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:700; font-size:13px;}
+  .missionRow.done .missionNum{background:linear-gradient(90deg,var(--warm),var(--gold)); border-color:transparent; color:#1a1204;}
+  .missionInfo{flex:1; min-width:0;}
+  .missionTitle{font-family:'Sora',sans-serif; font-weight:700; font-size:12.5px;}
+  .missionDesc{font-size:11px; opacity:0.6; margin-top:2px; line-height:1.4;}
+  .missionStatus{flex:none; font-size:14px; color:var(--gold); letter-spacing:1px;}
+  .skinRow{display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:background .12s;}
+  .skinRow:active{background:rgba(255,255,255,0.05);}
+  .skinRow.locked{opacity:0.4; cursor:default;}
+  .skinRow.selected{background:rgba(244,211,94,0.07); border-radius:10px; border-bottom-color:transparent; box-shadow:inset 0 0 0 1px rgba(244,211,94,0.25);}
+  .skinSwatch{flex:none; width:44px; height:34px; border-radius:9px; overflow:hidden; display:flex; border:1px solid rgba(255,255,255,0.15);}
+  .skinSwatch i{flex:1; display:block; font-style:normal;}
+  .skinInfo{flex:1; min-width:0;}
+  .skinName{font-family:'Sora',sans-serif; font-weight:700; font-size:12.5px;}
+  .skinDesc{font-size:11px; opacity:0.6; margin-top:2px;}
+  .skinStatus{flex:none; font-size:14px; color:var(--gold); letter-spacing:1px;}
+  .histRow{display:flex; align-items:center; justify-content:space-between; padding:11px 2px; border-bottom:1px solid rgba(255,255,255,0.06);}
+  .histDate{font-size:10.5px; opacity:0.5;}
+  .histScore{font-family:'Space Mono',monospace; font-weight:700; font-size:14px;}
+  .histMeta{font-size:10px; opacity:0.45; margin-top:2px;}
+  .menuInfoRow{margin-bottom:16px;}
+  .menuInfoRow b{display:block; font-family:'Sora',sans-serif; font-size:12px; letter-spacing:1.5px; color:var(--gold); margin-bottom:4px;}
+  .menuInfoRow span{font-size:12.5px; opacity:0.75; line-height:1.5;}
+
+  #onboardCoach{
+    position:fixed; left:50%; top:calc(max(14px, env(safe-area-inset-top)) + 130px);
+    transform:translate(-50%,-8px); z-index:15; max-width:min(300px, calc(100vw - 48px));
+    background:rgba(16,18,22,0.94); border:1px solid rgba(244,211,94,0.4); border-radius:14px;
+    padding:11px 16px; text-align:center; font-size:12.5px; font-weight:600; line-height:1.4;
+    color:var(--gold); opacity:0; pointer-events:none;
+    transition:opacity .3s, transform .3s;
+    box-shadow:0 10px 26px rgba(0,0,0,0.4);
+  }
+  #onboardCoach.show{opacity:1; transform:translate(-50%,0);}
+
+  #onboardIntro{
+    position:fixed; inset:0; z-index:45; background:rgba(0,0,0,0.72);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  #onboardIntro.show{opacity:1; pointer-events:auto;}
+  .onboardModalCard{
+    background:linear-gradient(180deg, rgba(22,25,32,0.99), rgba(10,11,14,0.99));
+    border:1px solid rgba(255,255,255,0.1); border-radius:20px;
+    padding:26px 22px 22px 22px; max-width:340px; width:100%; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .onboardModalTitle{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:16px; letter-spacing:0.5px;
+    background:linear-gradient(90deg,var(--cool),var(--ink) 45%,var(--warm));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .onboardModalText{font-size:12.5px; opacity:0.75; line-height:1.55; margin:2px 0 20px 0; text-align:left;}
+  .onboardSkip{margin-top:14px; font-size:11px; opacity:0.5; text-decoration:underline; cursor:pointer;}
+
+  .confettiBurst{position:fixed; inset:0; z-index:42; overflow:hidden; pointer-events:none;}
+  .confettiBurst i{
+    position:absolute; top:-12px; left:var(--x); width:7px; height:13px; border-radius:2px;
+    opacity:0.95; font-style:normal;
+    animation: confettiFall var(--dur) var(--delay) ease-in forwards;
+  }
+  @keyframes confettiFall{
+    0%{ transform:translateY(-12px) rotate(0deg); opacity:1; }
+    100%{ transform:translateY(100vh) rotate(var(--rot)); opacity:0; }
+  }
+
+  #casaScreen{
+    position:fixed; inset:0; z-index:35;
+    background:#0d1015;
+    background-image:radial-gradient(ellipse at 50% 30%, #161c26 0%, #0d1015 70%);
+    padding: max(18px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom)) 22px;
+    display:flex; flex-direction:column;
+    transform:translateY(100%);
+    transition:transform .32s cubic-bezier(.2,.9,.3,1.1);
+  }
+  #casaScreen.show{transform:translateY(0);}
+  .casaScreenHeader{display:flex; align-items:center; gap:12px; margin-bottom:18px; flex:none;}
+  #casaScreenClose{
+    width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center;
+    font-size:19px; cursor:pointer; flex:none;
+  }
+  #casaScreenTitle{font-family:'Sora',sans-serif; font-weight:700; font-size:13px; letter-spacing:2px; opacity:0.85; text-align:left;}
+  #casaScreenBody{flex:1; overflow-y:auto; -ms-overflow-style:none; scrollbar-width:none; text-align:left;}
+  #casaScreenBody::-webkit-scrollbar{display:none;}
+
+  .tutBoardWrap{position:relative; margin:6px auto 40px auto; width:100%; max-width:150px;}
+  .tutBoard{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; position:relative; z-index:2;}
+  .tutChainSvg{position:absolute; inset:0; z-index:1; overflow:visible;}
+  .tutChainSvg polyline{
+    fill:none; stroke:#eaf2f5; stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round;
+    filter:drop-shadow(0 0 5px rgba(255,255,255,0.65));
+  }
+  .tutCell{
+    aspect-ratio:1/1; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-family:'Sora',sans-serif; font-weight:700; font-size:12px;
+    background:#141922; border:2px solid transparent;
+    color:var(--ink); position:relative; z-index:2; overflow:hidden;
+  }
+  .tutCell.pos{color:var(--warm);}
+  .tutCell.neg{color:var(--cool);}
+  .tutCell.star::before{content:''; position:absolute; inset:10%; border-radius:50%; background:radial-gradient(circle, rgba(244,211,94,0.55), rgba(244,211,94,0.12) 72%); box-shadow:0 0 8px rgba(244,211,94,0.5);}
+  .tutCell.star::after{content:'★'; position:absolute; top:1px; right:3px; font-size:8px; line-height:1; color:var(--gold); text-shadow:0 0 4px rgba(244,211,94,0.9);}
+  .tutCell.stone{background:var(--rock); color:rgba(255,255,255,0.7); font-size:15px;}
+  .tutCell.inPath{background:rgba(255,255,255,0.10);}
+  .tutCell.pos.inPath{border-color:var(--warm); box-shadow:0 0 10px rgba(255,122,69,0.4);}
+  body.colorblind .tutCell.pos:not(.star)::after{content:'▲'; position:absolute; bottom:2px; left:4px; font-size:8px; line-height:1; opacity:0.85; color:var(--warm);}
+  body.colorblind .tutCell.neg:not(.star)::after{content:'▼'; position:absolute; bottom:2px; left:4px; font-size:8px; line-height:1; opacity:0.85; color:var(--cool);}
+  .tutCell.neg.inPath{border-color:var(--cool); box-shadow:0 0 10px rgba(63,169,245,0.4);}
+  .tutBadge{
+    position:absolute; left:83.333%; bottom:-27px; transform:translateX(-50%);
+    font-family:'Space Mono',monospace; font-weight:700; font-size:12px; color:#fff;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+    border-radius:8px; padding:2px 9px; white-space:nowrap;
+  }
+  .tutLabel{
+    text-align:center; font-family:'Sora',sans-serif; font-size:10px; letter-spacing:2px;
+    opacity:0.45; margin:0 0 8px 0;
+  }
+  .tutCaption{text-align:left; font-size:11px; opacity:0.6; margin-top:28px; margin-bottom:20px; line-height:1.55;}
+  .tutCaption p{margin:0 0 10px 0;}
+  .tutCaption p:last-child{margin-bottom:0;}
+  .tutHudDemo{display:flex; gap:12px; margin-bottom:22px;}
+  .tutHudItem{flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px;}
+  .tutHudItem b{display:block; font-family:'Sora',sans-serif; font-size:10px; letter-spacing:1.5px; color:var(--gold); margin-bottom:7px;}
+  .tutMiniBar{height:6px; border-radius:99px; background:rgba(255,255,255,0.08); overflow:hidden;}
+  .tutMiniBar i{display:block; height:100%; width:55%; background:linear-gradient(90deg,#3fa9f5,#f4d35e 60%,#ff3b30 100%); border-radius:99px;}
+  .tutComboChip{font-family:'Sora',sans-serif; font-weight:800; font-size:18px; color:var(--gold);}
+  .tutHudItem span{font-size:10px; opacity:0.6; display:block; margin-top:6px; line-height:1.4;}
+  .menuStatRow{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 2px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12.5px; opacity:0.85;
+  }
+  .menuStatRow b{font-family:'Space Mono',monospace; font-size:14px; opacity:1;}
+  .menuAchRow{display:flex; gap:10px; align-items:flex-start; padding:11px 2px; border-bottom:1px solid rgba(255,255,255,0.06); opacity:0.4;}
+  .menuAchRow.unlocked{opacity:1;}
+  .menuAchIcon{flex:none; width:26px; text-align:center; font-size:19px; padding-top:1px; filter:grayscale(0);}
+  .menuAchRow:not(.unlocked) .menuAchIcon{filter:grayscale(1); opacity:0.7;}
+  .menuAchTitle{font-family:'Sora',sans-serif; font-size:12.5px; font-weight:700;}
+  .menuAchDesc{font-size:11px; opacity:0.65; margin-top:2px; line-height:1.4;}
+  .menuCasaEmpty{font-size:12px; opacity:0.5; padding:14px 2px; text-align:center;}
+  .lbRow{display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12.5px;}
+  .lbRow.me{background:rgba(244,211,94,0.08); border-radius:10px; padding-left:8px; padding-right:8px;}
+  .lbRank{flex:none; width:24px; text-align:center; font-family:'Sora',sans-serif; font-weight:700; opacity:0.6; font-size:12px;}
+  .lbName{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lbScore{flex:none; font-family:'Space Mono',monospace; color:var(--gold); font-size:13px;}
+  .lbNickRow{display:flex; gap:8px; padding:2px 2px 16px 2px;}
+  .lbNickRow input{
+    flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
+    border-radius:10px; padding:10px 12px; color:var(--ink); font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .lbNickRow button{
+    flex:none; background:var(--ink); color:#0a0b0e; border:none; border-radius:10px;
+    padding:0 16px; font-family:'Sora',sans-serif; font-weight:700; font-size:12px; cursor:pointer;
+  }
+  .lbNickRow button:active{transform:scale(0.96);}
+  .lbSyncNote{font-size:10px; opacity:0.4; text-align:center; padding:2px 6px 12px 6px; line-height:1.4;}
+  .casaGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+  .casaCard{
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px; padding:14px 10px; text-align:center;
+  }
+  .casaCardIcon{font-size:18px; margin-bottom:6px;}
+  .casaCardVal{font-family:'Sora',sans-serif; font-weight:800; font-size:19px;}
+  .casaCardLabel{font-size:9.5px; letter-spacing:1.5px; opacity:0.5; margin-top:3px; text-transform:uppercase;}
+  .casaSectionLabel{font-size:10px; letter-spacing:2px; opacity:0.45; margin-bottom:6px;}
+  .casaNavGrid{width:100%; max-width:340px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:0;}
+  .casaNavBtn{
+    flex:0 0 calc(25% - 6px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px; padding:9px 3px 8px 3px; color:var(--ink);
+    font-family:'Inter',sans-serif; font-size:8.5px; font-weight:500; letter-spacing:0.2px;
+    cursor:pointer; transition:background .15s, transform .1s; text-align:center; line-height:1.2;
+  }
+  .casaNavBtn:active{transform:scale(0.95); background:rgba(255,255,255,0.09);}
+  .casaNavBtn.danger{color:#ff8a80; border-color:rgba(255,59,48,0.25);}
+  .casaNavIcon{font-size:16px;}
+
+  .screen{
+    position:fixed; inset:0; z-index:10;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px; overflow-y:auto;
+    background:#0d1015;
+    background-image:radial-gradient(ellipse at 50% 35%, #161c26 0%, #0d1015 70%);
+    transition:opacity .35s ease;
+  }
+  .screen.hidden{opacity:0; pointer-events:none;}
+  .title{
+    font-family:'Sora',sans-serif; font-weight:800;
+    font-size:66px; letter-spacing:4px; margin:0 0 6px 0;
+    background:linear-gradient(90deg,var(--cool),var(--ink) 45%,var(--warm));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .tagline{font-size:14px; opacity:0.6; margin-bottom:30px; max-width:300px; line-height:1.5;}
+  .howto{display:flex; gap:18px 18px; margin-bottom:36px; flex-wrap:wrap; justify-content:center; max-width:340px;}
+  .howto div{width:150px; font-size:12px; opacity:0.65; line-height:1.5;}
+  .howto b{display:block; color:var(--ink); opacity:1; font-family:'Sora',sans-serif; font-size:13px; margin-bottom:4px;}
+  .howtoIcon{width:44px; height:44px; display:block; margin:0 auto 8px auto;}
+  .cta{
+    font-family:'Sora',sans-serif; font-weight:700; letter-spacing:1.5px; font-size:15px;
+    background:linear-gradient(90deg,var(--warm),var(--gold)); color:#1a1204; border:none; border-radius:999px;
+    padding:16px 42px; cursor:pointer; box-shadow:0 0 40px rgba(255,122,69,0.3);
+    transition:transform .12s;
+  }
+  .cta:active{transform:scale(0.95);}
+  #gameOverScreen .title{font-size:28px; letter-spacing:3px; background:linear-gradient(90deg,#ff3b30,var(--warm)); -webkit-background-clip:text; background-clip:text;}
+  .startDashboard{width:100%; max-width:340px; margin:0;}
+  #startScreen{
+    overflow:hidden; justify-content:center; gap:clamp(10px,2.6vh,18px);
+    padding:max(18px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom)) 22px;
+  }
+  #startScreen .title{font-size:clamp(34px,10vh,52px); margin:0;}
+  #startScreen .tagline{font-size:11.5px; margin:0; max-width:260px; line-height:1.4; opacity:0.5;}
+  #startScreen .cta{padding:14px 40px;}
+  #startScreen .casaGrid{display:flex; flex-wrap:wrap; justify-content:center; gap:8px;}
+  #startScreen .casaCard{flex:0 0 calc((100% - 16px)/3); box-sizing:border-box; padding:9px 5px; border-radius:12px;}
+  #startScreen .casaCardIcon{font-size:14px; margin-bottom:3px;}
+  #startScreen .casaCardVal{font-size:14px;}
+  #startScreen .casaCardLabel{font-size:7.5px; margin-top:2px;}
+  .howtoDetails{width:100%; max-width:340px; margin-top:22px;}
+  .howtoDetails summary{
+    cursor:pointer; list-style:none; font-family:'Sora',sans-serif; font-size:11px;
+    letter-spacing:2px; opacity:0.45; text-align:center; padding:6px; user-select:none;
+  }
+  .howtoDetails summary::-webkit-details-marker{display:none;}
+  .howtoDetails summary::after{content:' ▾'; }
+  .howtoDetails[open] summary::after{content:' ▴'; }
+  .howtoDetails .howto{margin-top:18px;}
+  .statRow{display:flex; gap:40px; margin:16px 0 30px 0;}
+  .statBlock{text-align:center;}
+  .statBlock span{display:block;}
+  .statNum{font-family:'Sora',sans-serif; font-size:30px; font-weight:800;}
+  .statLbl{font-size:10px; letter-spacing:2px; opacity:0.5; margin-top:4px;}
+  .ctaRow{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;}
+  .ctaGhost{
+    font-family:'Sora',sans-serif; font-weight:700; letter-spacing:1px; font-size:13px;
+    background:rgba(255,255,255,0.06); color:var(--ink); border:1px solid rgba(255,255,255,0.14);
+    border-radius:999px; padding:15px 24px; cursor:pointer; transition:transform .12s, background .15s;
+    display:flex; align-items:center; gap:7px;
+  }
+  .ctaGhost:active{transform:scale(0.95); background:rgba(255,255,255,0.12);}
+  #missionsBtn{
+    background:linear-gradient(90deg, var(--cool), #b06bff 45%, var(--warm) 90%);
+    background-size:220% 100%;
+    color:#0d1015; border:none; font-weight:700;
+    box-shadow:0 0 18px rgba(63,169,245,0.35), 0 0 28px rgba(255,122,69,0.22);
+    animation:missionPulse 3.2s ease-in-out infinite;
+  }
+  #missionsBtn:active{transform:scale(0.95);}
+  @keyframes missionPulse{
+    0%,100%{ background-position:0% 50%; box-shadow:0 0 16px rgba(63,169,245,0.32), 0 0 24px rgba(255,122,69,0.18); }
+    50%{ background-position:100% 50%; box-shadow:0 0 26px rgba(176,107,255,0.5), 0 0 32px rgba(244,211,94,0.32); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #missionsBtn{ animation:none; }
+  }
+  .shareToast{
+    position:fixed; left:50%; bottom:max(28px, env(safe-area-inset-bottom)); z-index:40;
+    transform:translate(-50%,20px); opacity:0; transition:transform .25s, opacity .25s;
+    background:rgba(20,22,26,0.96); border:1px solid rgba(255,255,255,0.14);
+    border-radius:999px; padding:10px 18px; font-size:12px; pointer-events:none;
+  }
+  .shareToast.show{transform:translate(-50%,0); opacity:1;}
+
+  @media (max-width:420px){
+    .title{font-size:48px;}
+    .howto{gap:12px 14px;}
+    .howto div{width:120px; font-size:10.5px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="hudTop">
+    <div id="menuBtn" aria-label="Menu"><span></span><span></span><span></span></div>
+    <div id="pauseBtn" aria-label="Pausa"><span></span><span></span></div>
+    <div id="scoreWrap">
+      <div id="scoreVal">0</div>
+      <div id="scoreLabel">PONTOS</div>
+      <div id="comboBadge">×1</div>
+    </div>
+    <div id="levelWrap"><span id="levelLabel">NÍVEL</span><br><span id="levelVal">1</span></div>
+  </div>
+  <div id="missionTitleBar"></div>
+  <div id="corruptionOuter"><div id="corruptionInner"></div></div>
+  <div id="corruptionLabel">ENERGIA</div>
+</div>
+
+<div id="hintBtn" aria-label="Dica">💡<span class="hintCost">+8</span></div>
+
+<div id="achToast">
+  <div id="achToastBadge">★</div>
+  <div>
+    <div id="achToastTitle"></div>
+    <div id="achToastDesc"></div>
+  </div>
+</div>
+
+<div id="onboardCoach"><div id="onboardCoachText"></div></div>
+
+<div id="onboardIntro">
+  <div class="onboardModalCard">
+    <div class="onboardModalTitle">LIGA NÚMEROS ATÉ SOMAREM ZERO</div>
+    <div class="tutBoardWrap" style="margin:14px auto 22px auto;">
+      <svg class="tutChainSvg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline points="16.667,16.667 50,16.667 50,50 83.333,83.333"></polyline>
+      </svg>
+      <div class="tutBoard">
+        <div class="tutCell pos inPath">+3</div>
+        <div class="tutCell neg inPath">-1</div>
+        <div class="tutCell pos">+4</div>
+        <div class="tutCell neg">-2</div>
+        <div class="tutCell neg inPath">-3</div>
+        <div class="tutCell stone">✕</div>
+        <div class="tutCell star pos">+5</div>
+        <div class="tutCell pos">+2</div>
+        <div class="tutCell pos inPath">+1</div>
+      </div>
+      <div class="tutBadge">= 0 ✓</div>
+    </div>
+    <div class="onboardModalText">Arrasta o dedo por números vizinhos — horizontal, vertical ou diagonal — até a soma da cadeia dar exatamente <b style="color:var(--ink)">0</b>. Quando isso acontecer, os números desaparecem e pontuas!</div>
+    <button class="cta" id="onboardIntroBtn">VAMOS LÁ</button>
+    <div class="onboardSkip" id="onboardSkipBtn">Já sei jogar</div>
+  </div>
+</div>
+
+<div id="menuOverlay"></div>
+<div id="menuDrawer">
+  <div class="menuHeader">MENU<div class="menuCloseX" id="menuCloseBtn">✕</div></div>
+  <div id="menuList">
+    <div class="menuItem" id="menuResume"><span class="menuItemIcon">▶</span>Continuar</div>
+    <div class="menuItem" id="menuCasa"><span class="menuItemIcon">⌂</span>Casa</div>
+  </div>
+  <div id="menuFooter">ZERO</div>
+</div>
+
+<div id="pauseOverlay">
+  <div id="pauseTitle">PAUSA</div>
+  <button id="pauseResumeBtn"><span>▶</span>Continuar</button>
+</div>
+
+<div id="casaScreen">
+  <div class="casaScreenHeader">
+    <div id="casaScreenClose">‹</div>
+    <div id="casaScreenTitle"></div>
+  </div>
+  <div id="casaScreenBody"></div>
+</div>
+
+<div class="screen" id="startScreen">
+  <div class="title">ZERO</div>
+  <div class="tagline">Liga números vizinhos até a soma dar exatamente zero.</div>
+  <div id="startDashboard" class="startDashboard"></div>
+  <div class="ctaRow">
+    <button class="cta" id="startBtn">MODO LIVRE</button>
+    <button class="ctaGhost" id="missionsBtn">🚀 MISSÕES</button>
+  </div>
+  <div class="casaNavGrid" id="startMenuList">
+    <div class="casaNavBtn" id="casaHowTo"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#ff7a45" stroke-width="1.7"/><path d="M9.3 9.5a2.7 2.7 0 015.2.9c0 1.8-2.5 2-2.5 3.8" stroke="#ff7a45" stroke-width="1.7" stroke-linecap="round" fill="none"/><circle cx="12" cy="17.3" r="1.1" fill="#ff7a45"/></svg></span>Como Jogar</div>
+    <div class="casaNavBtn" id="casaStats"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="13" width="4" height="7" rx="1" fill="#3fa9f5"/><rect x="10" y="8" width="4" height="12" rx="1" fill="#f4d35e"/><rect x="16" y="4" width="4" height="16" rx="1" fill="#ff7a45"/></svg></span>Estatísticas</div>
+    <div class="casaNavBtn" id="casaAch"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17.6l-6.1 3.4 1.5-6.8-5.2-4.7 6.9-.7z" fill="#f4d35e"/></svg></span>Conquistas</div>
+    <div class="casaNavBtn" id="casaGoals"><span class="casaNavIcon">🎯</span>Objetivos</div>
+    <div class="casaNavBtn" id="casaHistory"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#f4d35e" stroke-width="1.7"/><path d="M12 6.5v6l4 2.3" stroke="#f4d35e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>Histórico</div>
+    <div class="casaNavBtn" id="casaSettings"><span class="casaNavIcon"><svg width="16" height="16" viewBox="0 0 24 24"><g fill="#3fa9f5"><rect x="10.6" y="1.3" width="2.8" height="4" rx="1"/><rect x="10.6" y="18.7" width="2.8" height="4" rx="1"/><rect x="1.3" y="10.6" width="4" height="2.8" rx="1"/><rect x="18.7" y="10.6" width="4" height="2.8" rx="1"/><rect x="4.5" y="4.5" width="2.8" height="4" rx="1" transform="rotate(45 5.9 6.5)"/><rect x="16.7" y="15.7" width="2.8" height="4" rx="1" transform="rotate(45 18.1 17.7)"/><rect x="4.5" y="15.7" width="2.8" height="4" rx="1" transform="rotate(-45 5.9 17.7)"/><rect x="16.7" y="4.5" width="2.8" height="4" rx="1" transform="rotate(-45 18.1 6.5)"/><circle cx="12" cy="12" r="6.3"/></g><circle cx="12" cy="12" r="2.9" fill="#141922"/></svg></span>Definições</div>
+    <div class="casaNavBtn" id="casaSkins"><span class="casaNavIcon">🎨</span>Paletas</div>
+    <div class="casaNavBtn" id="casaRanking"><span class="casaNavIcon">🏆</span>Ranking</div>
+  </div>
+</div>
+
+<div class="screen hidden" id="gameOverScreen">
+  <div class="title">FIM DE JOGO</div>
+  <div class="statRow">
+    <div class="statBlock"><span class="statNum" id="finalScore">0</span><span class="statLbl">PONTOS</span></div>
+    <div class="statBlock"><span class="statNum" id="finalBest">0</span><span class="statLbl">RECORDE</span></div>
+  </div>
+  <div class="ctaRow">
+    <button class="cta" id="retryBtn">TENTAR DE NOVO</button>
+    <button class="ctaGhost" id="shareBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="3" fill="currentColor"/><circle cx="6" cy="12" r="3" fill="currentColor"/><circle cx="18" cy="19" r="3" fill="currentColor"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9" stroke="currentColor" stroke-width="1.8"/></svg> PARTILHAR</button>
+  </div>
+</div>
+
+<div class="screen hidden" id="missionIntroScreen">
+  <div class="tagline" id="missionIntroNum" style="margin-bottom:6px; opacity:0.5; letter-spacing:3px; font-size:11px;">MISSÃO</div>
+  <div class="title" id="missionIntroTitle" style="font-size:30px;">Missão</div>
+  <div id="missionIntroGoalBox" style="margin:10px 0 30px 0; padding:16px 22px; border-radius:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(244,211,94,0.25); max-width:300px;">
+    <div style="font-size:10px; letter-spacing:3px; opacity:0.5; margin-bottom:8px;">OBJETIVO</div>
+    <div id="missionIntroGoal" style="font-family:'Sora',sans-serif; font-weight:700; font-size:16px; color:var(--gold);"></div>
+  </div>
+  <div class="ctaRow">
+    <button class="cta" id="missionIntroStartBtn">COMEÇAR</button>
+    <button class="ctaGhost" id="missionIntroHomeBtn">⌂ CASA</button>
+  </div>
+</div>
+
+<div class="screen hidden" id="missionResultScreen">
+  <div class="title" id="missionResultTitle">MISSÃO CUMPRIDA</div>
+  <div id="missionResultStars" style="font-size:32px; letter-spacing:8px; margin-bottom:14px; color:var(--gold);"></div>
+  <div class="tagline" id="missionResultDesc"></div>
+  <div id="missionResultStreak" style="display:none; align-items:center; gap:6px; justify-content:center; margin-top:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:13px; color:var(--warm);"></div>
+  <div class="statRow">
+    <div class="statBlock"><span class="statNum" id="missionResultScoreVal">0</span><span class="statLbl">PONTOS</span></div>
+  </div>
+  <div class="ctaRow">
+    <button class="cta" id="missionNextBtn">PRÓXIMA MISSÃO</button>
+    <button class="ctaGhost" id="missionRetryBtn">TENTAR DE NOVO</button>
+    <button class="ctaGhost" id="missionHomeBtn">⌂ CASA</button>
+  </div>
+</div>
+
+<div class="shareToast" id="shareToast">Copiado!</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const reducedMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let DPR = Math.min(window.devicePixelRatio||1, 2);
+  let W=0, H=0;
+  function resize(){
+    W = window.innerWidth; H = window.innerHeight;
+    DPR = Math.min(window.devicePixelRatio||1, 2);
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    layoutGrid();
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- config ----------
+  const COLS = 4, ROWS = 6, GAP = 10;
+  const COMBO_WINDOW = 2.5;
+
+  // ---------- state ----------
+  const STATE = { START:0, PLAYING:1, OVER:2 };
+  let state = STATE.START;
+  const BEST_KEY = 'zero_best_score';
+  function loadBest(){
+    try{
+      const v = parseInt(localStorage.getItem(BEST_KEY), 10);
+      return Number.isFinite(v) ? v : 0;
+    }catch(e){ return 0; }
+  }
+  function saveBest(v){
+    try{ localStorage.setItem(BEST_KEY, String(v)); }catch(e){}
+  }
+  let best = loadBest();
+
+  // ---------- missions ----------
+  const MISSION_KEY = 'zero_missions';
+  function loadMissionState(){
+    try{
+      const s = JSON.parse(localStorage.getItem(MISSION_KEY));
+      return Object.assign({unlocked:1, stars:{}}, s||{});
+    }catch(e){ return {unlocked:1, stars:{}}; }
+  }
+  function saveMissionState(s){ try{ localStorage.setItem(MISSION_KEY, JSON.stringify(s)); }catch(e){} }
+  let missionState = loadMissionState();
+
+  // ---------- mission 3-star streak ----------
+  const MISSION_STREAK_KEY = 'zero_mission_streak';
+  function loadMissionStreak(){
+    try{
+      const s = JSON.parse(localStorage.getItem(MISSION_STREAK_KEY));
+      return Object.assign({current:0, best:0}, s||{});
+    }catch(e){ return {current:0, best:0}; }
+  }
+  function saveMissionStreak(s){ try{ localStorage.setItem(MISSION_STREAK_KEY, JSON.stringify(s)); }catch(e){} }
+  let missionStreak = loadMissionStreak();
+  function registerMissionOutcome(threeStars){
+    if(threeStars){
+      missionStreak.current += 1;
+      if(missionStreak.current > missionStreak.best) missionStreak.best = missionStreak.current;
+    } else {
+      missionStreak.current = 0;
+    }
+    saveMissionStreak(missionStreak);
+  }
+  let mode = 'classic'; // 'classic' | 'mission'
+  let missionIndex = null, currentMission = null, missionProgress = null;
+
+  // 25 adjetivos × 20 substantivos = 500 combinações, cada uma usada exatamente uma vez,
+  // garantindo que nenhum nome de missão se repete.
+  const MISSION_ADJECTIVES = [
+    'Silenciosa','Vibrante','Instável','Fulgurante','Sombria','Elétrica','Fluida','Rígida',
+    'Ardente','Gélida','Radiante','Oculta','Feroz','Serena','Caótica','Luminosa',
+    'Densa','Etérea','Implacável','Fugaz','Cristalina','Errante','Absoluta','Profunda','Última'
+  ];
+  const MISSION_NOUNS = [
+    'Corrente','Sobrecarga','Ressonância','Singularidade','Anomalia','Frequência','Tempestade','Descarga',
+    'Vertigem','Colisão','Ruptura','Convergência','Deriva','Pulsação','Fronteira','Órbita',
+    'Erupção','Cadência','Marca','Epifania'
+  ];
+  function goalDesc(type, target){
+    switch(type){
+      case 'clears': return 'Zera '+target+' cadeias.';
+      case 'score':  return 'Faz '+target.toLocaleString('pt-PT')+' pontos numa só partida.';
+      case 'chain':  return 'Zera uma cadeia com '+target+'+ números.';
+      case 'stars':  return 'Zera '+target+' cadeias com estrela.';
+      case 'combo':  return 'Alcança um combo ×'+target+'.';
+      case 'duo':    return 'Zera '+target+' cadeias de apenas 2 números.';
+      case 'zero':   return 'Zera '+target+' cadeias com um bloco Zero.';
+      case 'big':    return 'Zera uma cadeia com um número de valor '+target+'+ (positivo ou negativo).';
+      case 'level':  return 'Alcança o nível '+target+' numa só partida.';
+    }
+  }
+  function goalHudLabel(type){
+    return {
+      clears:'CADEIAS', score:'PONTOS', chain:'CADEIA MÁX', stars:'ESTRELAS', combo:'COMBO MÁX',
+      duo:'DUPLAS', zero:'ZEROS', big:'Nº MÁX', level:'NÍVEL MÁX'
+    }[type];
+  }
+  function generateMissions(count){
+    const types = ['clears','score','chain','stars','combo','duo','zero','big','level'];
+    const missions = [];
+    for(let i=0;i<count;i++){
+      const type = types[i % types.length];
+      const cycle = Math.floor(i / types.length);
+      const adj = MISSION_ADJECTIVES[i % MISSION_ADJECTIVES.length];
+      const noun = MISSION_NOUNS[Math.floor(i / MISSION_ADJECTIVES.length) % MISSION_NOUNS.length];
+      const title = 'Missão '+(i+1)+' · '+adj+' '+noun;
+      const startLevel = Math.min(30, 1 + Math.floor(i/12));
+      let target;
+      switch(type){
+        case 'clears': target = Math.min(80, 5 + cycle*2); break;
+        case 'score':  target = Math.min(50000, 300 + cycle*150); break;
+        case 'chain':  target = Math.min(10, 4 + Math.floor(cycle/2)); break;
+        case 'stars':  target = Math.min(30, 3 + cycle*2); break;
+        case 'combo':  target = Math.min(6, 3 + Math.floor(cycle/2)); break;
+        case 'duo':    target = Math.min(20, 3 + Math.floor(cycle/3)); break;
+        case 'zero':   target = Math.min(15, 2 + Math.floor(cycle/4)); break;
+        case 'big':    target = Math.min(9, 5 + Math.floor(cycle/6)); break;
+        case 'level':  target = Math.min(30, startLevel + 2 + Math.floor(cycle/4)); break;
+      }
+      missions.push({
+        id: 'm'+(i+1),
+        title,
+        desc: goalDesc(type, target),
+        goal: {type, target},
+        startLevel,
+        hudLabel: goalHudLabel(type)
+      });
+    }
+    return missions;
+  }
+  const MISSIONS = generateMissions(500);
+  const WORLD_SIZE = 25;
+  const WORLD_NAMES = [
+    'Despertar','Primeiro Impulso','Corrente Firme','Zona de Risco','Sobrecarga',
+    'Ponto Crítico','Reação em Cadeia','Núcleo Instável','Tempestade de Números','Vórtice',
+    'Colapso Controlado','Singularidade','Campo Magnético','Ressonância','Frequência Máxima',
+    'Zona Vermelha','Limiar','Última Fronteira','Anomalia','Zero Absoluto'
+  ];
+  const MISSION_MILESTONE_STEP = 50;
+  function missionGoalValue(m,p){
+    switch(m.goal.type){
+      case 'score': return p.score;
+      case 'clears': return p.clears;
+      case 'chain': return p.maxChain;
+      case 'stars': return p.starClears;
+      case 'combo': return p.maxCombo;
+      case 'duo': return p.duoClears;
+      case 'zero': return p.zeroClears;
+      case 'big': return p.maxBigNum;
+      case 'level': return p.maxLevel;
+      default: return 0;
+    }
+  }
+
+  // ---------- skins (cosmetic rewards) ----------
+  const SKIN_KEY = 'zero_skins';
+  const SKINS = [
+    {name:'Clássico',  warm:'#ff7a45', cool:'#3fa9f5', gold:'#f4d35e'},
+    {name:'Neon',      warm:'#ff2e6c', cool:'#17e6c0', gold:'#f6ff5c'},
+    {name:'Pôr do Sol',warm:'#ff6b35', cool:'#6b5ce7', gold:'#ffd23f'},
+    {name:'Abissal',   warm:'#ff5da2', cool:'#2196f3', gold:'#7cffb2'},
+    {name:'Lava',      warm:'#ff3d00', cool:'#4fc3f7', gold:'#ffab00'},
+    {name:'Aurora',    warm:'#ff8fab', cool:'#64dfdf', gold:'#ffe66d'},
+    {name:'Ametista',  warm:'#c77dff', cool:'#4cc9f0', gold:'#ffd166'},
+    {name:'Esmeralda', warm:'#ff7096', cool:'#06d6a0', gold:'#fff275'},
+    {name:'Vaporwave', warm:'#ff71ce', cool:'#01cdfe', gold:'#fffb96'},
+    {name:'Ouro Absoluto', warm:'#ff9e00', cool:'#3a86ff', gold:'#ffffff'}
+  ];
+  function loadSkinState(){
+    try{
+      const s = JSON.parse(localStorage.getItem(SKIN_KEY));
+      const merged = Object.assign({unlocked:[0], selected:0}, s||{});
+      if(!Array.isArray(merged.unlocked) || !merged.unlocked.includes(0)) merged.unlocked = [0];
+      return merged;
+    }catch(e){ return {unlocked:[0], selected:0}; }
+  }
+  function saveSkinState(s){ try{ localStorage.setItem(SKIN_KEY, JSON.stringify(s)); }catch(e){} }
+  let skinState = loadSkinState();
+  function currentSkin(){ return SKINS[skinState.selected] || SKINS[0]; }
+  function themeWarm(){ return currentSkin().warm; }
+  function themeCool(){ return currentSkin().cool; }
+  function themeGold(){ return currentSkin().gold; }
+  function rgbaFromHex(hex, alpha){
+    const [r,g,b] = hexToRgb(hex);
+    return 'rgba('+r+','+g+','+b+','+alpha+')';
+  }
+  function applySkin(){
+    const sk = currentSkin();
+    document.documentElement.style.setProperty('--warm', sk.warm);
+    document.documentElement.style.setProperty('--cool', sk.cool);
+    document.documentElement.style.setProperty('--gold', sk.gold);
+  }
+
+  // ---------- settings (sound / vibration) ----------
+  const SETTINGS_KEY = 'zero_settings';
+  function loadSettings(){
+    try{
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+      return Object.assign({sound:true, vibration:true, colorBlind:false, music:true, musicVolume:0.55, sfxVolume:1, muted:false}, s||{});
+    }catch(e){ return {sound:true, vibration:true, colorBlind:false, music:true, musicVolume:0.55, sfxVolume:1, muted:false}; }
+  }
+  function saveSettings(s){
+    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }catch(e){}
+  }
+  const settings = loadSettings();
+
+  // ---------- audio engine (procedural, no external files) ----------
+  let actx = null;
+  function ensureCtx(){
+    if(!actx){
+      try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+    }
+    if(actx.state==='suspended') actx.resume();
+    return actx;
+  }
+  function ensureAudio(){
+    if(!settings.sound || settings.muted) return null;
+    return ensureCtx();
+  }
+  function tone(freq, dur, type, gainPeak, delay, sweepTo){
+    const ac = ensureAudio();
+    if(!ac) return;
+    const vol = (settings.sfxVolume==null?1:settings.sfxVolume);
+    if(vol<=0) return;
+    const t0 = ac.currentTime + (delay||0);
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type||'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if(sweepTo) osc.frequency.exponentialRampToValueAtTime(sweepTo, t0+dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime((gainPeak||0.18)*vol, t0+0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(gain).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0+dur+0.02);
+  }
+  function sndTap(){ tone(320,0.05,'sine',0.06); }
+  function sndFizzle(){ tone(160,0.16,'sawtooth',0.09,0,110); }
+  function sndClear(comboMultiplier){
+    const base = 420 + Math.min(comboMultiplier,6)*70;
+    tone(base,0.11,'sine',0.14);
+    tone(base*1.5,0.14,'sine',0.09,0.045);
+  }
+  function sndCombo(m){
+    for(let i=0;i<Math.min(m,4);i++) tone(500+i*140,0.08,'triangle',0.11,i*0.05);
+  }
+  function sndAchievement(){
+    tone(523,0.1,'triangle',0.12,0);
+    tone(659,0.1,'triangle',0.12,0.09);
+    tone(784,0.18,'triangle',0.13,0.18);
+  }
+  function sndRecord(){
+    [523,659,784,1046].forEach((f,i)=> tone(f,0.16,'triangle',0.13,i*0.09));
+  }
+  function sndMissionComplete(){
+    // fanfare triunfante, distinta do recorde clássico e das conquistas
+    [392,494,587,784].forEach((f,i)=> tone(f,0.16,'triangle',0.15,i*0.07));
+    tone(1046,0.4,'sine',0.13,0.31);
+    tone(1568,0.3,'sine',0.07,0.34);
+  }
+  function sndMissionUnlock(){
+    // chime ascendente e leve, distinto da fanfarra de missão cumprida
+    tone(660,0.08,'sine',0.09,0);
+    tone(880,0.08,'sine',0.1,0.06);
+    tone(1174,0.1,'sine',0.1,0.12);
+    tone(1568,0.26,'sine',0.11,0.18,2093);
+  }
+  function sndGameOver(){
+    tone(300,0.3,'sawtooth',0.1,0,90);
+  }
+  function sndMenu(){ tone(280,0.06,'sine',0.05); }
+  function vibrate(pattern){
+    if(!settings.vibration || settings.muted) return;
+    try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+  }
+
+  // ---------- background music (procedural ambient loop) ----------
+  let musicGain = null, musicLoopHandle = null, musicChordIdx = 0, musicStep = 0;
+  const MUSIC_CHORDS = [
+    [130.81,164.81,196.00,246.94], // Cmaj7
+    [110.00,146.83,174.61,220.00], // Dm-ish (ambient)
+    [98.00,123.47,146.83,196.00],  // G
+    [87.31,110.00,130.81,174.61]   // F
+  ];
+  function ensureMusicGain(){
+    const ac = ensureCtx();
+    if(!ac) return null;
+    if(!musicGain){
+      musicGain = ac.createGain();
+      musicGain.gain.value = 0;
+      musicGain.connect(ac.destination);
+    }
+    return {ac, gain:musicGain};
+  }
+  function playMusicNote(freq, dur, type, gainPeak, delay){
+    const m = ensureMusicGain();
+    if(!m) return;
+    const {ac, gain:master} = m;
+    const t0 = ac.currentTime + (delay||0);
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    osc.type = type||'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gainPeak||0.05, t0+dur*0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(g).connect(master);
+    osc.start(t0);
+    osc.stop(t0+dur+0.05);
+  }
+  function musicTick(){
+    if(!settings.music || settings.muted) return;
+    const chord = MUSIC_CHORDS[musicChordIdx % MUSIC_CHORDS.length];
+    if(musicStep % 8 === 0){
+      chord.forEach((f,i)=> playMusicNote(f, 7.5, 'sine', 0.05, i*0.15));
+      musicChordIdx++;
+    }
+    if(musicStep % 2 === 1){
+      const note = chord[Math.floor(Math.random()*chord.length)] * 2;
+      playMusicNote(note, 1.6, 'triangle', 0.035);
+    }
+    musicStep++;
+  }
+  function applyMusicGain(){
+    const m = ensureMusicGain();
+    if(!m) return;
+    const target = (settings.music && !settings.muted) ? (settings.musicVolume==null?0.55:settings.musicVolume) : 0;
+    m.gain.gain.cancelScheduledValues(m.ac.currentTime);
+    m.gain.gain.setTargetAtTime(target, m.ac.currentTime, 0.5);
+  }
+  function startMusic(){
+    ensureMusicGain();
+    applyMusicGain();
+    if(musicLoopHandle) return;
+    musicTick();
+    musicLoopHandle = setInterval(musicTick, 950);
+  }
+  function setMusicEnabled(on){
+    settings.music = on;
+    saveSettings(settings);
+    applyMusicGain();
+    if(on) startMusic();
+  }
+  function setMusicVolume(v){
+    settings.musicVolume = v;
+    saveSettings(settings);
+    applyMusicGain();
+  }
+  function setSfxVolume(v){
+    settings.sfxVolume = v;
+    saveSettings(settings);
+  }
+  function toggleMasterMute(){
+    settings.muted = !settings.muted;
+    saveSettings(settings);
+    applyMusicGain();
+    try{ if(navigator.vibrate) navigator.vibrate(settings.muted ? 25 : [10,30,10]); }catch(e){}
+    showShareToast(settings.muted ? '🔇 Som silenciado' : '🔊 Som ativado');
+    const settingsBody = document.getElementById('casaScreenBody');
+    if(settingsBody && document.getElementById('toggleSound')){
+      openCasaScreen('DEFINIÇÕES', renderSettingsHTML());
+    }
+  }
+
+  // ---------- achievements ----------
+  const STATS_KEY = 'zero_stats';
+  const ACH_KEY = 'zero_achievements';
+  const DEFAULT_STATS = {
+    totalClears:0, maxChainLen:0, maxCombo:0, maxLevel:0,
+    starClears:0, duoClears:0, closeCalls:0, gamesPlayed:0,
+    totalScoreLifetime:0, maxStreak:0
+  };
+  function loadStats(){
+    try{
+      const s = JSON.parse(localStorage.getItem(STATS_KEY));
+      return Object.assign({}, DEFAULT_STATS, s||{});
+    }catch(e){ return Object.assign({}, DEFAULT_STATS); }
+  }
+  function saveStats(s){
+    try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){}
+  }
+  function loadUnlocked(){
+    try{
+      const arr = JSON.parse(localStorage.getItem(ACH_KEY));
+      return new Set(Array.isArray(arr) ? arr : []);
+    }catch(e){ return new Set(); }
+  }
+  function saveUnlocked(set){
+    try{ localStorage.setItem(ACH_KEY, JSON.stringify([...set])); }catch(e){}
+  }
+  const stats = loadStats();
+  const unlocked = loadUnlocked();
+  const ACHIEVEMENTS = [
+    // primeiros passos
+    {id:'first_clear', icon:'🔗', title:'Primeira Cadeia', desc:'Zeraste a tua primeira cadeia.', check:(s,sc)=> s.totalClears>=1},
+    {id:'first_star', icon:'⭐', title:'Toque Dourado', desc:'Zeraste uma cadeia com uma estrela.', check:(s,sc)=> s.starClears>=1},
+    {id:'first_combo', icon:'✨', title:'Reação Iniciada', desc:'Alcançaste o teu primeiro combo ×2.', check:(s,sc)=> s.maxCombo>=2},
+
+    // comprimento da cadeia
+    {id:'chain3', icon:'🔗', title:'Trio', desc:'Zeraste uma cadeia com 3 números.', check:(s,sc)=> s.maxChainLen>=3},
+    {id:'chain4', icon:'🔗', title:'Quarteto', desc:'Zeraste uma cadeia com 4 números.', check:(s,sc)=> s.maxChainLen>=4},
+    {id:'chain5', icon:'⛓️', title:'Cadeia Longa', desc:'Zeraste uma cadeia com 5+ números.', check:(s,sc)=> s.maxChainLen>=5},
+    {id:'chain6', icon:'⛓️', title:'Corrente Firme', desc:'Zeraste uma cadeia com 6+ números.', check:(s,sc)=> s.maxChainLen>=6},
+    {id:'chain7', icon:'⛓️', title:'Corrente Sólida', desc:'Zeraste uma cadeia com 7+ números.', check:(s,sc)=> s.maxChainLen>=7},
+    {id:'chain8', icon:'🧨', title:'Corrente Épica', desc:'Zeraste uma cadeia com 8+ números.', check:(s,sc)=> s.maxChainLen>=8},
+    {id:'chain10', icon:'👑', title:'Corrente Lendária', desc:'Zeraste uma cadeia com 10+ números.', check:(s,sc)=> s.maxChainLen>=10},
+
+    // combos
+    {id:'combo3', icon:'🔥', title:'Aquecendo', desc:'Alcançaste um combo ×3.', check:(s,sc)=> s.maxCombo>=3},
+    {id:'combo4', icon:'🔥', title:'Em Chama', desc:'Alcançaste um combo ×4.', check:(s,sc)=> s.maxCombo>=4},
+    {id:'combo5', icon:'🌋', title:'Reação em Cadeia', desc:'Alcançaste um combo ×5.', check:(s,sc)=> s.maxCombo>=5},
+    {id:'combo6', icon:'☄️', title:'Combo Máximo', desc:'Alcançaste o combo máximo ×6.', check:(s,sc)=> s.maxCombo>=6},
+
+    // nível (resistência)
+    {id:'level3', icon:'🛡️', title:'A Aquecer', desc:'Chegaste ao nível 3.', check:(s,sc)=> s.maxLevel>=3},
+    {id:'level5', icon:'🛡️', title:'Sobrevivente', desc:'Chegaste ao nível 5.', check:(s,sc)=> s.maxLevel>=5},
+    {id:'level8', icon:'⚙️', title:'Resistente', desc:'Chegaste ao nível 8.', check:(s,sc)=> s.maxLevel>=8},
+    {id:'level10', icon:'⚙️', title:'Veterano', desc:'Chegaste ao nível 10.', check:(s,sc)=> s.maxLevel>=10},
+    {id:'level15', icon:'🚀', title:'Implacável', desc:'Chegaste ao nível 15.', check:(s,sc)=> s.maxLevel>=15},
+    {id:'level20', icon:'🚀', title:'Imparável', desc:'Chegaste ao nível 20.', check:(s,sc)=> s.maxLevel>=20},
+    {id:'level25', icon:'👽', title:'Mestre da Sobrecarga', desc:'Chegaste ao nível 25.', check:(s,sc)=> s.maxLevel>=25},
+
+    // cadeias zeradas ao todo (lifetime)
+    {id:'clears10', icon:'♻️', title:'Início Promissor', desc:'10 cadeias zeradas ao todo.', check:(s,sc)=> s.totalClears>=10},
+    {id:'clears50', icon:'♻️', title:'Mestre do Zero', desc:'50 cadeias zeradas ao todo.', check:(s,sc)=> s.totalClears>=50},
+    {id:'clears100', icon:'🧮', title:'Centena', desc:'100 cadeias zeradas ao todo.', check:(s,sc)=> s.totalClears>=100},
+    {id:'clears200', icon:'🏛️', title:'Lenda', desc:'200 cadeias zeradas ao todo.', check:(s,sc)=> s.totalClears>=200},
+    {id:'clears500', icon:'🗿', title:'Imortal', desc:'500 cadeias zeradas ao todo.', check:(s,sc)=> s.totalClears>=500},
+    {id:'clears1000', icon:'🌌', title:'Divindade do Zero', desc:'1000 cadeias zeradas ao todo.', check:(s,sc)=> s.totalClears>=1000},
+
+    // pontuação numa só partida
+    {id:'score500', icon:'💰', title:'Primeiros 500', desc:'500 pontos numa só partida.', check:(s,sc)=> sc>=500},
+    {id:'score1000', icon:'💰', title:'Mil Pontos', desc:'1000 pontos numa só partida.', check:(s,sc)=> sc>=1000},
+    {id:'score2000', icon:'💵', title:'2000 Pontos', desc:'2000 pontos numa só partida.', check:(s,sc)=> sc>=2000},
+    {id:'score3500', icon:'💵', title:'3500 Pontos', desc:'3500 pontos numa só partida.', check:(s,sc)=> sc>=3500},
+    {id:'score5000', icon:'💎', title:'5 Mil', desc:'5000 pontos numa só partida.', check:(s,sc)=> sc>=5000},
+    {id:'score7500', icon:'💎', title:'7500 Pontos', desc:'7500 pontos numa só partida.', check:(s,sc)=> sc>=7500},
+    {id:'score10000', icon:'👑', title:'Dez Mil', desc:'10 000 pontos numa só partida.', check:(s,sc)=> sc>=10000},
+
+    // estrelas
+    {id:'stars10', icon:'⭐', title:'Caçador de Estrelas', desc:'10 cadeias com estrela zeradas.', check:(s,sc)=> s.starClears>=10},
+    {id:'stars50', icon:'🌟', title:'Colecionador de Estrelas', desc:'50 cadeias com estrela zeradas.', check:(s,sc)=> s.starClears>=50},
+    {id:'stars100', icon:'✨', title:'Constelação', desc:'100 cadeias com estrela zeradas.', check:(s,sc)=> s.starClears>=100},
+
+    // sequência de missões com 3 estrelas
+    {id:'star3streak3', icon:'🔥', title:'Sequência Perfeita: 3', desc:'3 missões seguidas cumpridas com 3 estrelas.', check:(s,sc)=> missionStreak.best>=3},
+    {id:'star3streak5', icon:'🔥', title:'Sequência Perfeita: 5', desc:'5 missões seguidas cumpridas com 3 estrelas.', check:(s,sc)=> missionStreak.best>=5},
+    {id:'star3streak10', icon:'👑', title:'Sequência Perfeita: 10', desc:'10 missões seguidas cumpridas com 3 estrelas.', check:(s,sc)=> missionStreak.best>=10},
+
+    // sequência de dias
+    {id:'streak2', icon:'📅', title:'Sequência: 2 Dias', desc:'Jogaste 2 dias seguidos.', check:(s,sc)=> s.maxStreak>=2},
+    {id:'streak5', icon:'📅', title:'Sequência: 5 Dias', desc:'Jogaste 5 dias seguidos.', check:(s,sc)=> s.maxStreak>=5},
+    {id:'streak7', icon:'🗓️', title:'Uma Semana Cheia', desc:'Jogaste 7 dias seguidos.', check:(s,sc)=> s.maxStreak>=7},
+    {id:'streak14', icon:'🗓️', title:'Duas Semanas', desc:'Jogaste 14 dias seguidos.', check:(s,sc)=> s.maxStreak>=14},
+    {id:'streak30', icon:'🏅', title:'Um Mês Inteiro', desc:'Jogaste 30 dias seguidos.', check:(s,sc)=> s.maxStreak>=30},
+
+    // recorde pessoal
+    {id:'bestScore1000', icon:'🏆', title:'Novo Patamar', desc:'Recorde pessoal de 1000 pontos.', check:(s,sc)=> best>=1000},
+    {id:'bestScore5000', icon:'🏆', title:'Referência', desc:'Recorde pessoal de 5000 pontos.', check:(s,sc)=> best>=5000},
+    {id:'bestScore10000', icon:'🏆', title:'Topo do Mundo', desc:'Recorde pessoal de 10 000 pontos.', check:(s,sc)=> best>=10000},
+
+    // especiais
+    {id:'duo_clear', icon:'🤝', title:'Dupla Perfeita', desc:'Zeraste uma cadeia com apenas 2 números.', check:(s,sc)=> s.duoClears>=1},
+    {id:'close_call', icon:'⚡', title:'Por um Fio', desc:'Zeraste uma cadeia com a energia acima dos 90%.', check:(s,sc)=> s.closeCalls>=1},
+    {id:'games10', icon:'🎮', title:'Jogador Assíduo', desc:'Jogaste 10 partidas.', check:(s,sc)=> s.gamesPlayed>=10},
+    {id:'games50', icon:'🕹️', title:'Veterano de Guerra', desc:'Jogaste 50 partidas.', check:(s,sc)=> s.gamesPlayed>=50},
+    {id:'totalScoreLifetime', icon:'💠', title:'Meio Milhão', desc:'Acumulaste 500 000 pontos ao todo, em todas as partidas.', check:(s,sc)=> s.totalScoreLifetime>=500000},
+  ];
+  let achQueue = [], achShowing = false;
+  function checkAchievements(){
+    for(const a of ACHIEVEMENTS){
+      if(unlocked.has(a.id)) continue;
+      if(a.check(stats, score)){
+        unlocked.add(a.id);
+        saveUnlocked(unlocked);
+        achQueue.push({type:'achievement', icon:a.icon, title:a.title, desc:a.desc});
+      }
+    }
+    processAchQueue();
+  }
+  const FLAME_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2c1.2 3-1.8 4.2-1.8 7.2A3.8 3.8 0 0014 13a3.6 3.6 0 003.6-3.6c0-1.6-.8-2.6-.8-2.6s.9 1.6.9 3.4A5.6 5.6 0 1112 4.4c0 0-.9.4-.9-.4 0-.7.5-1.2.9-2z" fill="#ff7a45"/></svg>';
+  function processAchQueue(){
+    if(achShowing || achQueue.length===0) return;
+    achShowing = true;
+    const a = achQueue.shift();
+    if(a.type==='unlock') sndMissionUnlock();
+    else sndAchievement();
+    vibrate([12,30,12]);
+    const toast = document.getElementById('achToast');
+    document.getElementById('achToastBadge').innerHTML = a.type==='streak' ? FLAME_SVG : (a.icon||'★');
+    document.getElementById('achToastTitle').textContent = a.title;
+    document.getElementById('achToastDesc').textContent = a.desc;
+    toast.classList.add('show');
+    setTimeout(()=>{
+      toast.classList.remove('show');
+      setTimeout(()=>{ achShowing=false; processAchQueue(); }, 400);
+    }, 2600);
+  }
+
+  // ---------- daily streak ----------
+  const STREAK_KEY = 'zero_streak';
+  function todayStr(){
+    const d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function dayDiff(a,b){
+    const da = new Date(a+'T00:00:00'), db = new Date(b+'T00:00:00');
+    return Math.round((db-da)/86400000);
+  }
+  function loadStreak(){
+    try{
+      const s = JSON.parse(localStorage.getItem(STREAK_KEY));
+      return Object.assign({count:0, lastDate:null}, s||{});
+    }catch(e){ return {count:0, lastDate:null}; }
+  }
+  function saveStreak(s){
+    try{ localStorage.setItem(STREAK_KEY, JSON.stringify(s)); }catch(e){}
+  }
+  const streak = loadStreak();
+  function updateStreakOnPlay(){
+    const t = todayStr();
+    if(streak.lastDate === t) return; // already counted today
+    const diff = streak.lastDate ? dayDiff(streak.lastDate, t) : null;
+    streak.count = diff===1 ? streak.count+1 : 1;
+    streak.lastDate = t;
+    saveStreak(streak);
+    stats.maxStreak = Math.max(stats.maxStreak||0, streak.count);
+    saveStats(stats);
+    checkAchievements();
+    if(streak.count>=2){
+      achQueue.push({type:'streak', title:'Sequência: '+streak.count+' dias', desc:'Jogaste '+streak.count+' dias seguidos!'});
+      processAchQueue();
+    }
+  }
+
+  // ---------- daily goals ----------
+  const DAILY_KEY = 'zero_daily';
+  const GOAL_POOL = [
+    {id:'clears5', desc:'Zera 5 cadeias', target:5, get:(p)=>p.clears},
+    {id:'clears10', desc:'Zera 10 cadeias', target:10, get:(p)=>p.clears},
+    {id:'stars2', desc:'Zera 2 cadeias com estrela', target:2, get:(p)=>p.starClears},
+    {id:'stars4', desc:'Zera 4 cadeias com estrela', target:4, get:(p)=>p.starClears},
+    {id:'combo3', desc:'Alcança um combo ×3', target:3, get:(p)=>p.maxCombo},
+    {id:'combo4', desc:'Alcança um combo ×4', target:4, get:(p)=>p.maxCombo},
+    {id:'chain5', desc:'Zera uma cadeia de 5+ números', target:5, get:(p)=>p.maxChain},
+    {id:'chain6', desc:'Zera uma cadeia de 6+ números', target:6, get:(p)=>p.maxChain},
+    {id:'score500', desc:'Faz 500 pontos numa partida', target:500, get:(p)=>p.bestScore},
+    {id:'score1000', desc:'Faz 1000 pontos numa partida', target:1000, get:(p)=>p.bestScore},
+    {id:'games2', desc:'Joga 2 partidas', target:2, get:(p)=>p.games},
+    {id:'games3', desc:'Joga 3 partidas', target:3, get:(p)=>p.games},
+  ];
+  function hashStr(s){
+    let h=0;
+    for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i))>>>0; }
+    return h;
+  }
+  function pickDailyGoals(dateStr){
+    const seed = hashStr(dateStr);
+    const pool = [...GOAL_POOL];
+    const picked = [];
+    let s = seed;
+    while(picked.length<3 && pool.length){
+      s = (s*1103515245 + 12345) >>> 0;
+      const idx = s % pool.length;
+      picked.push(pool.splice(idx,1)[0]);
+    }
+    return picked.map(g=>g.id);
+  }
+  function loadDaily(){
+    const t = todayStr();
+    let d;
+    try{ d = JSON.parse(localStorage.getItem(DAILY_KEY)); }catch(e){ d = null; }
+    if(!d || d.date !== t){
+      d = { date:t, goalIds:pickDailyGoals(t), claimed:[],
+        progress:{clears:0, starClears:0, maxCombo:0, maxChain:0, bestScore:0, games:0} };
+      try{ localStorage.setItem(DAILY_KEY, JSON.stringify(d)); }catch(e){}
+    }
+    return d;
+  }
+  function saveDaily(){ try{ localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); }catch(e){} }
+  const daily = loadDaily();
+  function checkDailyGoals(){
+    for(const id of daily.goalIds){
+      if(daily.claimed.includes(id)) continue;
+      const g = GOAL_POOL.find(x=>x.id===id);
+      if(g && g.get(daily.progress) >= g.target){
+        daily.claimed.push(id);
+        achQueue.push({type:'daily', icon:'✓', title:'Objetivo Cumprido', desc:g.desc});
+      }
+    }
+    saveDaily();
+    processAchQueue();
+  }
+
+  // ---------- match history ----------
+  const HISTORY_KEY = 'zero_history';
+  function loadHistory(){
+    try{
+      const h = JSON.parse(localStorage.getItem(HISTORY_KEY));
+      return Array.isArray(h) ? h : [];
+    }catch(e){ return []; }
+  }
+  function saveHistory(h){ try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }catch(e){} }
+  let history = loadHistory();
+  function addHistoryEntry(finalScore, finalLevel, maxChain){
+    history.unshift({ ts:Date.now(), score:finalScore, level:finalLevel, chain:maxChain });
+    history = history.slice(0,15);
+    saveHistory(history);
+  }
+
+  let score = 0, level = 1, corruption = 0, comboMult = 1;
+  let lastClearTime = -99;
+  let grid = []; // grid[row][col] = {type,val,displayRow,alpha} or null
+  let cellSize=40, gridOX=0, gridOY=0;
+  let path = []; // list of {row,col}
+  let pathSum = 0;
+  let pointerActive = false;
+  let floaters = [];
+  let bursts = []; // particle bursts
+  let shakeT=0, shakeMag=0;
+  let pulseT=0;
+  let sessionStartBest=0, newRecordFired=false, recordFlashT=0;
+  let sessionMaxChain=0;
+  let last = 0;
+
+  // ---------- onboarding (interactive first-play tutorial) ----------
+  const ONBOARD_KEY = 'zero_onboarded';
+  function loadOnboarded(){
+    try{ return localStorage.getItem(ONBOARD_KEY)==='1'; }catch(e){ return false; }
+  }
+  function saveOnboarded(){ try{ localStorage.setItem(ONBOARD_KEY,'1'); }catch(e){} }
+  let onboarded = loadOnboarded();
+  let onboardIntroDismissed = false; // session-only: avoids re-showing modal twice in one visit
+  let onboardWaitingClear = false;   // true while corruption is frozen, waiting for player's first clear
+  let onboardHint = null;            // [{row,col},{row,col}] pair highlighted for the player to try
+  let pendingStart = null;
+  let onboardCoachTimer = null;
+
+  function openOnboardIntro(){
+    document.getElementById('onboardIntro').classList.add('show');
+  }
+  function closeOnboardIntro(){
+    document.getElementById('onboardIntro').classList.remove('show');
+  }
+  function showOnboardCoach(text, autoHideMs){
+    const el = document.getElementById('onboardCoach');
+    document.getElementById('onboardCoachText').textContent = text;
+    el.classList.add('show');
+    clearTimeout(onboardCoachTimer);
+    if(autoHideMs){
+      onboardCoachTimer = setTimeout(()=> el.classList.remove('show'), autoHideMs);
+    }
+  }
+  function hideOnboardCoach(){
+    document.getElementById('onboardCoach').classList.remove('show');
+    clearTimeout(onboardCoachTimer);
+  }
+  function findHintPair(){
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const a = grid[r][c];
+      if(!a || a.type==='rock') continue;
+      for(const [dr,dc] of NEIGHBOR_DIRS){
+        const nr=r+dr, nc=c+dc;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+        const b = grid[nr][nc];
+        if(!b || b.type==='rock') continue;
+        if(a.val!==0 && a.val+b.val===0) return [{row:r,col:c},{row:nr,col:nc}];
+      }
+    }
+    return null;
+  }
+  function maybeStartOnboardGuide(){
+    if(onboarded){
+      onboardWaitingClear = false;
+      onboardHint = null;
+      hideOnboardCoach();
+      hintBtnEl.classList.remove('tutorialHidden');
+      return;
+    }
+    onboardWaitingClear = true;
+    onboardHint = findHintPair();
+    hintBtnEl.classList.add('tutorialHidden');
+    showOnboardCoach('Arrasta o dedo por 2+ números vizinhos até a soma dar 0. Experimenta o par a brilhar ✨');
+  }
+  function spawnConfetti(){
+    if(reducedMotion) return;
+    const colors = [themeWarm(), themeCool(), themeGold(), '#ffffff'];
+    const container = document.createElement('div');
+    container.className = 'confettiBurst';
+    for(let i=0;i<28;i++){
+      const el = document.createElement('i');
+      el.style.setProperty('--x', (Math.random()*100)+'vw');
+      el.style.setProperty('--dur', (1.1+Math.random()*0.9)+'s');
+      el.style.setProperty('--delay', (Math.random()*0.3)+'s');
+      el.style.setProperty('--rot', (360+Math.random()*360)+'deg');
+      el.style.background = colors[i%colors.length];
+      container.appendChild(el);
+    }
+    document.body.appendChild(container);
+    setTimeout(()=> container.remove(), 2500);
+  }
+
+  function layoutGrid(){
+    const hudH = 128;
+    const bottomMargin = 24;
+    const sidePad = 14;
+    const availW = W - sidePad*2;
+    const availH = H - hudH - bottomMargin;
+    cellSize = Math.floor(Math.min((availW - GAP*(COLS-1))/COLS, (availH - GAP*(ROWS-1))/ROWS));
+    cellSize = Math.max(30, cellSize);
+    const gridW = COLS*cellSize + (COLS-1)*GAP;
+    const gridH = ROWS*cellSize + (ROWS-1)*GAP;
+    gridOX = (W-gridW)/2;
+    gridOY = hudH + Math.max(6,(availH-gridH)/2);
+  }
+
+  // ---------- tile generation ----------
+  function maxMag(){ return Math.min(9, 5 + Math.floor((level-1)/3)); }
+  function rockChance(){ return level<2 ? 0 : Math.min(0.14, 0.04*(level-1)); }
+
+  function genTile(){
+    const r = Math.random();
+    if(r < rockChance()) return {type:'rock', val:0};
+    if(r < rockChance()+0.05) return {type:'zero', val:0};
+    if(r < rockChance()+0.05+0.035) {
+      const mag = 1+Math.floor(Math.random()*maxMag());
+      return {type:'star', val: Math.random()<0.5 ? mag : -mag};
+    }
+    const mag = 1+Math.floor(Math.random()*maxMag());
+    return {type:'num', val: Math.random()<0.5 ? mag : -mag};
+  }
+
+  function buildInitialGrid(){
+    grid = [];
+    for(let r=0;r<ROWS;r++){
+      const row=[];
+      for(let c=0;c<COLS;c++){
+        const t = genTile();
+        row.push({...t, displayRow:r, row:r, col:c, alpha:1});
+      }
+      grid.push(row);
+    }
+    ensureSeedHasPairs();
+  }
+
+  function countPairs(){
+    let pairs=0;
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const a = grid[r][c];
+      if(!a || a.type==='rock') continue;
+      for(const [dr,dc] of NEIGHBOR_DIRS){
+        const nr=r+dr, nc=c+dc;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+        const b = grid[nr][nc];
+        if(!b || b.type==='rock') continue;
+        if(a.val + b.val === 0 && (a.val!==0)) pairs++;
+      }
+    }
+    return pairs;
+  }
+
+  function ensureBoardHasPairs(minPairs, maxAttempts){
+    for(let attempt=0; attempt<maxAttempts; attempt++){
+      if(countPairs()>=minPairs) return;
+      const r=1+Math.floor(Math.random()*(ROWS-2)), c=Math.floor(Math.random()*COLS);
+      if(grid[r][c] && grid[r][c].type!=='rock'){
+        const nt = genTile();
+        grid[r][c] = {...nt, displayRow:r, row:r, col:c, alpha:1};
+      }
+    }
+  }
+
+  function ensureSeedHasPairs(){
+    ensureBoardHasPairs(4, 25);
+  }
+
+  const NEIGHBOR_DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+  // ---------- input ----------
+  function cellAt(clientX, clientY){
+    const HIT_INSET = 5;
+    const c = Math.floor((clientX - gridOX) / (cellSize+GAP));
+    const r = Math.floor((clientY - gridOY) / (cellSize+GAP));
+    if(r<0||r>=ROWS||c<0||c>=COLS) return null;
+    const localX = clientX - (gridOX + c*(cellSize+GAP));
+    const localY = clientY - (gridOY + r*(cellSize+GAP));
+    if(localX<HIT_INSET || localY<HIT_INSET || localX>cellSize-HIT_INSET || localY>cellSize-HIT_INSET) return null;
+    return {row:r,col:c};
+  }
+  function inPath(r,c){ return path.some(p=>p.row===r&&p.col===c); }
+
+  function startPath(r,c){
+    const cell = grid[r][c];
+    if(!cell || cell.type==='rock') return;
+    path = [{row:r,col:c}];
+    pathSum = cell.val;
+    sndTap();
+    vibrate(8);
+  }
+  function extendPath(r,c){
+    const cell = grid[r][c];
+    if(!cell) return;
+    const lastP = path[path.length-1];
+    if(lastP.row===r && lastP.col===c) return;
+    // backtrack support
+    if(path.length>=2){
+      const prev = path[path.length-2];
+      if(prev.row===r && prev.col===c){
+        pathSum -= grid[lastP.row][lastP.col].val;
+        path.pop();
+        return;
+      }
+    }
+    if(cell.type==='rock') return;
+    if(inPath(r,c)) return;
+    const dr = Math.abs(r-lastP.row), dc = Math.abs(c-lastP.col);
+    if(Math.max(dr,dc)!==1) return;
+    path.push({row:r,col:c});
+    pathSum += cell.val;
+  }
+
+  canvas.addEventListener('pointerdown', e=>{
+    if(state!==STATE.PLAYING || menuOpen || paused) return;
+    const cell = cellAt(e.clientX, e.clientY);
+    if(!cell) return;
+    const gcell = grid[cell.row][cell.col];
+    if(!gcell || gcell.type==='rock') return;
+    pointerActive = true;
+    startPath(cell.row, cell.col);
+  });
+  canvas.addEventListener('pointermove', e=>{
+    if(state!==STATE.PLAYING || !pointerActive || path.length===0) return;
+    const cell = cellAt(e.clientX, e.clientY);
+    if(cell) extendPath(cell.row, cell.col);
+  });
+  window.addEventListener('pointerup', ()=>{
+    if(state!==STATE.PLAYING || !pointerActive) return;
+    pointerActive = false;
+    resolvePath();
+  });
+  window.addEventListener('pointercancel', ()=>{
+    pointerActive = false;
+    path = []; pathSum = 0;
+  });
+
+  function resolvePath(){
+    if(path.length>=2 && pathSum===0){
+      clearPath();
+    } else if(path.length>=1){
+      // fizzle feedback: quick shake of just the path cells (visual only, handled via bursts)
+      for(const p of path){
+        bursts.push(makeFizzle(p.row,p.col));
+      }
+      if(path.length>=2){ sndFizzle(); vibrate(30); }
+    }
+    path = []; pathSum = 0;
+  }
+
+  function makeFizzle(r,c){
+    return {kind:'fizzle', row:r, col:c, t:0, dur:0.25};
+  }
+  function makeBurst(r,c,color){
+    return {kind:'burst', row:r, col:c, t:0, dur:0.5, color};
+  }
+
+  function clearPath(){
+    activeHint = null;
+    if(onboardWaitingClear){
+      onboardWaitingClear = false;
+      onboardHint = null;
+      onboarded = true;
+      saveOnboarded();
+      hintBtnEl.classList.remove('tutorialHidden');
+      showOnboardCoach('Boa! A barra no topo é a energia — esvazia-a a zerar cadeias antes que encha.', 3400);
+    }
+    let hasStar = false, hasZero = false, chainMaxAbs = 0;
+    for(const p of path){
+      const cell = grid[p.row][p.col];
+      if(cell.type==='star') hasStar = true;
+      if(cell.type==='zero') hasZero = true;
+      chainMaxAbs = Math.max(chainMaxAbs, Math.abs(cell.val));
+    }
+    const now = performance.now()/1000;
+    if(now - lastClearTime < COMBO_WINDOW){ comboMult = Math.min(6, comboMult+1); }
+    else comboMult = 1;
+    lastClearTime = now;
+
+    let base = path.length*12*comboMult;
+    if(hasStar) base *= 2;
+    score += base;
+
+    let relief = 8 + path.length*2;
+    if(hasStar) relief += 15;
+    if(corruption>=90) stats.closeCalls += 1;
+    corruption = Math.max(0, corruption - relief);
+
+    const midP = path[path.length-1];
+    const sx = gridOX + midP.col*(cellSize+GAP) + cellSize/2;
+    const sy = gridOY + midP.row*(cellSize+GAP) + cellSize/2;
+    floaters.push({x:sx, y:sy, text:'+'+Math.round(base)+(comboMult>1?'  ×'+comboMult:''), life:0.9, maxLife:0.9, color: hasStar? themeGold():'#eaf2f5'});
+    sndClear(comboMult);
+    vibrate(comboMult>1 ? [10,20,10] : 14);
+    if(comboMult>1){ flashCombo(comboMult); sndCombo(comboMult); }
+
+    for(const p of path){
+      bursts.push(makeBurst(p.row,p.col, hasStar? themeGold() : (grid[p.row][p.col].val>=0? themeWarm():themeCool())));
+      grid[p.row][p.col] = null;
+    }
+
+    applyGravity();
+    const baseLevel = (mode==='mission' && currentMission) ? currentMission.startLevel : 1;
+    level = Math.max(baseLevel, 1 + Math.floor(score/500));
+
+    if(Math.floor(score) > best){
+      const firstCrossing = !newRecordFired;
+      best = Math.floor(score);
+      saveBest(best);
+      if(firstCrossing){
+        newRecordFired = true;
+        triggerRecordFanfare();
+      }
+    }
+
+    stats.totalClears += 1;
+    stats.maxChainLen = Math.max(stats.maxChainLen, path.length);
+    stats.maxCombo = Math.max(stats.maxCombo, comboMult);
+    stats.maxLevel = Math.max(stats.maxLevel, level);
+    stats.totalScoreLifetime += Math.round(base);
+    if(hasStar) stats.starClears += 1;
+    if(path.length===2) stats.duoClears += 1;
+    saveStats(stats);
+    checkAchievements();
+
+    sessionMaxChain = Math.max(sessionMaxChain, path.length);
+    daily.progress.clears += 1;
+    daily.progress.maxCombo = Math.max(daily.progress.maxCombo, comboMult);
+    daily.progress.maxChain = Math.max(daily.progress.maxChain, path.length);
+    if(hasStar) daily.progress.starClears += 1;
+    saveDaily();
+    checkDailyGoals();
+
+    if(mode==='mission' && currentMission && missionProgress && state===STATE.PLAYING){
+      missionProgress.score = Math.floor(score);
+      missionProgress.clears += 1;
+      missionProgress.maxChain = Math.max(missionProgress.maxChain, path.length);
+      missionProgress.maxCombo = Math.max(missionProgress.maxCombo, comboMult);
+      if(hasStar) missionProgress.starClears += 1;
+      if(hasZero) missionProgress.zeroClears += 1;
+      if(path.length===2) missionProgress.duoClears += 1;
+      missionProgress.maxBigNum = Math.max(missionProgress.maxBigNum, chainMaxAbs);
+      missionProgress.maxLevel = Math.max(missionProgress.maxLevel, level);
+      if(missionGoalValue(currentMission, missionProgress) >= currentMission.goal.target){
+        missionSucceed();
+      }
+    }
+  }
+
+  function triggerRecordFanfare(){
+    recordFlashT = 0.6;
+    shakeT = Math.max(shakeT, 0.18);
+    shakeMag = Math.max(shakeMag, reducedMotion? 2 : 6);
+    floaters.push({x:W/2, y:H*0.38, text:'NOVO RECORDE!', life:1.6, maxLife:1.6, color:themeGold(), big:true});
+    sndRecord();
+    vibrate([15,40,15,40,25]);
+    const scoreValEl = document.getElementById('scoreVal');
+    scoreValEl.classList.remove('recordPulse');
+    void scoreValEl.offsetWidth;
+    scoreValEl.classList.add('recordPulse');
+  }
+
+  function applyGravity(){
+    for(let c=0;c<COLS;c++){
+      let write = ROWS-1;
+      for(let r=ROWS-1;r>=0;r--){
+        const cell = grid[r][c];
+        if(cell){
+          if(write!==r){
+            cell.row = write;
+            grid[write][c] = cell;
+            grid[r][c] = null;
+          }
+          write--;
+        }
+      }
+      for(let r=write;r>=0;r--){
+        const t = genTile();
+        grid[r][c] = {...t, row:r, col:c, displayRow: r - (write-r+1) - 1, alpha:1};
+      }
+    }
+    ensureBoardHasPairs(1, 25);
+  }
+
+  let comboTimer=null;
+  function flashCombo(m){
+    const el = document.getElementById('comboBadge');
+    el.textContent = '×'+m;
+    el.classList.add('show');
+    clearTimeout(comboTimer);
+    comboTimer = setTimeout(()=>el.classList.remove('show'), 900);
+  }
+
+  // ---------- update ----------
+  function update(dt){
+    const fillRate = Math.min(6, 1.6 + level*0.35);
+    if(!onboardWaitingClear){
+      corruption = Math.min(100, corruption + fillRate*dt);
+    }
+    if(corruption>=100 && state===STATE.PLAYING){
+      endGame();
+      return;
+    }
+
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const cell = grid[r][c];
+      if(!cell) continue;
+      const ease = 1 - Math.pow(0.00002, dt);
+      cell.displayRow += (cell.row - cell.displayRow) * Math.min(1, ease);
+    }
+
+    floaters.forEach(f=>{ f.life-=dt; f.y -= 30*dt; });
+    floaters = floaters.filter(f=>f.life>0);
+    bursts.forEach(b=> b.t += dt);
+    bursts = bursts.filter(b=> b.t < b.dur);
+
+    if(shakeT>0) shakeT -= dt;
+    if(recordFlashT>0) recordFlashT -= dt;
+    pulseT = (pulseT + dt) % 1000;
+  }
+
+  // ---------- render ----------
+  function cellColor(cell){
+    if(cell.type==='rock') return '#3a4048';
+    if(cell.type==='zero') return '#c9c3a8';
+    if(cell.val>0) return themeWarm();
+    return themeCool();
+  }
+
+  function render(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    let ox=0,oy=0;
+    if(shakeT>0){ ox=(Math.random()-0.5)*shakeMag*(shakeT/0.3); oy=(Math.random()-0.5)*shakeMag*(shakeT/0.3); }
+    ctx.save();
+    ctx.translate(ox,oy);
+    const grad = ctx.createRadialGradient(W*0.5, H*0.32, 0, W*0.5, H*0.62, Math.max(W,H)*0.85);
+    grad.addColorStop(0, '#161c26');
+    grad.addColorStop(0.55, '#0d1015');
+    grad.addColorStop(1, '#06070a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+
+    // cells
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const cell = grid[r][c];
+      if(!cell) continue;
+      const x = gridOX + c*(cellSize+GAP);
+      const y = gridOY + cell.displayRow*(cellSize+GAP);
+      const hinted = (onboardWaitingClear && onboardHint && onboardHint.some(p=>p.row===r&&p.col===c))
+        || (activeHint && activeHint.some(p=>p.row===r&&p.col===c));
+      drawCell(x,y,cell, inPath(r,c), hinted);
+    }
+
+    // path thread
+    if(path.length>=1){
+      drawThread();
+    }
+
+    // bursts
+    for(const b of bursts) drawBurst(b);
+
+    // floaters
+    ctx.save();
+    ctx.textAlign = 'center';
+    for(const f of floaters){
+      ctx.globalAlpha = Math.max(0,f.life/f.maxLife);
+      ctx.fillStyle = f.color;
+      if(f.big){
+        ctx.font = "800 26px 'Sora', sans-serif";
+        ctx.shadowColor = f.color;
+        ctx.shadowBlur = 18;
+      } else {
+        ctx.font = "700 15px 'Sora', sans-serif";
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.restore();
+
+    // new-record golden flash
+    if(recordFlashT>0){
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, recordFlashT/0.6) * 0.32;
+      const flashGrad = ctx.createRadialGradient(W*0.5,H*0.35,0,W*0.5,H*0.35,Math.max(W,H)*0.7);
+      flashGrad.addColorStop(0,themeGold());
+      flashGrad.addColorStop(1,rgbaFromHex(themeGold(),0));
+      ctx.fillStyle = flashGrad;
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y);
+    c.arcTo(x+w,y,x+w,y+h,r);
+    c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r);
+    c.arcTo(x,y,x+w,y,r);
+    c.closePath();
+  }
+
+  function drawCell(x,y,cell,selected,hinted){
+    ctx.save();
+    const col = cellColor(cell);
+    if(cell.type==='rock'){
+      ctx.fillStyle = '#3a4048';
+      roundRect(ctx,x,y,cellSize,cellSize,10);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = Math.max(2, cellSize*0.05);
+      ctx.lineCap = 'round';
+      const pad = cellSize*0.32;
+      ctx.beginPath();
+      ctx.moveTo(x+pad, y+pad);
+      ctx.lineTo(x+cellSize-pad, y+cellSize-pad);
+      ctx.moveTo(x+cellSize-pad, y+pad);
+      ctx.lineTo(x+pad, y+cellSize-pad);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    ctx.fillStyle = selected? 'rgba(255,255,255,0.10)' : '#141922';
+    roundRect(ctx,x,y,cellSize,cellSize,10);
+    ctx.fill();
+    if(selected){
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      roundRect(ctx,x+1,y+1,cellSize-2,cellSize-2,9);
+      ctx.stroke();
+    }
+    if(hinted){
+      ctx.save();
+      const pulse = (Math.sin(pulseT*6)+1)/2;
+      ctx.strokeStyle = rgbaFromHex(themeGold(), 0.45+pulse*0.5);
+      ctx.lineWidth = 3;
+      roundRect(ctx,x-2,y-2,cellSize+4,cellSize+4,12);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if(cell.type==='star'){
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = themeGold();
+      ctx.beginPath();
+      ctx.arc(x+cellSize/2, y+cellSize/2, cellSize*0.42, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = themeGold();
+      ctx.shadowColor = rgbaFromHex(themeGold(), 0.9);
+      ctx.shadowBlur = cellSize*0.15;
+      ctx.font = "700 "+(cellSize*0.24)+"px 'Sora', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('★', x+cellSize*0.82, y+cellSize*0.26);
+      ctx.restore();
+    }
+    ctx.fillStyle = col;
+    ctx.font = "700 "+(cellSize*0.48)+"px 'Sora', sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const label = cell.type==='zero' ? '0' : (cell.val>0? '+'+cell.val : ''+cell.val);
+    ctx.fillText(label, x+cellSize/2, y+cellSize/2+1);
+    if(settings.colorBlind && cell.type!=='zero'){
+      ctx.save();
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.9;
+      ctx.font = "700 "+(cellSize*0.2)+"px 'Sora', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(cell.val>=0 ? '▲' : '▼', x+cellSize*0.2, y+cellSize*0.9);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function threadColor(){
+    const s = pathSum;
+    if(s===0) return '#ffffff';
+    const t = Math.min(1, Math.abs(s)/12);
+    if(s>0){
+      return lerpColor('#eaf2f5', themeWarm(), t);
+    } else {
+      return lerpColor('#eaf2f5', themeCool(), t);
+    }
+  }
+  function lerpColor(a,b,t){
+    const pa = hexToRgb(a), pb = hexToRgb(b);
+    const r = Math.round(pa[0]+(pb[0]-pa[0])*t);
+    const g = Math.round(pa[1]+(pb[1]-pa[1])*t);
+    const bch = Math.round(pa[2]+(pb[2]-pa[2])*t);
+    return 'rgb('+r+','+g+','+bch+')';
+  }
+  function hexToRgb(h){
+    const n = parseInt(h.replace('#',''),16);
+    return [(n>>16)&255,(n>>8)&255,n&255];
+  }
+
+  function drawThread(){
+    const pts = path.map(p=>({
+      x: gridOX + p.col*(cellSize+GAP) + cellSize/2,
+      y: gridOY + grid[p.row][p.col].displayRow*(cellSize+GAP) + cellSize/2
+    }));
+    const nearMiss = path.length>=2 && pathSum!==0 && Math.abs(pathSum)<=2;
+    const pulse = nearMiss ? (Math.sin(pulseT*10)+1)/2 : 0;
+    ctx.save();
+    let col = threadColor();
+    if(nearMiss) col = lerpColor(col, '#ffe9a8', 0.35+pulse*0.5);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = nearMiss ? 5+pulse*3 : 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = col;
+    ctx.shadowBlur = pathSum===0 ? 26 : (nearMiss ? 16+pulse*22 : 12);
+    ctx.beginPath();
+    if(pts.length===1){
+      ctx.arc(pts[0].x,pts[0].y,4,0,Math.PI*2);
+      ctx.fill();
+    } else {
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for(let i=1;i<pts.length-1;i++){
+        const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+        ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my);
+      }
+      ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+      ctx.stroke();
+    }
+    const lastPt = pts[pts.length-1];
+    // pulsing ring around the fingertip when just 1-2 away from zero
+    if(nearMiss){
+      ctx.save();
+      ctx.globalAlpha = 0.55 - pulse*0.3;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(lastPt.x, lastPt.y, cellSize*0.34 + pulse*cellSize*0.22, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawBurst(b){
+    const x = gridOX + b.col*(cellSize+GAP) + cellSize/2;
+    const y = gridOY + b.row*(cellSize+GAP) + cellSize/2;
+    const p = b.t/b.dur;
+    ctx.save();
+    if(b.kind==='burst'){
+      ctx.globalAlpha = 1-p;
+      ctx.fillStyle = b.color;
+      ctx.shadowColor = b.color;
+      ctx.shadowBlur = 20;
+      const rad = cellSize*0.3 + p*cellSize*0.9;
+      ctx.beginPath();
+      ctx.arc(x,y,rad,0,Math.PI*2);
+      ctx.globalAlpha = (1-p)*0.5;
+      ctx.fill();
+      ctx.globalAlpha = 1-p;
+      ctx.lineWidth=2;
+      ctx.strokeStyle = b.color;
+      ctx.beginPath();
+      ctx.arc(x,y, cellSize*0.2 + p*cellSize*1.3, 0, Math.PI*2);
+      ctx.stroke();
+    } else {
+      ctx.globalAlpha = (1-p)*0.6;
+      ctx.strokeStyle = '#ff3b6b';
+      ctx.lineWidth=2;
+      const off = Math.sin(p*40)*3*(1-p);
+      roundRect(ctx, x-cellSize/2+off, y-cellSize/2, cellSize, cellSize, 10);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- HUD ----------
+  const scoreValEl = document.getElementById('scoreVal');
+  const levelValEl = document.getElementById('levelVal');
+  const levelLabelEl = document.getElementById('levelLabel');
+  const corrInner = document.getElementById('corruptionInner');
+  const missionTitleBarEl = document.getElementById('missionTitleBar');
+  function updateHUD(){
+    scoreValEl.textContent = Math.floor(score).toLocaleString('pt-PT');
+    corrInner.style.width = corruption+'%';
+    if(mode==='mission' && currentMission && missionProgress){
+      levelLabelEl.textContent = currentMission.hudLabel;
+      const val = Math.min(currentMission.goal.target, missionGoalValue(currentMission, missionProgress));
+      levelValEl.textContent = val+'/'+currentMission.goal.target;
+      missionTitleBarEl.innerHTML = currentMission.title + (missionStreak.current>=2 ? ' <span class="streakFlame">🔥×'+missionStreak.current+'</span>' : '');
+      missionTitleBarEl.classList.add('show');
+    } else {
+      levelLabelEl.textContent = 'NÍVEL';
+      levelValEl.textContent = level;
+      missionTitleBarEl.classList.remove('show');
+    }
+  }
+
+  // ---------- menu ----------
+  let menuOpen = false;
+  let paused = false;
+  let activeHint = null;      // [{row,col},{row,col}] pair highlighted after a manual hint request
+  let activeHintTimer = null;
+  let hintCooldownUntil = 0;
+  const HINT_COST = 8;        // energy (corruption) added when a hint is requested
+  const HINT_COOLDOWN_MS = 4000;
+  const HINT_SHOW_MS = 2200;
+  const menuBtnEl = document.getElementById('menuBtn');
+  const menuOverlayEl = document.getElementById('menuOverlay');
+  const menuDrawerEl = document.getElementById('menuDrawer');
+
+  function openMenu(){
+    if(state!==STATE.PLAYING) return;
+    activeHint = null;
+    menuOpen = true;
+    menuOverlayEl.classList.add('show');
+    menuDrawerEl.classList.add('show');
+    sndMenu();
+  }
+  function closeMenu(){
+    menuOpen = false;
+    menuOverlayEl.classList.remove('show');
+    menuDrawerEl.classList.remove('show');
+    last = 0;
+  }
+
+  const pauseOverlayEl = document.getElementById('pauseOverlay');
+  function openPause(){
+    if(state!==STATE.PLAYING) return;
+    activeHint = null;
+    paused = true;
+    pauseOverlayEl.classList.add('show');
+    sndMenu();
+  }
+  function closePause(){
+    paused = false;
+    pauseOverlayEl.classList.remove('show');
+    last = 0;
+  }
+
+  const hintBtnEl = document.getElementById('hintBtn');
+  function requestHint(){
+    if(state!==STATE.PLAYING || menuOpen || paused || onboardWaitingClear) return;
+    const now = performance.now();
+    if(now < hintCooldownUntil) return;
+    const pair = findHintPair();
+    if(!pair){
+      hintBtnEl.classList.add('disabled');
+      setTimeout(()=> hintBtnEl.classList.remove('disabled'), 900);
+      return;
+    }
+    activeHint = pair;
+    corruption = Math.min(100, corruption + HINT_COST);
+    hintCooldownUntil = now + HINT_COOLDOWN_MS;
+    sndTap();
+    vibrate(12);
+    clearTimeout(activeHintTimer);
+    activeHintTimer = setTimeout(()=>{ activeHint = null; }, HINT_SHOW_MS);
+  }
+  hintBtnEl.addEventListener('click', requestHint);
+
+  // ---------- casa screen (full-screen, not a menu) ----------
+  const casaScreenEl = document.getElementById('casaScreen');
+  const casaScreenTitleEl = document.getElementById('casaScreenTitle');
+  const casaScreenBodyEl = document.getElementById('casaScreenBody');
+  function openCasaScreen(title, html){
+    casaScreenTitleEl.textContent = title;
+    casaScreenBodyEl.innerHTML = html;
+    casaScreenEl.classList.add('show');
+    sndMenu();
+  }
+  function closeCasaScreen(){
+    casaScreenEl.classList.remove('show');
+    sndMenu();
+  }
+  function renderHowToHTML(){
+    const board = `
+      <div class="tutLabel">LIGAÇÃO EM CADEIA</div>
+      <div class="tutBoardWrap">
+        <svg class="tutChainSvg" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points="16.667,16.667 50,16.667 50,50 83.333,83.333"></polyline>
+        </svg>
+        <div class="tutBoard">
+          <div class="tutCell pos inPath">+3</div>
+          <div class="tutCell neg inPath">-1</div>
+          <div class="tutCell pos">+4</div>
+          <div class="tutCell neg">-2</div>
+          <div class="tutCell neg inPath">-3</div>
+          <div class="tutCell stone">✕</div>
+          <div class="tutCell star pos">+5</div>
+          <div class="tutCell pos">+2</div>
+          <div class="tutCell pos inPath">+1</div>
+        </div>
+        <div class="tutBadge">= 0 ✓</div>
+      </div>
+      <div class="tutCaption">
+        <p>Podes ligar em <b style="color:var(--ink)">3 direções</b>: horizontal →, vertical ↓ e diagonal ↘ — e podes misturá-las na mesma cadeia.</p>
+        <p>Exemplo acima: direita → baixo → diagonal =&nbsp;<b style="color:var(--ink)">3&nbsp;−&nbsp;1&nbsp;−&nbsp;3&nbsp;+&nbsp;1&nbsp;=&nbsp;0</b></p>
+        <p><b style="color:var(--ink)">Obstáculo</b> (cinzento, ✕) — não entra na cadeia.</p>
+        <p><b style="color:var(--ink)">Estrela</b> (brilho) — pontos em dobro.</p>
+      </div>
+      <div class="tutHudDemo">
+        <div class="tutHudItem"><b>ENERGIA</b><div class="tutMiniBar"><i></i></div><span>Enche sozinha. Zera cadeias para a esvaziar antes que rebente.</span></div>
+        <div class="tutHudItem"><b>COMBO</b><div class="tutComboChip">×3</div><span>Zeras cadeias seguidas rápido para multiplicar os pontos.</span></div>
+      </div>
+    `;
+    const rows = [
+      ['DESLIZA','Arrasta o dedo por números vizinhos — na horizontal, vertical ou diagonal — para os ligar numa cadeia.'],
+      ['ZERA','Quando a soma da cadeia for 0, os números desaparecem e pontuas.'],
+      ['OBSTÁCULOS','Os blocos cinzentos com ✕ bloqueiam a passagem — a cadeia não pode atravessá-los.'],
+      ['ESTRELAS','Números com brilho dourado valem o dobro dos pontos ao zerar.'],
+      ['COMBO','Zera cadeias seguidas rapidamente para multiplicar a pontuação.'],
+      ['ENERGIA','A barra no topo enche sozinha — limpa cadeias para a esvaziar antes que rebente.']
+    ].map(([t,d])=>`<div class="menuInfoRow"><b>${t}</b><span>${d}</span></div>`).join('');
+    return board + rows;
+  }
+  function renderStatsHTML(){
+    const streakActive = streak.lastDate && dayDiff(streak.lastDate, todayStr()) <= 1;
+    const displayStreak = streakActive ? streak.count : 0;
+    const rows = [
+      ['Pontuação atual', Math.floor(score).toLocaleString('pt-PT')],
+      ['Recorde', best.toLocaleString('pt-PT')],
+      ['Nível atual', level],
+      ['Sequência de dias', displayStreak],
+      ['Maior sequência', stats.maxStreak||0],
+      ['Sequência de missões 3★', missionStreak.current],
+      ['Maior sequência de missões 3★', missionStreak.best],
+      ['Cadeias zeradas (total)', stats.totalClears],
+      ['Maior cadeia', stats.maxChainLen],
+      ['Maior combo', '×'+(stats.maxCombo||1)],
+      ['Nível máximo alcançado', stats.maxLevel],
+      ['Cadeias com estrela', stats.starClears||0],
+      ['Partidas jogadas', stats.gamesPlayed||0],
+      ['Pontos acumulados (total)', (stats.totalScoreLifetime||0).toLocaleString('pt-PT')]
+    ];
+    return rows.map(([l,v])=>`<div class="menuStatRow"><span>${l}</span><b>${v}</b></div>`).join('');
+  }
+  function renderAchHTML(){
+    return ACHIEVEMENTS.map(a=>{
+      const got = unlocked.has(a.id);
+      return `<div class="menuAchRow ${got?'unlocked':''}">
+        <div class="menuAchIcon">${got ? a.icon : '🔒'}</div>
+        <div><div class="menuAchTitle">${a.title}</div><div class="menuAchDesc">${a.desc}</div></div>
+      </div>`;
+    }).join('');
+  }
+  function renderSettingsHTML(){
+    const sfxPct = Math.round((settings.sfxVolume==null?1:settings.sfxVolume)*100);
+    const musPct = Math.round((settings.musicVolume==null?0.55:settings.musicVolume)*100);
+    return `
+      ${settings.muted ? `
+      <div class="menuToggleRow" id="masterMuteBanner" style="background:rgba(255,138,128,0.1); border-color:rgba(255,59,48,0.3); cursor:pointer;">
+        <div class="menuToggleLabel"><span class="menuItemIcon">🔇</span>Som geral silenciado</div>
+        <div style="font-size:10px; opacity:0.6;">Toca p/ reativar</div>
+      </div>` : ''}
+      <div class="menuToggleRow">
+        <div class="menuToggleLabel"><span class="menuItemIcon">♪</span>Efeitos sonoros</div>
+        <div class="switchEl ${settings.sound?'on':''}" id="toggleSound"><i></i></div>
+      </div>
+      <div class="volRow">
+        <div class="volLabel"><span>Volume dos efeitos</span><span>${sfxPct}%</span></div>
+        <input type="range" class="volSlider" id="sfxVolumeSlider" min="0" max="100" value="${sfxPct}">
+      </div>
+      <div class="menuToggleRow">
+        <div class="menuToggleLabel"><span class="menuItemIcon">♫</span>Música de fundo</div>
+        <div class="switchEl ${settings.music?'on':''}" id="toggleMusic"><i></i></div>
+      </div>
+      <div class="volRow">
+        <div class="volLabel"><span>Volume da música</span><span>${musPct}%</span></div>
+        <input type="range" class="volSlider" id="musicVolumeSlider" min="0" max="100" value="${musPct}">
+      </div>
+      <div class="menuToggleRow">
+        <div class="menuToggleLabel"><span class="menuItemIcon">▨</span>Vibração</div>
+        <div class="switchEl ${settings.vibration?'on':''}" id="toggleVibration"><i></i></div>
+      </div>
+      <div class="menuToggleRow">
+        <div class="menuToggleLabel"><span class="menuItemIcon">◐</span>Modo Daltônico</div>
+        <div class="switchEl ${settings.colorBlind?'on':''}" id="toggleColorBlind"><i></i></div>
+      </div>
+      <div style="font-size:10.5px; opacity:0.45; padding:2px 6px 4px 6px; line-height:1.4;">Reforça os números com símbolos ▲/▼ além da cor, para distinguir positivos e negativos.</div>
+      <div class="menuItem danger" id="casaSettingsReset" style="margin-top:18px; cursor:pointer;">
+        <span class="menuItemIcon">↺</span>Reiniciar tudo
+      </div>
+    `;
+  }
+  function renderSkinsHTML(){
+    return SKINS.map((sk,i)=>{
+      const locked = !skinState.unlocked.includes(i);
+      const selected = skinState.selected===i;
+      const needMissions = i*MISSION_MILESTONE_STEP;
+      const statusText = locked ? ('Desbloqueia aos '+needMissions+' missões') : (selected ? 'Selecionada' : 'Toca para usar');
+      return `<div class="skinRow ${locked?'locked':''} ${selected?'selected':''}" data-skin="${i}">
+        <div class="skinSwatch"><i style="background:${sk.warm}"></i><i style="background:${sk.cool}"></i><i style="background:${sk.gold}"></i></div>
+        <div class="skinInfo">
+          <div class="skinName">${sk.name}</div>
+          <div class="skinDesc">${statusText}</div>
+        </div>
+        <div class="skinStatus">${locked?'🔒':(selected?'✓':'')}</div>
+      </div>`;
+    }).join('');
+  }
+  function renderGoalsHTML(){
+    return daily.goalIds.map(id=>{
+      const g = GOAL_POOL.find(x=>x.id===id);
+      if(!g) return '';
+      const done = daily.claimed.includes(id);
+      const val = Math.min(g.target, g.get(daily.progress));
+      const pct = Math.round((val/g.target)*100);
+      return `<div class="goalRow ${done?'done':''}">
+        <div class="goalTop">
+          <span class="goalDesc">${g.desc}</span>
+          <span class="goalCheck">${done?'✓':''}</span>
+        </div>
+        <div class="goalBar"><i style="width:${pct}%"></i></div>
+      </div>`;
+    }).join('') + `<div class="menuCasaEmpty">Novos objetivos amanhã.</div>`;
+  }
+  function worldRange(w){
+    const startIdx = w*WORLD_SIZE;
+    const endIdx = Math.min(MISSIONS.length, startIdx+WORLD_SIZE) - 1;
+    return [startIdx, endIdx];
+  }
+  function missionRangeDoneCount(startIdx, endIdx){
+    let c = 0;
+    for(let i=startIdx; i<=endIdx; i++){
+      if((missionState.stars[MISSIONS[i].id]||0) > 0) c++;
+    }
+    return c;
+  }
+  function renderWorldsHTML(){
+    const worldCount = Math.ceil(MISSIONS.length / WORLD_SIZE);
+    let html = '';
+    for(let w=0; w<worldCount; w++){
+      const [startIdx, endIdx] = worldRange(w);
+      const total = endIdx - startIdx + 1;
+      const done = missionRangeDoneCount(startIdx, endIdx);
+      const locked = missionState.unlocked <= startIdx;
+      const name = WORLD_NAMES[w] || ('Mundo '+(w+1));
+      const hasMilestone = (endIdx+1) % MISSION_MILESTONE_STEP === 0;
+      const pct = Math.round((done/total)*100);
+      html += `<div class="worldRow ${locked?'locked':''}" data-world="${w}">
+        <div class="worldNum">${w+1}</div>
+        <div class="worldInfo">
+          <div class="worldTitle">${name}${hasMilestone?' 🏅':''}</div>
+          <div class="worldDesc">Missões ${startIdx+1}–${endIdx+1}</div>
+          <div class="goalBar" style="margin-top:7px;"><i style="width:${pct}%"></i></div>
+        </div>
+        <div class="worldStatus">${locked?'🔒':done+'/'+total}</div>
+      </div>`;
+    }
+    return html;
+  }
+  function renderMissionsListHTML(w){
+    const [startIdx, endIdx] = worldRange(w);
+    let html = `<div class="missionBackBtn" data-back="1">‹ MUNDOS</div>`;
+    for(let i=startIdx; i<=endIdx; i++){
+      const m = MISSIONS[i];
+      const locked = i >= missionState.unlocked;
+      const stars = missionState.stars[m.id]||0;
+      const isMilestone = (i+1) % MISSION_MILESTONE_STEP === 0;
+      const status = locked ? '🔒' : [1,2,3].map(n=>`<span style="opacity:${n<=stars?1:0.22}">★</span>`).join('');
+      html += `<div class="missionRow ${locked?'locked':''} ${stars>0?'done':''} ${isMilestone?'milestone':''}" data-index="${i}">
+        <div class="missionNum">${i+1}</div>
+        <div class="missionInfo">
+          <div class="missionTitle">${m.title}${isMilestone?' 🏅':''}</div>
+          <div class="missionDesc">${m.desc}</div>
+        </div>
+        <div class="missionStatus">${status}</div>
+      </div>`;
+    }
+    return html;
+  }
+  function openWorldsScreen(){
+    openCasaScreen('MISSÕES ('+(missionState.unlocked-1)+'/'+MISSIONS.length+')', renderWorldsHTML());
+    const curWorld = Math.floor(Math.max(0, missionState.unlocked-1) / WORLD_SIZE);
+    requestAnimationFrame(()=>{
+      const el = casaScreenBodyEl.querySelector('[data-world="'+curWorld+'"]');
+      if(el) el.scrollIntoView({block:'center'});
+    });
+  }
+  function openWorldMissionsScreen(w){
+    const name = WORLD_NAMES[w] || ('Mundo '+(w+1));
+    casaScreenTitleEl.textContent = name.toUpperCase();
+    casaScreenBodyEl.innerHTML = renderMissionsListHTML(w);
+    requestAnimationFrame(()=>{
+      const el = casaScreenBodyEl.querySelector('[data-index="'+Math.max(0, missionState.unlocked-1)+'"]');
+      if(el) el.scrollIntoView({block:'center'});
+    });
+  }
+  function renderHistoryHTML(){
+    if(!history.length) return `<div class="menuCasaEmpty">Ainda sem partidas registadas.</div>`;
+    return history.map(h=>{
+      const d = new Date(h.ts);
+      const dateStr = d.toLocaleDateString('pt-PT', {day:'2-digit', month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+      return `<div class="histRow">
+        <div>
+          <div class="histScore">${h.score.toLocaleString('pt-PT')} pts</div>
+          <div class="histMeta">Nível ${h.level} · Maior cadeia ${h.chain}</div>
+        </div>
+        <div class="histDate">${dateStr}</div>
+      </div>`;
+    }).join('');
+  }
+  function casaCardsHTML(){
+    const streakActive = streak.lastDate && dayDiff(streak.lastDate, todayStr()) <= 1;
+    const displayStreak = streakActive ? streak.count : 0;
+    const cards = [
+      ['🏆','Recorde', best.toLocaleString('pt-PT')],
+      ['🚀','Missões', (missionState.unlocked-1)+'/'+MISSIONS.length],
+      ['📈','Nível máximo', stats.maxLevel||0],
+      ['🎯','Objetivos hoje', daily.claimed.length+'/'+daily.goalIds.length],
+      ['<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17.6l-6.1 3.4 1.5-6.8-5.2-4.7 6.9-.7z" fill="#f4d35e"/></svg>','Conquistas', unlocked.size+'/'+ACHIEVEMENTS.length],
+      ['<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5" stroke="#3fa9f5" stroke-width="1.7"/><path d="M3 9.5h18" stroke="#3fa9f5" stroke-width="1.7"/><path d="M8 2.5v4M16 2.5v4" stroke="#ff7a45" stroke-width="1.7"/><circle cx="7.5" cy="13.5" r="1" fill="#f4d35e"/><circle cx="12" cy="13.5" r="1" fill="#f4d35e"/><circle cx="16.5" cy="13.5" r="1" fill="#f4d35e"/><circle cx="7.5" cy="17.5" r="1" fill="#f4d35e"/><circle cx="12" cy="17.5" r="1" fill="#f4d35e"/><circle cx="16.5" cy="17.5" r="1" fill="#f4d35e"/></svg>','Sequência de dias', displayStreak],
+      ['<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6.5 8.5h11a4 4 0 013.9 4.9l-.8 3.4a2.6 2.6 0 01-4.6.9L14.7 16H9.3l-1.3 1.7a2.6 2.6 0 01-4.6-.9l-.8-3.4a4 4 0 013.9-4.9z" fill="#ff7a45"/><path d="M8 10.8v3.4M6.3 12.5h3.4" stroke="#141922" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="11.3" r="1" fill="#141922"/><circle cx="18" cy="13.3" r="1" fill="#141922"/></svg>','Partidas jogadas', stats.gamesPlayed||0],
+      ['🔥','Sequência 3★', missionStreak.current],
+    ];
+    return cards.map(([icon,label,val])=>`
+      <div class="casaCard">
+        <div class="casaCardIcon">${icon}</div>
+        <div class="casaCardVal">${val}</div>
+        <div class="casaCardLabel">${label}</div>
+      </div>`).join('');
+  }
+
+  let menuBtnLongPressTimer = null;
+  let menuBtnLongPressed = false;
+  const MENU_LONGPRESS_MS = 550;
+  menuBtnEl.addEventListener('pointerdown', ()=>{
+    menuBtnLongPressed = false;
+    clearTimeout(menuBtnLongPressTimer);
+    menuBtnLongPressTimer = setTimeout(()=>{
+      menuBtnLongPressed = true;
+      toggleMasterMute();
+    }, MENU_LONGPRESS_MS);
+  });
+  menuBtnEl.addEventListener('pointerup', ()=>{ clearTimeout(menuBtnLongPressTimer); });
+  menuBtnEl.addEventListener('pointerleave', ()=>{ clearTimeout(menuBtnLongPressTimer); });
+  menuBtnEl.addEventListener('pointercancel', ()=>{ clearTimeout(menuBtnLongPressTimer); });
+  menuBtnEl.addEventListener('click', (e)=>{
+    if(menuBtnLongPressed){ menuBtnLongPressed = false; e.preventDefault(); return; }
+    openMenu();
+  });
+  const pauseBtnEl = document.getElementById('pauseBtn');
+  pauseBtnEl.addEventListener('click', openPause);
+  const pauseResumeBtnEl = document.getElementById('pauseResumeBtn');
+  pauseResumeBtnEl.addEventListener('click', closePause);
+  document.getElementById('menuCloseBtn').addEventListener('click', ()=>{ sndMenu(); closeMenu(); });
+  document.getElementById('menuResume').addEventListener('click', ()=>{ sndMenu(); closeMenu(); });
+  document.getElementById('casaScreenClose').addEventListener('click', closeCasaScreen);
+  menuOverlayEl.addEventListener('click', closeMenu);
+  document.getElementById('menuCasa').addEventListener('click', ()=>{ sndMenu(); goHome(); });
+  document.getElementById('missionsBtn').addEventListener('click', openWorldsScreen);
+  document.getElementById('casaHowTo').addEventListener('click', ()=> openCasaScreen('COMO JOGAR', renderHowToHTML()));
+  document.getElementById('casaStats').addEventListener('click', ()=> openCasaScreen('ESTATÍSTICAS', renderStatsHTML()));
+  document.getElementById('casaAch').addEventListener('click', ()=> openCasaScreen('CONQUISTAS ('+unlocked.size+'/'+ACHIEVEMENTS.length+')', renderAchHTML()));
+  document.getElementById('casaGoals').addEventListener('click', ()=> openCasaScreen('OBJETIVOS DIÁRIOS ('+daily.claimed.length+'/'+daily.goalIds.length+')', renderGoalsHTML()));
+  document.getElementById('casaHistory').addEventListener('click', ()=> openCasaScreen('HISTÓRICO', renderHistoryHTML()));
+  document.getElementById('casaSettings').addEventListener('click', ()=> openCasaScreen('DEFINIÇÕES', renderSettingsHTML()));
+  document.getElementById('casaSkins').addEventListener('click', ()=> openCasaScreen('PALETAS ('+skinState.unlocked.length+'/'+SKINS.length+')', renderSkinsHTML()));
+  casaScreenBodyEl.addEventListener('click', e=>{
+    const soundSw = e.target.closest('#toggleSound');
+    const vibSw = e.target.closest('#toggleVibration');
+    const cbSw = e.target.closest('#toggleColorBlind');
+    const musicSw = e.target.closest('#toggleMusic');
+    const resetBtn = e.target.closest('#casaSettingsReset');
+    const muteBanner = e.target.closest('#masterMuteBanner');
+    const missionRow = e.target.closest('.missionRow');
+    const worldRow = e.target.closest('.worldRow');
+    const backBtn = e.target.closest('.missionBackBtn');
+    const skinRow = e.target.closest('.skinRow');
+    if(muteBanner){
+      toggleMasterMute();
+    } else if(backBtn){
+      sndMenu();
+      openWorldsScreen();
+    } else if(worldRow){
+      if(worldRow.classList.contains('locked')){ sndFizzle(); return; }
+      sndMenu();
+      openWorldMissionsScreen(parseInt(worldRow.dataset.world, 10));
+    } else if(missionRow){
+      if(missionRow.classList.contains('locked')){ sndFizzle(); return; }
+      const idx = parseInt(missionRow.dataset.index, 10);
+      sndMenu();
+      startMission(idx);
+    } else if(skinRow){
+      if(skinRow.classList.contains('locked')){ sndFizzle(); return; }
+      const idx = parseInt(skinRow.dataset.skin, 10);
+      if(skinState.selected !== idx){
+        skinState.selected = idx;
+        saveSkinState(skinState);
+        applySkin();
+        scheduleCloudSave();
+      }
+      sndMenu();
+      openCasaScreen('PALETAS ('+skinState.unlocked.length+'/'+SKINS.length+')', renderSkinsHTML());
+    } else if(soundSw){
+      settings.sound = !settings.sound;
+      saveSettings(settings);
+      soundSw.classList.toggle('on', settings.sound);
+      if(settings.sound) sndTap();
+      scheduleCloudSave();
+    } else if(vibSw){
+      settings.vibration = !settings.vibration;
+      saveSettings(settings);
+      vibSw.classList.toggle('on', settings.vibration);
+      if(settings.vibration) vibrate(15);
+      scheduleCloudSave();
+    } else if(cbSw){
+      settings.colorBlind = !settings.colorBlind;
+      saveSettings(settings);
+      cbSw.classList.toggle('on', settings.colorBlind);
+      document.body.classList.toggle('colorblind', settings.colorBlind);
+      sndTap();
+      scheduleCloudSave();
+    } else if(musicSw){
+      setMusicEnabled(!settings.music);
+      musicSw.classList.toggle('on', settings.music);
+      sndTap();
+      scheduleCloudSave();
+    } else if(resetBtn){
+      if(confirm('Isto vai apagar o recorde, as estatísticas, as conquistas, as missões, a sequência de dias e a sequência de 3 estrelas guardados. Continuar?')){
+        try{
+          localStorage.removeItem(BEST_KEY);
+          localStorage.removeItem(STATS_KEY);
+          localStorage.removeItem(ACH_KEY);
+          localStorage.removeItem(STREAK_KEY);
+          localStorage.removeItem(MISSION_KEY);
+          localStorage.removeItem(MISSION_STREAK_KEY);
+          localStorage.removeItem(LAST_SAVED_KEY);
+        }catch(e){}
+        cloudSaveNow();
+        location.reload();
+      }
+    }
+  });
+  casaScreenBodyEl.addEventListener('input', e=>{
+    if(e.target.id==='sfxVolumeSlider'){
+      setSfxVolume(parseInt(e.target.value,10)/100);
+      const lbl = e.target.previousElementSibling;
+      if(lbl) lbl.lastElementChild.textContent = e.target.value+'%';
+      scheduleCloudSave();
+    } else if(e.target.id==='musicVolumeSlider'){
+      setMusicVolume(parseInt(e.target.value,10)/100);
+      const lbl = e.target.previousElementSibling;
+      if(lbl) lbl.lastElementChild.textContent = e.target.value+'%';
+      scheduleCloudSave();
+    }
+  });
+
+  // ---------- loop ----------
+  function loop(ts){
+    requestAnimationFrame(loop);
+    if(!last) last = ts;
+    let dt = (ts-last)/1000;
+    last = ts;
+    dt = Math.min(dt, 0.033);
+    if(state===STATE.PLAYING && !menuOpen && !paused){
+      update(dt);
+      render();
+      updateHUD();
+    }
+  }
+  requestAnimationFrame(loop);
+
+  // ---------- lifecycle ----------
+  function resetGame(startLevel){
+    score=0; level=startLevel||1; corruption=0; comboMult=1; lastClearTime=-99;
+    path=[]; pathSum=0; floaters=[]; bursts=[]; shakeT=0;
+    sessionStartBest=best; newRecordFired=false; recordFlashT=0;
+    sessionMaxChain=0;
+    buildInitialGrid();
+    last=0;
+  }
+  function startGame(){
+    if(!onboarded && !onboardIntroDismissed){
+      pendingStart = startGame;
+      openOnboardIntro();
+      return;
+    }
+    closeMenu();
+    resize();
+    mode = 'classic'; missionIndex = null; currentMission = null; missionProgress = null;
+    resetGame(1);
+    startMusic();
+    stats.gamesPlayed = (stats.gamesPlayed||0) + 1;
+    saveStats(stats);
+    updateStreakOnPlay();
+    daily.progress.games += 1;
+    saveDaily();
+    checkDailyGoals();
+    state = STATE.PLAYING;
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('missionResultScreen').classList.add('hidden');
+    maybeStartOnboardGuide();
+  }
+  function startMission(i){
+    if(i<0 || i>=MISSIONS.length || i>=missionState.unlocked) return;
+    closeCasaScreen();
+    resize();
+    mode = 'mission';
+    missionIndex = i;
+    currentMission = MISSIONS[i];
+    document.getElementById('missionIntroNum').textContent = 'MISSÃO '+(i+1);
+    document.getElementById('missionIntroTitle').textContent = currentMission.title;
+    document.getElementById('missionIntroGoal').textContent = currentMission.desc;
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('missionResultScreen').classList.add('hidden');
+    document.getElementById('missionIntroScreen').classList.remove('hidden');
+  }
+  function beginCurrentMission(){
+    if(mode!=='mission' || !currentMission) return;
+    if(!onboarded && !onboardIntroDismissed){
+      pendingStart = beginCurrentMission;
+      openOnboardIntro();
+      return;
+    }
+    missionProgress = {score:0, clears:0, maxChain:0, starClears:0, maxCombo:1, duoClears:0, zeroClears:0, maxBigNum:0, maxLevel:currentMission.startLevel};
+    resetGame(currentMission.startLevel);
+    startMusic();
+    stats.gamesPlayed = (stats.gamesPlayed||0) + 1;
+    saveStats(stats);
+    updateStreakOnPlay();
+    daily.progress.games += 1;
+    saveDaily();
+    checkDailyGoals();
+    state = STATE.PLAYING;
+    document.getElementById('missionIntroScreen').classList.add('hidden');
+    maybeStartOnboardGuide();
+  }
+  function showMissionResult(success, starsEarned){
+    const titleEl = document.getElementById('missionResultTitle');
+    const starsEl = document.getElementById('missionResultStars');
+    const descEl = document.getElementById('missionResultDesc');
+    const scoreEl = document.getElementById('missionResultScoreVal');
+    const nextBtn = document.getElementById('missionNextBtn');
+    titleEl.textContent = success ? 'MISSÃO CUMPRIDA' : 'MISSÃO FALHADA';
+    titleEl.style.background = success ? 'linear-gradient(90deg,var(--gold),var(--warm))' : 'linear-gradient(90deg,#ff3b30,var(--warm))';
+    titleEl.style.webkitBackgroundClip = 'text';
+    titleEl.style.backgroundClip = 'text';
+    starsEl.innerHTML = success ? [1,2,3].map(n=>`<span style="opacity:${n<=starsEarned?1:0.22}">★</span>`).join('') : '';
+    descEl.textContent = success ? currentMission.desc : 'A energia esgotou-se antes de cumprires o objetivo. Tenta outra vez!';
+    scoreEl.textContent = Math.floor(score).toLocaleString('pt-PT');
+    const streakEl = document.getElementById('missionResultStreak');
+    if(success && starsEarned===3 && missionStreak.current>=2){
+      streakEl.innerHTML = '🔥 Sequência de <b>'+missionStreak.current+'</b> missões com 3 estrelas!';
+      streakEl.style.display = 'flex';
+    } else if(!success && missionStreak.best>=2){
+      streakEl.innerHTML = 'A sequência de 3★ foi reiniciada. Melhor: 🔥×'+missionStreak.best;
+      streakEl.style.display = 'flex';
+    } else {
+      streakEl.style.display = 'none';
+    }
+    const hasNext = missionIndex+1 < MISSIONS.length;
+    nextBtn.style.display = (success && hasNext) ? '' : 'none';
+    setTimeout(()=> document.getElementById('missionResultScreen').classList.remove('hidden'), 260);
+  }
+  function checkMissionMilestone(missionNumber){
+    if(missionNumber % MISSION_MILESTONE_STEP !== 0) return;
+    const milestoneId = 'mission_milestone_'+missionNumber;
+    if(unlocked.has(milestoneId)) return;
+    unlocked.add(milestoneId);
+    saveUnlocked(unlocked);
+    achQueue.push({
+      type:'achievement', icon:'🏅',
+      title:'Marco: '+missionNumber+' Missões!',
+      desc:'Completaste '+missionNumber+' missões. A energia reconhece a tua persistência.'
+    });
+    const skinIdx = missionNumber / MISSION_MILESTONE_STEP;
+    if(SKINS[skinIdx] && !skinState.unlocked.includes(skinIdx)){
+      skinState.unlocked.push(skinIdx);
+      saveSkinState(skinState);
+      achQueue.push({
+        type:'skin', icon:'🎨',
+        title:'Nova Paleta: '+SKINS[skinIdx].name,
+        desc:'Desbloqueaste uma nova paleta de cores. Escolhe-a em Paletas, na Casa.'
+      });
+    }
+    processAchQueue();
+  }
+  function missionSucceed(){
+    state = STATE.OVER;
+    const remaining = 100 - corruption;
+    const starsEarned = remaining>=50 ? 3 : (remaining>=25 ? 2 : 1);
+    missionState.stars[currentMission.id] = Math.max(missionState.stars[currentMission.id]||0, starsEarned);
+    registerMissionOutcome(starsEarned===3);
+    checkAchievements();
+    const prevUnlocked = missionState.unlocked;
+    if(missionIndex+2 > missionState.unlocked) missionState.unlocked = Math.min(MISSIONS.length, missionIndex+2);
+    saveMissionState(missionState);
+    if(missionState.unlocked > prevUnlocked){
+      const newMissionNum = missionState.unlocked;
+      const newMission = MISSIONS[newMissionNum-1];
+      spawnConfetti();
+      achQueue.push({
+        type:'unlock', icon:'🚀',
+        title:'Missão '+newMissionNum+' desbloqueada!',
+        desc: newMission ? newMission.title : 'Uma nova missão está disponível.'
+      });
+      processAchQueue();
+    }
+    checkMissionMilestone(missionIndex+1);
+    const finalScore = Math.floor(score);
+    if(finalScore > best){ best = finalScore; saveBest(best); }
+    daily.progress.bestScore = Math.max(daily.progress.bestScore, finalScore);
+    saveDaily();
+    checkDailyGoals();
+    addHistoryEntry(finalScore, level, sessionMaxChain);
+    sndMissionComplete();
+    vibrate([15,40,15,40,25]);
+    scheduleCloudSave();
+    pushLeaderboardScore();
+    showMissionResult(true, starsEarned);
+  }
+  function goHome(){
+    menuOpen = false;
+    menuOverlayEl.classList.remove('show');
+    menuDrawerEl.classList.remove('show');
+    paused = false;
+    pauseOverlayEl.classList.remove('show');
+    pointerActive = false;
+    path = []; pathSum = 0;
+    state = STATE.START;
+    hideOnboardCoach();
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('missionResultScreen').classList.add('hidden');
+    document.getElementById('missionIntroScreen').classList.add('hidden');
+    document.getElementById('startDashboard').innerHTML = `<div class="casaGrid">${casaCardsHTML()}</div>`;
+    document.getElementById('startScreen').classList.remove('hidden');
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.clearRect(0,0,W,H);
+  }
+  function endGame(){
+    state = STATE.OVER;
+    const finalScore = Math.floor(score);
+    if(finalScore > best){ // safety fallback, should already be set live
+      best = finalScore;
+      saveBest(best);
+    }
+    daily.progress.bestScore = Math.max(daily.progress.bestScore, finalScore);
+    saveDaily();
+    checkDailyGoals();
+    addHistoryEntry(finalScore, level, sessionMaxChain);
+    shakeT=0.3; shakeMag = reducedMotion?3:9;
+    sndGameOver();
+    vibrate([25,50,25]);
+    scheduleCloudSave();
+    pushLeaderboardScore();
+    if(mode==='mission'){
+      registerMissionOutcome(false);
+      showMissionResult(false, 0);
+      return;
+    }
+    document.getElementById('finalScore').textContent = Math.floor(score).toLocaleString('pt-PT');
+    document.getElementById('finalBest').textContent = best.toLocaleString('pt-PT');
+    setTimeout(()=> document.getElementById('gameOverScreen').classList.remove('hidden'), 260);
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+  document.getElementById('missionIntroStartBtn').addEventListener('click', beginCurrentMission);
+  document.getElementById('onboardIntroBtn').addEventListener('click', ()=>{
+    closeOnboardIntro();
+    onboardIntroDismissed = true;
+    const fn = pendingStart; pendingStart = null;
+    if(fn) fn();
+  });
+  document.getElementById('onboardSkipBtn').addEventListener('click', ()=>{
+    closeOnboardIntro();
+    onboarded = true; saveOnboarded();
+    onboardIntroDismissed = true;
+    const fn = pendingStart; pendingStart = null;
+    if(fn) fn();
+  });
+  document.getElementById('missionIntroHomeBtn').addEventListener('click', ()=>{
+    document.getElementById('missionIntroScreen').classList.add('hidden');
+    goHome();
+  });
+  document.getElementById('missionNextBtn').addEventListener('click', ()=> startMission(missionIndex+1));
+  document.getElementById('missionRetryBtn').addEventListener('click', ()=> startMission(missionIndex));
+  document.getElementById('missionHomeBtn').addEventListener('click', ()=>{
+    document.getElementById('missionResultScreen').classList.add('hidden');
+    goHome();
+  });
+  document.addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+
+  // ---------- share score ----------
+  const shareToastEl = document.getElementById('shareToast');
+  function showShareToast(msg){
+    shareToastEl.textContent = msg;
+    shareToastEl.classList.add('show');
+    setTimeout(()=> shareToastEl.classList.remove('show'), 2200);
+  }
+  document.getElementById('shareBtn').addEventListener('click', async ()=>{
+    const finalScore = Math.floor(score);
+    const text = 'Fiz '+finalScore.toLocaleString('pt-PT')+' pontos em ZERO! 🎯 Consegues bater?';
+    const fullText = text+' '+location.href;
+    const shareData = { title:'ZERO', text, url: location.href };
+    if(navigator.share){
+      try{
+        await navigator.share(shareData);
+        return;
+      }catch(e){
+        if(e && e.name==='AbortError') return; // user closed the native share sheet, do nothing
+        // otherwise (e.g. blocked by an insecure origin) fall through to the options below
+      }
+    }
+    try{
+      await navigator.clipboard.writeText(fullText);
+      showShareToast('Copiado para a área de transferência!');
+    }catch(e){
+      window.prompt('Copia o texto para partilhar:', fullText);
+    }
+  });
+
+  // ---------- auto-pause when app goes to background ----------
+  function pauseAllAudio(){
+    if(musicLoopHandle){ clearInterval(musicLoopHandle); musicLoopHandle = null; }
+    if(actx && musicGain){
+      try{
+        musicGain.gain.cancelScheduledValues(actx.currentTime);
+        musicGain.gain.setValueAtTime(0, actx.currentTime);
+      }catch(e){}
+    }
+    if(actx && actx.state==='running'){
+      try{ actx.suspend(); }catch(e){}
+    }
+  }
+  function resumeAllAudio(){
+    if(actx && actx.state==='suspended'){
+      try{ actx.resume(); }catch(e){}
+    }
+    if(settings.music && !musicLoopHandle){
+      startMusic();
+    }
+  }
+  function handleAppHidden(){
+    pauseAllAudio();
+    if(state===STATE.PLAYING && !menuOpen) openMenu();
+  }
+  function handleAppVisible(){
+    resumeAllAudio();
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) handleAppHidden(); else handleAppVisible();
+  });
+  window.addEventListener('pagehide', handleAppHidden);
+  window.addEventListener('pageshow', handleAppVisible);
+  window.addEventListener('blur', handleAppHidden);
+  window.addEventListener('focus', handleAppVisible);
+
+  // ---------- cloud save (via window.storage, personal — synced across devices for this user) ----------
+  const CLOUD_KEYS = [BEST_KEY, MISSION_KEY, MISSION_STREAK_KEY, SKIN_KEY, SETTINGS_KEY, STATS_KEY, ACH_KEY, STREAK_KEY, DAILY_KEY, HISTORY_KEY, ONBOARD_KEY];
+  const LAST_SAVED_KEY = 'zero_last_saved';
+  const CLOUD_STORAGE_KEY = 'cloud_save';
+  let cloudSaveTimer = null;
+  function hasCloudStorage(){
+    return typeof window!=='undefined' && window.storage && typeof window.storage.set==='function';
+  }
+  function gatherLocalSaveData(){
+    const data = {};
+    for(const k of CLOUD_KEYS){
+      try{ data[k] = localStorage.getItem(k); }catch(e){ data[k] = null; }
+    }
+    return data;
+  }
+  function touchLastSaved(){
+    try{ localStorage.setItem(LAST_SAVED_KEY, String(Date.now())); }catch(e){}
+  }
+  async function cloudSaveNow(){
+    if(!hasCloudStorage()) return;
+    touchLastSaved();
+    try{
+      const payload = { data: gatherLocalSaveData(), savedAt: Date.now() };
+      await window.storage.set(CLOUD_STORAGE_KEY, JSON.stringify(payload), false);
+    }catch(e){}
+  }
+  function scheduleCloudSave(){
+    if(!hasCloudStorage()) return;
+    touchLastSaved();
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(cloudSaveNow, 2500);
+  }
+  async function cloudSyncOnBoot(){
+    if(!hasCloudStorage()) return;
+    let already = false;
+    try{ already = sessionStorage.getItem('zero_cloud_synced')==='1'; }catch(e){}
+    if(already) return;
+    try{
+      const res = await window.storage.get(CLOUD_STORAGE_KEY, false);
+      if(!res || !res.value) { cloudSaveNow(); return; }
+      const payload = JSON.parse(res.value);
+      let localTs = 0;
+      try{ localTs = parseInt(localStorage.getItem(LAST_SAVED_KEY), 10) || 0; }catch(e){}
+      if(payload.savedAt && payload.savedAt > localTs && payload.data){
+        for(const k of CLOUD_KEYS){
+          const v = payload.data[k];
+          try{
+            if(v==null) localStorage.removeItem(k);
+            else localStorage.setItem(k, v);
+          }catch(e){}
+        }
+        try{ localStorage.setItem(LAST_SAVED_KEY, String(payload.savedAt)); }catch(e){}
+        try{ sessionStorage.setItem('zero_cloud_synced', '1'); }catch(e){}
+        if(state===STATE.START){
+          location.reload();
+        }
+      }
+    }catch(e){}
+  }
+
+  // ---------- leaderboard (via backend próprio MEDBI, partilhado entre todos os jogadores) ----------
+  const RANKING_API = 'https://medbi-license-server.onrender.com/api';
+  const RANKING_APP_ID = 'zero';
+  const NICK_KEY = 'zero_nickname';
+  function loadNickname(){ try{ return localStorage.getItem(NICK_KEY) || ''; }catch(e){ return ''; } }
+  function saveNickname(n){ try{ localStorage.setItem(NICK_KEY, n); }catch(e){} }
+  let nickname = loadNickname();
+  function slugifyNick(s){
+    return (s||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'jogador';
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  async function pushLeaderboardScore(){
+    if(!nickname) return;
+    try{
+      await fetch(RANKING_API+'/score', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          appId: RANKING_APP_ID,
+          nickname: nickname.slice(0,18),
+          score: best,
+          level: stats.maxLevel||0
+        })
+      });
+    }catch(e){}
+  }
+  async function fetchLeaderboard(){
+    try{
+      const res = await fetch(RANKING_API+'/leaderboard?appId='+RANKING_APP_ID+'&limit=30');
+      const data = await res.json();
+      return (data.entries||[]).map(e=>({...e, score:Number(e.score)}));
+    }catch(e){ return []; }
+  }
+  function renderLeaderboardShell(entries, unavailable){
+    const nickRow = `
+      <div class="lbNickRow">
+        <input type="text" id="lbNickInput" maxlength="18" placeholder="O teu nome" value="${escapeHtml(nickname)}">
+        <button id="lbNickSave">Guardar</button>
+      </div>`;
+    if(unavailable){
+      return nickRow + `<div class="menuCasaEmpty">O ranking só está disponível a jogar dentro da app Claude.</div>`;
+    }
+    if(!entries){
+      return nickRow + `<div class="menuCasaEmpty">A carregar…</div>`;
+    }
+    if(!entries.length){
+      return nickRow + `<div class="menuCasaEmpty">Ainda ninguém pontuou. Define o teu nome e joga para apareceres aqui!</div>`;
+    }
+    const rows = entries.map((e,i)=>{
+      const mine = nickname && e.name && e.name.toLowerCase()===nickname.toLowerCase();
+      return `<div class="lbRow ${mine?'me':''}"><div class="lbRank">${i+1}</div><div class="lbName">${escapeHtml(e.name)}</div><div class="lbScore">${Math.floor(e.score).toLocaleString('pt-PT')}</div></div>`;
+    }).join('');
+    return nickRow + rows + `<div class="lbSyncNote">Ranking partilhado por todos os jogadores desta app. Guarda o teu nome para entrares na lista na próxima vez que bateres o recorde.</div>`;
+  }
+  async function openLeaderboardScreen(){
+    openCasaScreen('RANKING', renderLeaderboardShell(null, false));
+    const entries = await fetchLeaderboard();
+    const bodyEl = document.getElementById('casaScreenBody');
+    if(bodyEl) bodyEl.innerHTML = renderLeaderboardShell(entries, false);
+  }
+  document.getElementById('casaRanking').addEventListener('click', openLeaderboardScreen);
+  casaScreenBodyEl.addEventListener('click', e=>{
+    const saveBtn = e.target.closest('#lbNickSave');
+    if(!saveBtn) return;
+    const input = document.getElementById('lbNickInput');
+    if(!input) return;
+    const val = input.value.trim().slice(0,18);
+    if(!val) return;
+    nickname = val;
+    saveNickname(nickname);
+    sndTap();
+    pushLeaderboardScore();
+    openLeaderboardScreen();
+  });
+
+  cloudSyncOnBoot();
+
+  applySkin();
+  if(settings.colorBlind) document.body.classList.add('colorblind');
+  function unlockAudioOnce(){
+    startMusic();
+    document.removeEventListener('pointerdown', unlockAudioOnce);
+    document.removeEventListener('keydown', unlockAudioOnce);
+  }
+  document.addEventListener('pointerdown', unlockAudioOnce, {once:true});
+  document.addEventListener('keydown', unlockAudioOnce, {once:true});
+  document.getElementById('startDashboard').innerHTML = `<div class="casaGrid">${casaCardsHTML()}</div>`;
+  resize();
+})();
+</script>
+<script>
+  // Registo do Service Worker (instalação como app / offline)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+    });
+  }
+</script>
+</body>
+</html>
