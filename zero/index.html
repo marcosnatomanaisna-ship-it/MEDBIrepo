@@ -3693,6 +3693,28 @@
     };
 
     sendBtn.onclick = async ()=>{
+      // Dentro do APK a WebView do Android não implementa navigator.share/canShare
+      // (isso só existe no Chrome normal) — por isso caía sempre no fallback de
+      // copiar para a área de transferência. window.AndroidShare é a ponte nativa
+      // injetada pelo MainActivity.java só quando corre dentro da app instalada.
+      if(window.AndroidShare && window.AndroidShare.shareImage && file){
+        try{
+          const base64 = await new Promise((resolve, reject)=>{
+            const reader = new FileReader();
+            reader.onloadend = ()=> resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          window.AndroidShare.shareImage(base64, 'zero-resultado.png', text);
+          closeModal();
+          return;
+        }catch(e){ /* cai para os fallbacks abaixo */ }
+      }
+      if(window.AndroidShare && window.AndroidShare.shareText){
+        window.AndroidShare.shareText(fullText);
+        closeModal();
+        return;
+      }
       if(file && navigator.canShare && navigator.canShare({files:[file]})){
         try{ await navigator.share({ files:[file], title:'ZERO', text }); closeModal(); return; }
         catch(e){ if(e && e.name==='AbortError') return; }
