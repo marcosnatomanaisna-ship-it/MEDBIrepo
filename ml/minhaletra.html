@@ -82,9 +82,12 @@
     overflow: hidden;
     animation: fadeIn .25s ease;
   }
-  /* Exceção: o ecrã de escrever tem um teclado virtual que come espaço de forma
-     imprevisível — aqui o scroll fica ligado para nada ficar inacessível atrás dele. */
-  .screen[data-screen="write"]{
+  /* Exceção: os ecrãs de captura e de escrever têm conteúdo cuja
+     altura pode variar (teclado virtual no 'write'; letra de
+     referência + quadro no 'capture') — aqui o scroll fica ligado
+     para nada ficar cortado ou inacessível. */
+  .screen[data-screen="write"],
+  .screen[data-screen="capture"]{
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -287,9 +290,8 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:center;
+    justify-content:flex-start; /* nunca transborda para cima — se não couber, cresce para baixo (a área com scroll) */
     gap: clamp(8px,1.8vh,18px);
-    overflow:hidden;
   }
   .current-char-badge{
     font-family:"Fraunces", serif;
