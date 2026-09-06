@@ -587,8 +587,8 @@
       <div class="save-status" id="saveStatus"><span class="dot"></span><span id="saveStatusText">Guardado neste dispositivo</span></div>
       <div style="display:flex; align-items:center; gap:10px; width:100%; margin-top:-4px;">
         <span style="font-size:0.75rem; color:var(--ink-soft); white-space:nowrap;">Simplificação</span>
-        <input type="range" id="epsilonSlider" min="0.3" max="6" step="0.1" value="1.5" style="flex:1; accent-color:var(--pen-blue);">
-        <span id="epsilonValue" style="font-size:0.75rem; color:var(--ink-soft); width:26px; text-align:right;">1.5</span>
+        <input type="range" id="epsilonSlider" min="0.3" max="6" step="0.1" value="0.3" style="flex:1; accent-color:var(--pen-blue);">
+        <span id="epsilonValue" style="font-size:0.75rem; color:var(--ink-soft); width:26px; text-align:right;">0.3</span>
       </div>
       <div class="capture-controls" style="margin-bottom:5px;">
         <button class="btn btn-secondary" id="penToolBtn" onclick="setEraserMode(false)">✏️ Caneta</button>
@@ -1201,7 +1201,7 @@
 
   function getEpsilon(){
     const el = document.getElementById('epsilonSlider');
-    return el ? parseFloat(el.value) : 1.5;
+    return el ? parseFloat(el.value) : 0.3;
   }
 
   // Distância perpendicular do ponto p à reta definida por a-b.
@@ -1275,10 +1275,44 @@
   // software de desenho vetorial para "suavizar" uma polilinha.
   // ============================================================
 
+  // Ângulo (em graus) entre o segmento anterior e o seguinte, medido
+  // no ponto do meio. 0° = segue tudo direito; perto de 180° = o
+  // traço quase voltou para trás (um canto vivo, tipo o vértice de
+  // um "V" ou o ponto onde se levanta a caneta e recomeça um troço).
+  function turnAngleDeg(pPrev, p, pNext){
+    if(!pPrev || !pNext || pPrev === p || pNext === p) return 0;
+    const v1x = p.x - pPrev.x, v1y = p.y - pPrev.y;
+    const v2x = pNext.x - p.x, v2y = pNext.y - p.y;
+    const len1 = Math.hypot(v1x, v1y), len2 = Math.hypot(v2x, v2y);
+    if(len1 === 0 || len2 === 0) return 0;
+    const cos = (v1x * v2x + v1y * v2y) / (len1 * len2);
+    return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+  }
+
+  // Quanto esticar a tangente num ponto: 1 = suaviza normalmente,
+  // 0 = não suaviza nada (fica um canto vivo, reto). Entre os dois
+  // limiares, decai de forma gradual — não é um interruptor brusco.
+  const CORNER_SOFT_START_DEG = 45;  // abaixo disto, é sempre curva suave
+  const CORNER_SOFT_END_DEG   = 100; // a partir disto, é sempre canto vivo
+  function cornerSmoothFactor(pPrev, p, pNext){
+    const angle = turnAngleDeg(pPrev, p, pNext);
+    if(angle <= CORNER_SOFT_START_DEG) return 1;
+    if(angle >= CORNER_SOFT_END_DEG) return 0;
+    return 1 - (angle - CORNER_SOFT_START_DEG) / (CORNER_SOFT_END_DEG - CORNER_SOFT_START_DEG);
+  }
+
   // Para cada segmento entre p1 e p2, usa o ponto anterior (p0) e o
   // seguinte (p3) só para calcular a direção da curva nesse troço —
   // não fazem parte do resultado. Nas pontas do traço, onde não há
   // p0 ou p3, repete-se o ponto vizinho (tangente "aberta").
+  //
+  // Diferença em relação a um Catmull-Rom "de livro": a tangente de
+  // cada ponto é reduzida (ou anulada) quando esse ponto é um canto
+  // vivo do traço. Sem isto, a curva arredonda TODOS os vértices por
+  // igual — inclusive os cantos que a mão fez de propósito (o "bico"
+  // de um "V", o topo de um "N") — e a letra fica com um ar
+  // demasiado perfeito, "de máquina". Só se suaviza onde o próprio
+  // traço já era uma curva.
   function catmullRomToBezierSegments(points){
     const n = points.length;
     if(n < 2) return [];
@@ -1288,8 +1322,10 @@
       const p1 = points[i];
       const p2 = points[i + 1];
       const p3 = points[i + 2] || p2;
-      const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
-      const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      const f1 = cornerSmoothFactor(p0, p1, p2);
+      const f2 = cornerSmoothFactor(p1, p2, p3);
+      const c1 = { x: p1.x + f1 * (p2.x - p0.x) / 6, y: p1.y + f1 * (p2.y - p0.y) / 6 };
+      const c2 = { x: p2.x - f2 * (p3.x - p1.x) / 6, y: p2.y - f2 * (p3.y - p1.y) / 6 };
       segments.push({ c1, c2, end: p2 });
     }
     return segments;
