@@ -296,8 +296,8 @@
     font-size: clamp(2rem, 6vh, 3.4rem);
     font-weight: 600;
     color: var(--ink);
-    line-height:1;
-    flex-shrink:1;
+    line-height: 1.25; /* folga para acentos (á, ã, ê…) e descendentes (%, ç…) não serem cortados */
+    flex-shrink: 0; /* nunca se espreme — se faltar espaço, é o resto do ecrã que cede */
   }
   .canvas-box{
     width: 100%;
