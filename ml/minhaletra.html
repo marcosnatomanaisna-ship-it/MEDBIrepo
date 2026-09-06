@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Minha Letra — Cria a tua fonte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --paper: #F7F4EE;
+    --paper-line: #E4DED2;
+    --ink: #1C1A17;
+    --ink-soft: #5B5648;
+    --pen-blue: #2B4C7E;
+    --pen-blue-soft: #E8EDF4;
+    --seal-red: #A63D40;
+    --card-shadow: 0 1px 0 rgba(28,26,23,0.06);
+    --radius: 3px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    height: 100dvh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app{
+    max-width: 480px;
+    margin: 0 auto;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ---------- Barra superior ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding: clamp(10px,2vh,18px) 20px clamp(8px,1.6vh,14px);
+    flex-shrink:0;
+    border-bottom: 1px solid var(--paper-line);
+  }
+  .topbar .back{
+    width: 32px; height: 32px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 50%;
+    color: var(--ink-soft);
+    cursor:pointer;
+    flex-shrink:0;
+    visibility: hidden;
+  }
+  .topbar .back.visible{ visibility: visible; }
+  .topbar .back:active{ background: var(--paper-line); }
+  .topbar-title{
+    font-family:"Fraunces", serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    flex:1;
+  }
+  .topbar-step{
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Conteúdo de cada ecrã ---------- */
+  .screen{
+    flex:1;
+    min-height:0;
+    display:none;
+    flex-direction: column;
+    padding: clamp(14px,3vh,28px) 20px clamp(14px,3vh,32px);
+    overflow: hidden;
+    animation: fadeIn .25s ease;
+  }
+  /* Exceção: o ecrã de escrever tem um teclado virtual que come espaço de forma
+     imprevisível — aqui o scroll fica ligado para nada ficar inacessível atrás dele. */
+  .screen[data-screen="write"]{
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen.active{ display:flex; }
+  @keyframes fadeIn{
+    from{ opacity:0; transform: translateY(6px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  h1{
+    font-family:"Fraunces", serif;
+    font-weight: 600;
+    font-size: clamp(1.4rem, 5.5vh, 1.9rem);
+    line-height: 1.15;
+    margin: 0 0 clamp(6px,1.5vh,10px);
+    letter-spacing: -0.01em;
+    flex-shrink:0;
+  }
+  h2{
+    font-family:"Fraunces", serif;
+    font-weight: 600;
+    font-size: clamp(1.15rem, 4vh, 1.4rem);
+    margin: 0 0 clamp(6px,1.2vh,8px);
+    flex-shrink:0;
+  }
+  p.lead{
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0 0 clamp(12px,3vh,26px);
+    max-width: 40ch;
+    flex-shrink:0;
+  }
+
+  /* ---------- Ecrã inicial ---------- */
+  .home-hero{
+    margin: clamp(4px,1vh,8px) 0 clamp(14px,4vh,30px);
+    border: 1px solid var(--paper-line);
+    border-radius: var(--radius);
+    background: white;
+    padding: clamp(14px,3vh,26px) 22px;
+    box-shadow: var(--card-shadow);
+    flex-shrink:0;
+  }
+  .home-hero .sample-word{
+    font-family:"Fraunces", serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: clamp(1.5rem, 6vh, 2.1rem);
+    color: var(--pen-blue);
+    line-height: 1.3;
+  }
+  .home-hero .sample-caption{
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+
+  .action-list{
+    display:flex;
+    flex-direction: column;
+    gap: clamp(6px,1.2vh,10px);
+    margin-top: auto;
+    flex-shrink:0;
+  }
+
+  .btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: clamp(10px,2vh,15px) 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    text-align:center;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  .btn:active{ transform: scale(0.98); }
+  .btn-primary{
+    background: var(--pen-blue);
+    color: white;
+  }
+  .btn-secondary{
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--paper-line);
+  }
+  .btn-secondary.tool-active{
+    background: var(--pen-blue);
+    color: white;
+    border-color: var(--pen-blue);
+  }
+  .btn-text{
+    background: transparent;
+    color: var(--ink-soft);
+    font-weight: 500;
+    padding: 10px;
+  }
+  .btn[disabled]{
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* ---------- Escolha de método de captura ---------- */
+  .method-card{
+    display:flex;
+    align-items:flex-start;
+    gap: 14px;
+    border: 1px solid var(--paper-line);
+    background: white;
+    border-radius: var(--radius);
+    padding: clamp(12px,2.5vh,18px);
+    margin-bottom: clamp(8px,1.5vh,12px);
+    cursor: pointer;
+    box-shadow: var(--card-shadow);
+    flex-shrink:0;
+  }
+  .method-card:active{ background: var(--pen-blue-soft); }
+  .method-icon{
+    width: 40px; height: 40px;
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 50%;
+    background: var(--pen-blue-soft);
+    color: var(--pen-blue);
+  }
+  .method-title{
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 3px;
+  }
+  .method-desc{
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+
+  /* ---------- Progresso de captura ---------- */
+  .progress-wrap{
+    margin-bottom: clamp(12px,2.5vh,22px);
+    flex-shrink:0;
+  }
+  .progress-track{
+    height: 6px;
+    background: var(--paper-line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill{
+    height: 100%;
+    background: var(--pen-blue);
+    width: 34%;
+    border-radius: 4px;
+    transition: width .3s ease;
+  }
+  .progress-label{
+    display:flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    margin-top: 8px;
+  }
+
+  .char-groups{
+    display:flex;
+    gap: 8px;
+    overflow-x:auto;
+    padding-bottom: 4px;
+    margin-bottom: clamp(10px,2vh,20px);
+    flex-shrink:0;
+  }
+  .char-chip{
+    flex-shrink:0;
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 0.83rem;
+    font-weight: 500;
+    background: white;
+    border: 1px solid var(--paper-line);
+    color: var(--ink-soft);
+    white-space:nowrap;
+  }
+  .char-chip.active{
+    background: var(--pen-blue);
+    color: white;
+    border-color: var(--pen-blue);
+  }
+  .char-chip.done{
+    color: var(--pen-blue);
+    border-color: var(--pen-blue);
+  }
+
+  .capture-stage{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: clamp(8px,1.8vh,18px);
+    overflow:hidden;
+  }
+  .current-char-badge{
+    font-family:"Fraunces", serif;
+    font-size: clamp(2rem, 6vh, 3.4rem);
+    font-weight: 600;
+    color: var(--ink);
+    line-height:1;
+    flex-shrink:1;
+  }
+  .canvas-box{
+    width: 100%;
+    aspect-ratio: 10/9;
+    flex-shrink: 0; /* o quadro de captura nunca encolhe — tudo à volta encolhe primeiro */
+    background: white;
+    border: 1px dashed #C9C2B0;
+    border-radius: var(--radius);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: #C9C2B0;
+    font-size: 0.85rem;
+    box-shadow: var(--card-shadow);
+    padding: 0;
+    overflow: hidden;
+  }
+  #drawCanvas{
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .capture-debug{
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-top: -6px;
+  }
+
+  .save-status{
+    text-align: center;
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: -8px;
+  }
+  .save-status .dot{
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #7A9B6E;
+    flex-shrink: 0;
+    transition: background .2s ease;
+  }
+  .save-status.saving .dot{ background: var(--ink-soft); }
+  .save-status.error .dot{ background: var(--seal-red); }
+
+  .capture-controls{
+    display:flex;
+    gap: 6px;
+    width:100%;
+  }
+  .capture-controls .btn{
+    flex:1;
+    padding: 8px 4px;
+    font-size: 0.78rem;
+    gap: 4px;
+  }
+
+  /* ---------- Pré-visualização / geração ---------- */
+  .preview-box{
+    border: 1px solid var(--paper-line);
+    background: white;
+    border-radius: var(--radius);
+    padding: clamp(12px,2.5vh,20px);
+    margin-bottom: clamp(12px,2.5vh,20px);
+    box-shadow: var(--card-shadow);
+    flex-shrink:0;
+  }
+  .preview-box textarea{
+    width:100%;
+    border:none;
+    resize:none;
+    font-family:"Fraunces", serif;
+    font-style: italic;
+    font-size: 1.3rem;
+    color: var(--pen-blue);
+    line-height:1.6;
+    outline:none;
+    min-height: 120px;
+  }
+  .preview-box .preview-hint{
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--paper-line);
+    padding-top: 10px;
+    margin-top: 6px;
+  }
+
+  .setting-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--paper-line);
+  }
+  .setting-row:last-child{ border-bottom:none; }
+  .setting-label{ font-size: 0.95rem; font-weight: 500; }
+  .setting-desc{ font-size: 0.8rem; color: var(--ink-soft); margin-top:2px; }
+
+  .toggle{
+    width: 44px; height: 26px;
+    background: var(--paper-line);
+    border-radius: 20px;
+    position: relative;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .toggle.on{ background: var(--pen-blue); }
+  .toggle-knob{
+    position:absolute;
+    top:3px; left:3px;
+    width:20px; height:20px;
+    background:white;
+    border-radius:50%;
+    transition: left .15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .toggle.on .toggle-knob{ left: 21px; }
+
+  /* ---------- Escrever (editor com a fonte real, passo 8) ---------- */
+  .write-toolbar{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: clamp(8px,1.5vh,14px);
+    flex-shrink:0;
+  }
+  .write-toolbar label{
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    white-space:nowrap;
+  }
+  .write-toolbar input[type="range"]{
+    flex:1;
+    accent-color: var(--pen-blue);
+  }
+  .write-status{
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-bottom: clamp(8px,1.5vh,12px);
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    flex-shrink:0;
+  }
+  .write-status .dot{
+    width:6px; height:6px;
+    border-radius:50%;
+    background:#7A9B6E;
+    flex-shrink:0;
+  }
+  .write-status.loading .dot{ background: var(--ink-soft); }
+  .write-status.error .dot{ background: var(--seal-red); }
+  .write-box{
+    flex:1;
+    min-height: 160px; /* nunca desaparece — se faltar espaço, o ecrã de escrita faz scroll em vez de encolher isto a zero */
+    border: 1px solid var(--paper-line);
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    margin-bottom: clamp(10px,2vh,18px);
+    display:flex;
+  }
+  #writeArea{
+    flex:1;
+    width:100%;
+    border:none;
+    resize:none;
+    outline:none;
+    padding: 18px;
+    color: var(--pen-blue);
+    line-height: 1.7;
+    background: transparent;
+    font-family: "Fraunces", serif; /* substituído por font-family: 'MinhaLetraLive' assim que a fonte carrega */
+    font-style: italic;
+  }
+
+  /* ---------- Fonte pronta ---------- */
+  .done-hero{
+    text-align:center;
+    padding: clamp(14px,3vh,30px) 0 clamp(10px,2vh,20px);
+    flex-shrink:0;
+  }
+  .done-check{
+    width:64px; height:64px;
+    border-radius:50%;
+    background: var(--pen-blue-soft);
+    color: var(--pen-blue);
+    display:flex; align-items:center; justify-content:center;
+    margin: 0 auto 18px;
+  }
+  .file-card{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border: 1px solid var(--paper-line);
+    background:white;
+    border-radius: var(--radius);
+    padding: clamp(10px,2vh,16px);
+    margin-bottom: clamp(14px,3vh,24px);
+    box-shadow: var(--card-shadow);
+    flex-shrink:0;
+  }
+  .file-icon{
+    width:38px; height:38px;
+    flex-shrink:0;
+    background: var(--pen-blue-soft);
+    color:var(--pen-blue);
+    border-radius: var(--radius);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.7rem;
+    font-weight:700;
+  }
+  .file-name{ font-weight:600; font-size:0.95rem; }
+  .file-meta{ font-size:0.8rem; color:var(--ink-soft); }
+
+  footer.dev-note{
+    margin-top: clamp(8px,2vh,22px);
+    padding-top: clamp(6px,1.4vh,14px);
+    border-top: 1px dashed var(--paper-line);
+    font-size: 0.78rem;
+    color: #A39D8C;
+    line-height:1.5;
+    flex-shrink: 3;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="back" id="backBtn" onclick="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="topbar-title" id="topbarTitle">Minha Letra</div>
+    <div class="topbar-step" id="topbarStep"></div>
+  </div>
+
+  <!-- ===================== ECRÃ 1 — INÍCIO ===================== -->
+  <div class="screen active" data-screen="home">
+    <h1>A tua letra,<br>em qualquer texto.</h1>
+    <p class="lead">Captura o teu alfabeto uma vez. Depois escreve o que quiseres — parece sempre escrito à mão.</p>
+
+    <div class="home-hero">
+      <div class="sample-word">Bem-vindo</div>
+      <div class="sample-caption">Pré-visualização — a tua letra vai aparecer aqui</div>
+    </div>
+
+    <div class="action-list">
+      <button class="btn btn-primary" onclick="startCapture('draw')">Começar a capturar a minha letra</button>
+      <button class="btn btn-text" onclick="continuePreviousFont()" disabled id="continueBtn">Continuar fonte anterior</button>
+      <button class="btn btn-text" onclick="resetAllProgress()" id="resetAllBtn" style="display:none; color:var(--seal-red);">Apagar tudo e recomeçar do zero</button>
+    </div>
+  </div>
+
+  <!-- ===================== ECRÃ 3 — CAPTURA ===================== -->
+  <div class="screen" data-screen="capture">
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label">
+        <span id="progressCount">32 de 94 carateres</span>
+        <span id="progressPercent">34%</span>
+      </div>
+    </div>
+
+    <div class="char-groups">
+      <div class="char-chip done">Minúsculas</div>
+      <div class="char-chip active">Maiúsculas</div>
+      <div class="char-chip">Acentos</div>
+      <div class="char-chip">Números</div>
+      <div class="char-chip">Pontuação</div>
+    </div>
+
+    <div class="capture-stage">
+      <div class="current-char-badge" id="currentChar">G</div>
+      <div class="canvas-box" id="canvasBox">
+        <canvas id="drawCanvas"></canvas>
+      </div>
+      <div class="save-status" id="saveStatus"><span class="dot"></span><span id="saveStatusText">Guardado neste dispositivo</span></div>
+      <div style="display:flex; align-items:center; gap:10px; width:100%; margin-top:-4px;">
+        <span style="font-size:0.75rem; color:var(--ink-soft); white-space:nowrap;">Simplificação</span>
+        <input type="range" id="epsilonSlider" min="0.3" max="6" step="0.1" value="1.5" style="flex:1; accent-color:var(--pen-blue);">
+        <span id="epsilonValue" style="font-size:0.75rem; color:var(--ink-soft); width:26px; text-align:right;">1.5</span>
+      </div>
+      <div class="capture-controls" style="margin-bottom:5px;">
+        <button class="btn btn-secondary" id="penToolBtn" onclick="setEraserMode(false)">✏️ Caneta</button>
+        <button class="btn btn-secondary" id="eraserToolBtn" onclick="setEraserMode(true)">🧹 Borracha</button>
+        <button class="btn btn-secondary" onclick="undoLastStroke()">↶ Desfazer</button>
+      </div>
+      <div class="capture-controls">
+        <button class="btn btn-secondary" onclick="prevChar()">Voltar</button>
+        <button class="btn btn-secondary" onclick="clearCanvas()">Limpar tudo</button>
+        <button class="btn btn-primary" onclick="nextChar()">Seguinte</button>
+      </div>
+      <button class="btn btn-text" onclick="goToDoneAndGenerate()" style="margin-top:0; padding:6px; font-size:0.82rem;">Já chega — gerar fonte com o que tenho</button>
+    </div>
+  </div>
+
+  <!-- ===================== ECRÃ 4 — PRÉ-VISUALIZAÇÃO / GERAÇÃO ===================== -->
+  <div class="screen" data-screen="preview">
+    <h2>A tua fonte está pronta a testar</h2>
+    <p class="lead">Escreve aqui para ver como vai ficar. Ainda podes ajustar definições antes de gerar o ficheiro final.</p>
+
+    <div class="preview-box">
+      <textarea placeholder="Escreve algo para experimentar a tua letra...">A tua letra, agora digital.</textarea>
+      <div class="preview-hint">Pré-visualização com a tua letra</div>
+    </div>
+
+    <div style="border:1px solid var(--paper-line); background:white; border-radius:var(--radius); padding:4px 18px; margin-bottom:clamp(12px,2.5vh,24px); box-shadow:var(--card-shadow); flex-shrink:0;">
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Ligações entre letras</div>
+          <div class="setting-desc">Aproxima as letras, estilo cursivo</div>
+        </div>
+        <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+
+    <div class="action-list">
+      <button class="btn btn-primary" onclick="goToDoneAndGenerate()">Gerar ficheiro da fonte (.ttf)</button>
+      <button class="btn btn-text" onclick="goTo('capture')">Voltar a capturar carateres</button>
+    </div>
+  </div>
+
+  <!-- ===================== ECRÃ 4B — ESCREVER (editor com a fonte real) ===================== -->
+  <div class="screen" data-screen="write">
+    <h2>Escreve com a tua letra</h2>
+    <p class="lead">Isto usa a fonte real gerada agora mesmo — dentro desta app. Fora daqui (noutras apps, no teclado do telemóvel) o sistema continua a usar a fonte dele; para partilhar, exporta como imagem.</p>
+
+    <div class="write-status" id="writeStatus"><span class="dot"></span><span id="writeStatusText">A montar a fonte…</span></div>
+
+    <div class="write-toolbar">
+      <label for="writeFontSize">Tamanho</label>
+      <input type="range" id="writeFontSize" min="16" max="48" step="1" value="26">
+      <span id="writeFontSizeValue" style="font-size:0.78rem; color:var(--ink-soft); width:34px; text-align:right;">26px</span>
+    </div>
+
+    <div class="write-box">
+      <textarea id="writeArea" placeholder="Escreve aqui..." autocapitalize="off" autocorrect="off">A tua letra, agora digital.</textarea>
+    </div>
+
+    <div class="action-list">
+      <button class="btn btn-primary" onclick="generateAndDownloadDocx()">Descarregar como Word (.docx)</button>
+      <div style="font-size:0.82rem; color:var(--ink-soft); margin:-8px 0 12px; line-height:1.4;">Só sai com a letra certa se a fonte "MinhaLetra" já estiver instalada no telemóvel. Sem isso, o Word abre o ficheiro na fonte normal dele.</div>
+      <button class="btn btn-secondary" onclick="exportWriteAsImage()">Exportar como imagem (PNG)</button>
+      <button class="btn btn-text" onclick="goBack()">Voltar</button>
+    </div>
+  </div>
+
+  <!-- ===================== ECRÃ 5 — FONTE PRONTA ===================== -->
+  <div class="screen" data-screen="done">
+    <div class="done-hero">
+      <div class="done-check">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2>A tua fonte foi criada</h2>
+      <p class="lead" style="margin:0 auto;">Instala-a no telemóvel ou usa-a diretamente para escrever e imprimir.</p>
+    </div>
+
+    <div class="file-card">
+      <div class="file-icon">TTF</div>
+      <div style="flex:1">
+        <div class="file-name">MinhaLetra.ttf</div>
+        <div class="file-meta" id="doneFileMeta">a calcular…</div>
+      </div>
+    </div>
+
+    <div class="action-list">
+      <button class="btn btn-primary" onclick="generateAndDownloadFont()">Descarregar fonte</button>
+      <button class="btn btn-secondary" onclick="goToWriteScreen()">Escrever um texto agora</button>
+      <button class="btn btn-text" onclick="goTo('home')">Voltar ao início</button>
+      <button class="btn btn-text" onclick="resetAllProgress()" style="color:var(--seal-red);">Apagar tudo e recomeçar do zero</button>
+    </div>
+
+    <footer class="dev-note">
+      Nota de desenvolvimento: o .ttf é gerado com opentype.js a partir do traço capturado de cada caráter (cada traço vira um contorno preenchido, com a espessura do traço no canvas).
+    </footer>
+  </div>
+
+</div>
+
+<script>
+  const screens = ['home','capture','preview','write','done'];
+  const titles = {
+    home: 'Minha Letra',
+    capture: 'A capturar',
+    preview: 'Pré-visualizar',
+    write: 'Escrever',
+    done: 'Concluído'
+  };
+  let history = ['home'];
+
+  function goTo(screen){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.screen[data-screen="${screen}"]`).classList.add('active');
+    document.getElementById('topbarTitle').textContent = titles[screen];
+    document.getElementById('backBtn').classList.toggle('visible', screen !== 'home');
+    document.getElementById('topbarStep').textContent = '';
+    if(history[history.length-1] !== screen) history.push(screen);
+    if(screen === 'home'){
+      updateResetButtonVisibility();
+    }
+    if(screen === 'capture'){
+      // o ecrã estava display:none, por isso só agora o canvas tem dimensões reais
+      requestAnimationFrame(resizeCanvasToDisplaySize);
+    }
+  }
+
+  function goBack(){
+    if(history.length > 1){
+      history.pop();
+      const prev = history[history.length-1];
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelector(`.screen[data-screen="${prev}"]`).classList.add('active');
+      document.getElementById('topbarTitle').textContent = titles[prev];
+      document.getElementById('backBtn').classList.toggle('visible', prev !== 'home');
+      if(prev === 'capture') requestAnimationFrame(resizeCanvasToDisplaySize);
+    }
+  }
+
+  function startCapture(method){
+    goTo('capture');
+    initCaptureScreen();
+  }
+
+  // ============================================================
+  // PASSO 1 — canvas real + captura de traços (pointer events)
+  // Cada traço fica guardado como uma sequência de pontos {x,y}.
+  // ============================================================
+  //
+  // PASSO 4 — conjunto completo de carateres
+  // Organizado por grupos (correspondem aos chips do ecrã de
+  // captura). A ordem dentro de cada grupo é a ordem de captura;
+  // ALL_CHARS é só a lista achatada, usada pelo resto da lógica
+  // (charIndex indexa nela diretamente).
+  // ============================================================
+  const CHAR_GROUPS = [
+    { label: 'Minúsculas', chars: 'abcdefghijklmnopqrstuvwxyz'.split('') },
+    { label: 'Maiúsculas', chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') },
+    { label: 'Acentos',    chars: 'áàâãçéêíóôõúüÁÀÂÃÇÉÊÍÓÔÕÚÜ'.split('') },
+    { label: 'Números',    chars: '0123456789'.split('') },
+    { label: 'Pontuação',  chars: ['.', ',', ';', ':', '!', '?', "'", '"', '(', ')', '-', '_', '/', '&'] },
+    // PASSO 12 — acrescentados no fim (não a meio de outro grupo) de
+    // propósito: assim os índices dos 102 carateres já capturados
+    // não mudam, e o que já estava guardado continua válido.
+    { label: 'Extra',      chars: ['ñ', 'Ñ', '¿', '¡', 'º', 'ª', '%'] }
+  ];
+  const ALL_CHARS = CHAR_GROUPS.flatMap(g => g.chars);
+
+  // Índice (em ALL_CHARS) onde cada grupo começa — usado para
+  // saltar diretamente para o 1º caráter de um grupo ao tocar num
+  // chip, e para saber a que grupo pertence o charIndex atual.
+  function groupStartIndex(gi){
+    let start = 0;
+    for(let i = 0; i < gi; i++) start += CHAR_GROUPS[i].chars.length;
+    return start;
+  }
+  function groupIndexForCharIndex(idx){
+    let count = 0;
+    for(let i = 0; i < CHAR_GROUPS.length; i++){
+      count += CHAR_GROUPS[i].chars.length;
+      if(idx < count) return i;
+    }
+    return CHAR_GROUPS.length - 1;
+  }
+  function isGroupDone(g){
+    return g.chars.every(hasCapture);
+  }
+  // Reconstrói os chips de grupo (ativo = contém o charIndex atual,
+  // concluído = todos os carateres do grupo já foram capturados).
+  // Chamado sempre que loadChar() corre.
+  function renderCharGroups(){
+    const wrap = document.querySelector('.char-groups');
+    if(!wrap) return;
+    const currentGroup = groupIndexForCharIndex(charIndex);
+    wrap.innerHTML = CHAR_GROUPS.map((g, gi) => {
+      const cls = ['char-chip'];
+      if(gi === currentGroup) cls.push('active');
+      else if(isGroupDone(g)) cls.push('done');
+      return `<div class="${cls.join(' ')}" onclick="jumpToGroup(${gi})">${g.label}</div>`;
+    }).join('');
+  }
+  function jumpToGroup(gi){
+    saveCurrentChar();
+    charIndex = groupStartIndex(gi);
+    loadChar();
+  }
+
+  let charIndex = 0;
+
+  // ============================================================
+  // PASSO 5 — estado guardado por glifo
+  // captures['a'][0] = {
+  //   raw: [ [ {x,y}, ... ], [ ...2º traço... ] ],  ← traços em bruto,
+  //         guardados para se poder reabrir o caráter e continuar a
+  //         desenhar ou reprocessar com outro epsilon mais tarde
+  //   epsilon: 1.5,                                  ← valor do slider
+  //         usado nesta captura
+  //   paths: ['M ... C ...', 'M ... C ...'],          ← um path SVG
+  //         suave por traço, já simplificado (RDP) e curvado
+  //         (Catmull-Rom→Bézier) — é isto que o opentype.js vai
+  //         consumir no passo 6, não os pontos em bruto
+  // }
+  // (o [0] é só histórico de quando havia 3 variantes por caráter —
+  // agora só existe essa posição; ver PASSO 14)
+  // ============================================================
+  const captures = {};
+
+  // ============================================================
+  // PASSO 7 — persistência local (localStorage)
+  // Guarda `captures` (traços em bruto + paths) e a posição atual
+  // (charIndex) sempre que um caráter é gravado ou apagado, e
+  // também se a app for escondida/fechada a meio de um traço — para
+  // retomares exatamente onde ficaste, mesmo depois de saíres a meio
+  // dos 94 carateres. Tudo fica no telemóvel, nada é enviado para
+  // fora.
+  // ============================================================
+
+  const STORAGE_KEY = 'minhaLetra:v1';
+  let saveStatusTimer = null;
+
+  function setSaveStatus(state, text){
+    const el = document.getElementById('saveStatus');
+    const label = document.getElementById('saveStatusText');
+    if(!el || !label) return;
+    el.classList.remove('saving', 'error');
+    if(state === 'saving') el.classList.add('saving');
+    if(state === 'error') el.classList.add('error');
+    label.textContent = text;
+  }
+
+  // Escreve o estado inteiro no localStorage. Chamada depois de
+  // qualquer alteração a `captures` (gravar/apagar um caráter) e
+  // como rede de segurança ao sair da app.
+  function persistState(){
+    try{
+      setSaveStatus('saving', 'A guardar…');
+      const writeAreaEl = document.getElementById('writeArea');
+      const payload = { captures, charIndex, writeText: writeAreaEl ? writeAreaEl.value : undefined, savedAt: Date.now() };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      clearTimeout(saveStatusTimer);
+      saveStatusTimer = setTimeout(() => setSaveStatus('ok', 'Guardado neste dispositivo'), 150);
+      return true;
+    } catch(err){
+      console.error('Não foi possível guardar localmente:', err);
+      setSaveStatus('error', 'Não foi possível guardar — falta espaço no dispositivo?');
+      return false;
+    }
+  }
+
+  function loadPersistedState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    } catch(err){
+      console.error('Estado guardado corrompido — a ignorar:', err);
+      return null;
+    }
+  }
+
+  function countCapturedFromData(data){
+    if(!data || !data.captures) return 0;
+    return ALL_CHARS.filter(c => {
+      const v = data.captures[c] && data.captures[c][0];
+      return !!(v && v.raw && v.raw.length);
+    }).length;
+  }
+
+  // Corre uma vez ao abrir a app: se houver trabalho de uma sessão
+  // anterior, restaura-o para memória (captures/charIndex) e liga o
+  // botão "Continuar fonte anterior" na home com a contagem.
+  function restorePersistedStateIfAny(){
+    const data = loadPersistedState();
+    const btn = document.getElementById('continueBtn');
+    if(!data || !data.captures){
+      if(btn) btn.disabled = true;
+      return;
+    }
+    Object.assign(captures, data.captures);
+    if(Number.isInteger(data.charIndex)) charIndex = data.charIndex;
+    if(typeof data.writeText === 'string' && data.writeText.length){
+      const writeAreaEl = document.getElementById('writeArea');
+      if(writeAreaEl) writeAreaEl.value = data.writeText;
+    }
+    const n = countCapturedFromData(data);
+    if(btn){
+      btn.disabled = n === 0;
+      btn.textContent = n === 0 ? 'Continuar fonte anterior' : `Continuar fonte anterior (${n}/${ALL_CHARS.length})`;
+    }
+    updateResetButtonVisibility();
+  }
+
+  // Botão "Continuar fonte anterior" na home — o estado já foi
+  // restaurado para captures/charIndex em restorePersistedStateIfAny(),
+  // por isso aqui entramos direto no ecrã de captura sem reiniciar a
+  // posição a 0.
+  function continuePreviousFont(){
+    goTo('capture');
+    initCaptureScreen(true);
+  }
+
+  // ============================================================
+  // PASSO 14 — recomeçar tudo do zero
+  // Apaga todos os carateres capturados (captures), o progresso
+  // guardado no localStorage (STORAGE_KEY) e qualquer texto de
+  // teste no ecrã "Escrever", e volta ao ecrã inicial como se a
+  // app tivesse acabado de ser aberta pela primeira vez. É
+  // destrutivo e não há undo — por isso pede confirmação antes.
+  // ============================================================
+  function resetAllProgress(){
+    const confirmed = confirm('Isto apaga todos os carateres já capturados e todo o progresso guardado neste dispositivo. Não é possível desfazer. Queres mesmo recomeçar do zero?');
+    if(!confirmed) return;
+
+    // limpa o estado em memória (mantém o objeto `captures`, só
+    // esvazia as chaves, porque outras funções já guardam referência
+    // a ele)
+    Object.keys(captures).forEach(k => delete captures[k]);
+    charIndex = 0;
+    currentStrokes = [];
+    activeStroke = null;
+    isDrawing = false;
+
+    const writeAreaEl = document.getElementById('writeArea');
+    if(writeAreaEl) writeAreaEl.value = '';
+
+    try{
+      localStorage.removeItem(STORAGE_KEY);
+    } catch(err){
+      console.error('Não foi possível apagar o progresso guardado:', err);
+    }
+
+    const continueBtn = document.getElementById('continueBtn');
+    if(continueBtn){
+      continueBtn.disabled = true;
+      continueBtn.textContent = 'Continuar fonte anterior';
+    }
+    updateResetButtonVisibility();
+
+    // volta ao início com o histórico de navegação limpo, para o
+    // botão "voltar" não tentar voltar a um ecrã de um trabalho que
+    // acabámos de apagar
+    history = ['home'];
+    goTo('home');
+  }
+
+  // Mostra o botão "Apagar tudo e recomeçar do zero" na home só
+  // quando há de facto alguma coisa capturada para apagar.
+  function updateResetButtonVisibility(){
+    const btn = document.getElementById('resetAllBtn');
+    if(!btn) return;
+    btn.style.display = capturedCount() > 0 ? '' : 'none';
+  }
+
+  // Rede de segurança: se a app for escondida/fechada a meio de um
+  // traço (ida para segundo plano no Android/Capacitor, fecho do
+  // browser), guarda o caráter corrente antes que isso aconteça —
+  // é o cenário exato que este passo existe para cobrir.
+  function flushBeforeLeaving(){
+    const captureScreen = document.querySelector('.screen[data-screen="capture"]');
+    if(captureScreen && captureScreen.classList.contains('active')){
+      saveCurrentChar();
+    }
+    persistState();
+  }
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden') flushBeforeLeaving();
+  });
+  window.addEventListener('pagehide', flushBeforeLeaving);
+
+  let currentStrokes = [];   // traços já terminados do caráter atual
+  let activeStroke = null;   // traço a meio de ser desenhado agora
+  let isDrawing = false;
+  let eraserMode = false;    // false = caneta (desenha), true = borracha (apaga traços ao tocar-lhes)
+  const ERASER_RADIUS_PX = 16; // distância, em píxeis do ecrã, a que a borracha "agarra" um traço
+  let canvas, ctx;
+  const STROKE_WIDTH_PX = 3.2;      // espessura do traço no canvas (px) — usada também no passo 6
+  let captureCanvasSize = { width: 0, height: 0 }; // tamanho CSS do canvas, definido em resizeCanvasToDisplaySize()
+
+  function initCaptureScreen(resume){
+    canvas = document.getElementById('drawCanvas');
+    ctx = canvas.getContext('2d');
+
+    if(!canvas.dataset.bound){
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', onPointerUp);
+      canvas.addEventListener('pointercancel', onPointerUp);
+      canvas.addEventListener('pointerleave', onPointerUp);
+      new ResizeObserver(resizeCanvasToDisplaySize).observe(canvas);
+      canvas.dataset.bound = '1';
+    }
+
+    const epsilonSlider = document.getElementById('epsilonSlider');
+    if(epsilonSlider && !epsilonSlider.dataset.bound){
+      epsilonSlider.addEventListener('input', (e) => {
+        document.getElementById('epsilonValue').textContent = parseFloat(e.target.value).toFixed(1);
+        redrawStrokes();
+        updateDebugReadout();
+      });
+      epsilonSlider.dataset.bound = '1';
+    }
+
+    // resume=true (vindo de "Continuar fonte anterior"): mantém o
+    // charIndex já restaurado do localStorage em vez de recomeçar do
+    // 1º caráter.
+    if(!resume){
+      charIndex = 0;
+    }
+    setEraserMode(false);
+    loadChar();
+  }
+
+  function resizeCanvasToDisplaySize(){
+    if(!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if(rect.width === 0 || rect.height === 0) return; // ainda escondido
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = STROKE_WIDTH_PX;
+    ctx.strokeStyle = '#1C1A17';
+    // guarda o tamanho CSS do canvas (não os píxeis físicos) — os
+    // pontos capturados em pointFromEvent() já estão neste referencial,
+    // por isso é este que o passo 6 usa para mapear px → unidades de fonte.
+    captureCanvasSize = { width: rect.width, height: rect.height };
+    redrawStrokes();
+  }
+
+  function pointFromEvent(e){
+    const rect = canvas.getBoundingClientRect();
+    return { x: +(e.clientX - rect.left).toFixed(2), y: +(e.clientY - rect.top).toFixed(2) };
+  }
+
+  function onPointerDown(e){
+    e.preventDefault();
+    const p = pointFromEvent(e);
+    canvas.setPointerCapture(e.pointerId);
+    if(eraserMode){
+      isDrawing = true; // reaproveita a mesma flag: "há um dedo/caneta em contacto"
+      eraseStrokesNear(p);
+      return;
+    }
+    isDrawing = true;
+    activeStroke = [p];
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  function onPointerMove(e){
+    if(!isDrawing) return;
+    const p = pointFromEvent(e);
+    if(eraserMode){
+      eraseStrokesNear(p);
+      return;
+    }
+    const last = activeStroke[activeStroke.length - 1];
+    if(last && Math.hypot(p.x - last.x, p.y - last.y) < 1) return; // ignora ruído sub-pixel
+    activeStroke.push(p);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+
+  function onPointerUp(e){
+    if(!isDrawing) return;
+    isDrawing = false;
+    if(eraserMode){
+      updateDebugReadout();
+      return;
+    }
+    if(activeStroke && activeStroke.length > 1){
+      currentStrokes.push(activeStroke);
+    }
+    activeStroke = null;
+    redrawStrokes();
+    updateDebugReadout();
+  }
+
+  // Apaga (por inteiro) qualquer traço que passe perto do ponto p —
+  // é um apagar "por traço", não por pixel: assim que a borracha toca
+  // em qualquer parte de um traço, esse traço desaparece todo, o que
+  // evita ficar com bocadinhos de traço partidos e inválidos para a
+  // simplificação (RDP) do passo 6.
+  function eraseStrokesNear(p){
+    const before = currentStrokes.length;
+    currentStrokes = currentStrokes.filter(stroke =>
+      !stroke.some(pt => Math.hypot(pt.x - p.x, pt.y - p.y) <= ERASER_RADIUS_PX)
+    );
+    if(currentStrokes.length !== before){
+      redrawStrokes();
+    }
+  }
+
+  // Alterna entre caneta e borracha — só muda o MODO, não apaga nada
+  // sozinho; quem apaga é eraseStrokesNear(), chamada a partir dos
+  // handlers de pointer enquanto o modo borracha estiver ativo.
+  function setEraserMode(isEraser){
+    eraserMode = isEraser;
+    const penBtn = document.getElementById('penToolBtn');
+    const eraserBtn = document.getElementById('eraserToolBtn');
+    if(penBtn) penBtn.classList.toggle('tool-active', !isEraser);
+    if(eraserBtn) eraserBtn.classList.toggle('tool-active', isEraser);
+    if(canvas) canvas.style.cursor = isEraser ? 'cell' : 'crosshair';
+  }
+
+  // Desfaz só o último traço (uma "pincelada"), ao contrário de
+  // "Limpar tudo" que apaga o caráter inteiro. Útil para corrigir um
+  // traço mal desenhado sem ter de recomeçar a letra do zero.
+  function undoLastStroke(){
+    if(!currentStrokes.length) return;
+    currentStrokes.pop();
+    redrawStrokes();
+    updateDebugReadout();
+  }
+
+  // Linhas-guia de caligrafia (4 no total) — desenhadas nos sítios
+  // exatos para onde canvasPointToFontUnits() depois mapeia cada
+  // valor de referência, para o que se vê ao desenhar corresponder
+  // ao resultado final na fonte:
+  //   1) linha do topo alto  — maiúsculas, números, minúsculas com
+  //      "haste" para cima (b, d, f, h, k, l, t)
+  //   2) linha do topo baixo — minúsculas "normais" (a, c, e, m, n,
+  //      o, r, s, u, v, w, x, z) — garante que ficam todas com a
+  //      mesma altura entre si
+  //   3) linha de base — onde a maioria das letras assenta
+  //   4) linha do rabicho — até onde descem g, j, p, q, y, ç, f
+  // As duas linhas relevantes para a letra atual ficam mais fortes;
+  // as outras duas ficam esbatidas, só como referência.
+  function fontYToCanvasPx(fontY, canvasHeight){
+    return (FONT_ASCENDER - fontY) * (canvasHeight / FONT_UNITS_PER_EM);
+  }
+
+  function drawGuideLine(rect, fontY, color, strong){
+    const y = fontYToCanvasPx(fontY, rect.height);
+    ctx.save();
+    ctx.setLineDash(strong ? [5, 4] : [3, 5]);
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = strong ? 0.9 : 0.35;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(rect.width, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBaselineGuide(){
+    if(!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const char = ALL_CHARS[charIndex];
+    const topIsTall = isAscenderHeight(char);
+    const bottomIsDescender = DESCENDER_CHARS.has(char);
+
+    // topo baixo (x-height) — forte só se a letra atual for "normal"
+    drawGuideLine(rect, FONT_X_HEIGHT, '#2B4C7E', !topIsTall);
+    // topo alto (ascendente/maiúsculas) — forte só se a letra atual for alta
+    drawGuideLine(rect, FONT_CAP_HEIGHT, '#2B4C7E', topIsTall);
+    // linha de base — sempre forte, é a referência principal
+    drawGuideLine(rect, 0, '#A63D40', true);
+    // rabicho (descendente) — forte só se a letra atual tiver rabicho
+    drawGuideLine(rect, DESCENDER_TARGET_BOTTOM, '#A63D40', bottomIsDescender);
+  }
+
+  function redrawStrokes(){
+    if(!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    drawBaselineGuide();
+    currentStrokes.forEach(stroke => {
+      if(stroke.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x, stroke[0].y);
+      for(let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x, stroke[i].y);
+      ctx.stroke();
+    });
+    const epsilon = getEpsilon();
+    drawSimplifiedOverlay(epsilon);
+    drawSmoothOverlay(epsilon);
+  }
+
+  // ============================================================
+  // PASSO 2 — simplificação de curva (Ramer-Douglas-Peucker)
+  // Reduz o ruído dos pontos capturados (tremor da mão/dedo, taxa
+  // de amostragem do pointermove) mantendo a forma do traço.
+  // Por agora isto é só visual/experimental (sobreposição a
+  // vermelho no canvas + contagem no debug) para poderes afinar o
+  // valor de epsilon com o slider antes de decidirmos, no passo 3,
+  // se a simplificação passa a ser aplicada aos dados guardados.
+  // ============================================================
+
+  function getEpsilon(){
+    const el = document.getElementById('epsilonSlider');
+    return el ? parseFloat(el.value) : 1.5;
+  }
+
+  // Distância perpendicular do ponto p à reta definida por a-b.
+  function perpendicularDistance(p, a, b){
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const mag = Math.hypot(dx, dy);
+    if(mag === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+    const u = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (mag * mag);
+    const closestX = a.x + u * dx;
+    const closestY = a.y + u * dy;
+    return Math.hypot(p.x - closestX, p.y - closestY);
+  }
+
+  // Ramer-Douglas-Peucker recursivo: mantém só os pontos que se
+  // afastam mais de `epsilon` da linha reta entre os extremos.
+  function rdp(points, epsilon){
+    let dmax = 0;
+    let index = 0;
+    const end = points.length - 1;
+    for(let i = 1; i < end; i++){
+      const d = perpendicularDistance(points[i], points[0], points[end]);
+      if(d > dmax){ index = i; dmax = d; }
+    }
+    if(dmax > epsilon){
+      const left = rdp(points.slice(0, index + 1), epsilon);
+      const right = rdp(points.slice(index), epsilon);
+      return left.slice(0, -1).concat(right);
+    }
+    return [points[0], points[end]];
+  }
+
+  function simplifyStroke(points, epsilon){
+    if(points.length < 3) return points.slice();
+    return rdp(points, epsilon);
+  }
+
+  // Desenha por cima do traço a preto os pontos que sobrevivem à
+  // simplificação (bolinhas vermelhas ligadas por segmentos retos),
+  // para se ver a olho o que o algoritmo está a manter/descartar.
+  function drawSimplifiedOverlay(epsilon){
+    if(!ctx || !currentStrokes.length) return;
+    ctx.save();
+    ctx.strokeStyle = '#A63D40';
+    ctx.fillStyle = '#A63D40';
+    ctx.lineWidth = 1;
+    currentStrokes.forEach(stroke => {
+      if(stroke.length < 2) return;
+      const simplified = simplifyStroke(stroke, epsilon);
+      ctx.beginPath();
+      ctx.moveTo(simplified[0].x, simplified[0].y);
+      for(let i = 1; i < simplified.length; i++) ctx.lineTo(simplified[i].x, simplified[i].y);
+      ctx.stroke();
+      simplified.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    });
+    ctx.restore();
+  }
+
+  // ============================================================
+  // PASSO 3 — pontos simplificados → path SVG suave (Bézier)
+  // Esta é a peça que liga a captura ao opentype.js: um traço é
+  // uma lista de pontos, mas um glifo de fonte precisa de curvas
+  // (comandos C). Usamos uma spline Catmull-Rom (passa exatamente
+  // pelos pontos capturados, sem precisar de tangentes à mão) e
+  // convertemo-la para os segmentos cúbicos de Bézier equivalentes
+  // — é a conversão standard, usada por praticamente todo o
+  // software de desenho vetorial para "suavizar" uma polilinha.
+  // ============================================================
+
+  // Para cada segmento entre p1 e p2, usa o ponto anterior (p0) e o
+  // seguinte (p3) só para calcular a direção da curva nesse troço —
+  // não fazem parte do resultado. Nas pontas do traço, onde não há
+  // p0 ou p3, repete-se o ponto vizinho (tangente "aberta").
+  function catmullRomToBezierSegments(points){
+    const n = points.length;
+    if(n < 2) return [];
+    const segments = [];
+    for(let i = 0; i < n - 1; i++){
+      const p0 = points[i - 1] || points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2] || p2;
+      const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
+      const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      segments.push({ c1, c2, end: p2 });
+    }
+    return segments;
+  }
+
+  // Devolve o valor pronto a usar num atributo "d" de <path>, ou
+  // como sequência de moveTo/bezierCurveTo — é a mesma matemática,
+  // só muda a formatação de saída.
+  function pointsToSmoothPathD(points){
+    if(!points || points.length < 2) return '';
+    if(points.length === 2){
+      // só 2 pontos: não há informação de curvatura, fica reta.
+      const [a, b] = points;
+      return `M ${a.x.toFixed(2)},${a.y.toFixed(2)} L ${b.x.toFixed(2)},${b.y.toFixed(2)}`;
+    }
+    const segs = catmullRomToBezierSegments(points);
+    let d = `M ${points[0].x.toFixed(2)},${points[0].y.toFixed(2)}`;
+    segs.forEach(seg => {
+      d += ` C ${seg.c1.x.toFixed(2)},${seg.c1.y.toFixed(2)} ${seg.c2.x.toFixed(2)},${seg.c2.y.toFixed(2)} ${seg.end.x.toFixed(2)},${seg.end.y.toFixed(2)}`;
+    });
+    return d;
+  }
+
+  // Desenha a curva suave (path final) a azul, por cima das outras
+  // duas camadas, para comparares os três estados de cada traço:
+  // preto = traço bruto · vermelho = pontos simplificados (RDP) ·
+  // azul = curva Bézier final (é esta que vai para o glifo).
+  function drawSmoothOverlay(epsilon){
+    if(!ctx || !currentStrokes.length) return;
+    ctx.save();
+    ctx.strokeStyle = '#2B4C7E';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.9;
+    currentStrokes.forEach(stroke => {
+      if(stroke.length < 2) return;
+      const simplified = simplifyStroke(stroke, epsilon);
+      const d = pointsToSmoothPathD(simplified);
+      if(!d) return;
+      ctx.stroke(new Path2D(d));
+    });
+    ctx.restore();
+  }
+
+  function clearCanvas(){
+    currentStrokes = [];
+    activeStroke = null;
+    isDrawing = false;
+    const char = ALL_CHARS[charIndex];
+    if(captures[char]) captures[char][0] = undefined;
+    redrawStrokes();
+    updateDebugReadout();
+    updateProgress();
+    persistState();
+  }
+
+  function loadChar(){
+    const char = ALL_CHARS[charIndex];
+    const saved = captures[char] && captures[char][0];
+    currentStrokes = saved ? JSON.parse(JSON.stringify(saved.raw)) : [];
+    activeStroke = null;
+    document.getElementById('currentChar').textContent = char;
+    redrawStrokes();
+    updateDebugReadout();
+    updateProgress();
+    renderCharGroups();
+  }
+
+  // Guarda o traço do caráter atual. Continua a gravar-se dentro de
+  // um array (captures[char][0]) por compatibilidade com trabalho já
+  // guardado antes desta versão — mas só existe a posição 0, já não
+  // há uma posição.
+  function saveCurrentChar(){
+    if(!currentStrokes.length) return; // nada desenhado neste caráter — não sobrescreve o que já existia
+    const char = ALL_CHARS[charIndex];
+    if(!captures[char]) captures[char] = [];
+    const epsilon = getEpsilon();
+    const paths = currentStrokes
+      .map(stroke => pointsToSmoothPathD(simplifyStroke(stroke, epsilon)))
+      .filter(Boolean);
+    captures[char][0] = {
+      raw: JSON.parse(JSON.stringify(currentStrokes)),
+      epsilon,
+      paths,
+      canvasSize: { width: captureCanvasSize.width, height: captureCanvasSize.height }
+    };
+    persistState();
+  }
+
+  let announcedFontReady = false;
+
+  // Avisa quando todos os carateres já têm um traço capturado — a
+  // fonte já pode ser gerada.
+  function checkCaptureMilestones(){
+    if(!announcedFontReady && capturedCount() >= ALL_CHARS.length){
+      announcedFontReady = true;
+      alert(`Já tens um traço para cada um dos ${ALL_CHARS.length} carateres — já dá para gerar a tua fonte.`);
+      goToDoneAndGenerate();
+    }
+  }
+
+  function nextChar(){
+    saveCurrentChar();
+    charIndex++;
+    if(charIndex >= ALL_CHARS.length){
+      charIndex = 0;
+    }
+    loadChar();
+    checkCaptureMilestones();
+  }
+
+  // Volta à letra anterior, para poderes redesenhar algo que já
+  // passaste — sem isto só era possível "saltar" para o início de um
+  // grupo inteiro (jumpToGroup), não recuar uma letra de cada vez.
+  // Grava primeiro o que estiver desenhado na letra atual (tal como
+  // nextChar), depois recua uma letra. loadChar() já carrega o traço
+  // gravado dessa letra, pronto a apagar ou ajustar.
+  function prevChar(){
+    saveCurrentChar();
+    charIndex--;
+    if(charIndex < 0){
+      charIndex = ALL_CHARS.length - 1;
+    }
+    loadChar();
+  }
+
+  function updateDebugReadout(){
+    const el = document.getElementById('captureDebug');
+    if(!el) return;
+    const epsilon = getEpsilon();
+    let totalRaw = 0, totalSimplified = 0, totalCurves = 0;
+    currentStrokes.forEach(stroke => {
+      totalRaw += stroke.length;
+      const simplified = simplifyStroke(stroke, epsilon);
+      totalSimplified += simplified.length;
+      totalCurves += Math.max(0, simplified.length - 1);
+    });
+    const reducao = totalRaw > 0 ? Math.round((1 - totalSimplified / totalRaw) * 100) : 0;
+    el.textContent = totalRaw > 0
+      ? `${currentStrokes.length} traço${currentStrokes.length === 1 ? '' : 's'} · ${totalRaw} pontos brutos → ${totalSimplified} simplificados (-${reducao}%) · ${totalCurves} curva${totalCurves === 1 ? '' : 's'} Bézier`
+      : `${currentStrokes.length} traço${currentStrokes.length === 1 ? '' : 's'} · 0 pontos`;
+  }
+
+  function updateProgress(){
+    const done = capturedCount();
+    const total = ALL_CHARS.length;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressCount').textContent = `${done} de ${total} carateres`;
+    document.getElementById('progressPercent').textContent = pct + '%';
+  }
+
+  // ============================================================
+  // PASSO 6 — dos traços ao .ttf real (opentype.js)
+  //
+  // O opentype.js precisa de CONTORNOS FECHADOS E PREENCHÍVEIS por
+  // glifo (é assim que qualquer fonte vetorial funciona — não há
+  // conceito de "linha com espessura"). Mas o que temos guardado em
+  // captures[char][0].raw é uma LINHA fina (a trajetória do
+  // dedo/rato). Por isso este passo faz uma coisa nova em relação
+  // aos passos 1-5: pega em cada traço já suavizado (Catmull-Rom,
+  // passo 3) e "engorda-o" — gera um contorno à volta da linha,
+  // deslocando pontos para a esquerda e para a direita da trajetória
+  // por metade da espessura do traço (offset por normais). O
+  // resultado é uma fita fechada por traço, que é isso que vira um
+  // contorno do glifo. Vários traços no mesmo caráter → vários
+  // contornos no mesmo glifo (ex.: os dois traços do "x").
+  //
+  // Sistema de coordenadas: o canvas tem Y a crescer para baixo e
+  // está em píxeles CSS; uma fonte tem Y a crescer para cima e está
+  // em "unidades de em" (unitsPerEm). A função canvasPointToFontUnits
+  // faz essa conversão: escala pelo tamanho do canvas guardado em
+  // captureCanvasSize, e usa a linha de base (baseline) do glifo
+  // como referência — o topo do canvas fica perto do ascender, o
+  // fundo perto do descender.
+  // ============================================================
+
+  const FONT_UNITS_PER_EM = 1200;
+  const FONT_ASCENDER = 800;
+  const FONT_DESCENDER = -400;
+  const GLYPH_SIDE_BEARING = 40;   // espaço em branco à esquerda/direita de cada glifo
+  const SPACE_ADVANCE = Math.round(FONT_UNITS_PER_EM * 0.32);
+  // Espessura do traço FINAL da fonte, em unidades de em (0-1000) — não em
+  // píxeles do canvas. Antes disto, a espessura era calculada a partir de
+  // STROKE_WIDTH_PX (o traço visual no ecrã ao desenhar) convertido para
+  // unidades de fonte com a escala do canvas ATUAL — dava traços de ~10
+  // unidades (quase invisíveis; só o negrito sintético do WPS os grossava
+  // o suficiente para se verem). Uma fonte "Regular" normal costuma andar
+  // entre 60 e 100 unidades. 90 dá um traço de caneta com bom contraste.
+  const FONT_STROKE_UNITS = 90;
+
+  // Amostra uma curva cúbica de Bézier em N pontos — é preciso para
+  // "engordar" a curva (offset por normais), que só funciona bem em
+  // linhas poligonais densas, não nos 4 pontos de controlo da Bézier.
+  function sampleCubicBezier(p0, c1, c2, p1, steps){
+    const pts = [];
+    for(let i = 0; i <= steps; i++){
+      const t = i / steps, mt = 1 - t;
+      pts.push({
+        x: mt*mt*mt*p0.x + 3*mt*mt*t*c1.x + 3*mt*t*t*c2.x + t*t*t*p1.x,
+        y: mt*mt*mt*p0.y + 3*mt*mt*t*c1.y + 3*mt*t*t*c2.y + t*t*t*p1.y
+      });
+    }
+    return pts;
+  }
+
+  // Reaproveita catmullRomToBezierSegments (passo 3) e devolve uma
+  // polilinha densa que segue a mesma curva suave desenhada a azul
+  // no canvas — é sobre esta polilinha que o offset é calculado.
+  function flattenSmoothStroke(simplifiedPoints, samplesPerSegment){
+    if(simplifiedPoints.length < 2) return simplifiedPoints.slice();
+    if(simplifiedPoints.length === 2) return simplifiedPoints.slice();
+    const segs = catmullRomToBezierSegments(simplifiedPoints);
+    const dense = [simplifiedPoints[0]];
+    let prev = simplifiedPoints[0];
+    segs.forEach(seg => {
+      const samples = sampleCubicBezier(prev, seg.c1, seg.c2, seg.end, samplesPerSegment);
+      dense.push(...samples.slice(1)); // ignora o 1º (repetido = prev)
+      prev = seg.end;
+    });
+    return dense;
+  }
+
+  // Para cada ponto da polilinha, calcula a normal (perpendicular à
+  // direção do traço nesse ponto) e devolve dois pontos deslocados
+  // por metade da espessura, um para cada lado. Nos pontos do meio,
+  // a normal é a média das normais dos dois segmentos vizinhos —
+  // evita "dentes" na fita nos pontos de curvatura mais apertada.
+  function offsetPolyline(points, halfWidth){
+    const n = points.length;
+    const left = [], right = [];
+    for(let i = 0; i < n; i++){
+      let nx, ny;
+      if(i === 0){
+        const dx = points[1].x - points[0].x, dy = points[1].y - points[0].y;
+        const len = Math.hypot(dx, dy) || 1;
+        nx = -dy/len; ny = dx/len;
+      } else if(i === n - 1){
+        const dx = points[n-1].x - points[n-2].x, dy = points[n-1].y - points[n-2].y;
+        const len = Math.hypot(dx, dy) || 1;
+        nx = -dy/len; ny = dx/len;
+      } else {
+        const dx1 = points[i].x - points[i-1].x, dy1 = points[i].y - points[i-1].y;
+        const len1 = Math.hypot(dx1, dy1) || 1;
+        const dx2 = points[i+1].x - points[i].x, dy2 = points[i+1].y - points[i].y;
+        const len2 = Math.hypot(dx2, dy2) || 1;
+        let ax = -dy1/len1 + -dy2/len2, ay = dx1/len1 + dx2/len2;
+        const alen = Math.hypot(ax, ay) || 1;
+        nx = ax/alen; ny = ay/alen;
+      }
+      left.push({ x: points[i].x + nx*halfWidth, y: points[i].y + ny*halfWidth });
+      right.push({ x: points[i].x - nx*halfWidth, y: points[i].y - ny*halfWidth });
+    }
+    return { left, right };
+  }
+
+  // Converte um ponto em píxeles do canvas (Y para baixo) num ponto
+  // em unidades de fonte (Y para cima, origem na linha de base).
+  // Recebe o h (altura do canvas) de quem chama — tem de ser o h de
+  // QUANDO aquele traço foi desenhado, não o h atual do ecrã (ver
+  // nota em buildGlyphPath), senão letras capturadas com o canvas
+  // noutro tamanho saem com escala errada e ficam com tamanhos
+  // diferentes entre si.
+  function canvasPointToFontUnits(p, h){
+    const height = h || captureCanvasSize.height || 300;
+    const scale = FONT_UNITS_PER_EM / height;
+    return { x: p.x * scale, y: FONT_ASCENDER - p.y * scale };
+  }
+
+  // Constrói o opentype.Path de um glifo a partir dos traços em bruto
+  // do caráter — cada traço vira um contorno fechado (fita).
+  // Devolve também minX/maxX (em unidades de fonte) para calcular a
+  // largura de avanço do glifo a seguir.
+  function buildGlyphPath(char, variantIdx){
+    const path = new opentype.Path();
+    const cap = captures[char] && captures[char][variantIdx];
+    if(!cap || !cap.raw || !cap.raw.length){
+      return { path, minX: 0, maxX: 0 };
+    }
+    const epsilon = cap.epsilon || 1.5;
+    // Usa o tamanho do canvas guardado NESTA captura; capturas antigas
+    // (feitas antes desta correção) não têm esse campo — nesse caso
+    // assume-se o tamanho atual do ecrã como melhor estimativa.
+    const capH = (cap.canvasSize && cap.canvasSize.height) || captureCanvasSize.height || 300;
+    const scale = FONT_UNITS_PER_EM / capH;
+    // Espessura alvo fixa (FONT_STROKE_UNITS) em unidades de fonte,
+    // convertida para píxeles do canvas ANTES de "engordar" a linha —
+    // assim, depois da conversão para unidades de fonte, a espessura
+    // final é sempre a mesma, independentemente do tamanho do canvas
+    // em que a letra foi desenhada.
+    const halfWidth = (FONT_STROKE_UNITS / 2) / scale;
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+
+    cap.raw.forEach(stroke => {
+      const simplified = simplifyStroke(stroke, epsilon);
+      if(simplified.length < 2) return;
+      const dense = flattenSmoothStroke(simplified, 6);
+      if(dense.length < 2) return;
+      const { left, right } = offsetPolyline(dense, halfWidth);
+      const contourPx = left.concat(right.slice().reverse());
+      const contour = contourPx.map(pt => canvasPointToFontUnits(pt, capH));
+
+      path.moveTo(contour[0].x, contour[0].y);
+      for(let i = 1; i < contour.length; i++) path.lineTo(contour[i].x, contour[i].y);
+      path.close();
+
+      contour.forEach(pt => {
+        if(pt.x < minX) minX = pt.x;
+        if(pt.x > maxX) maxX = pt.x;
+        if(pt.y < minY) minY = pt.y;
+        if(pt.y > maxY) maxY = pt.y;
+      });
+    });
+
+    return {
+      path,
+      minX: isFinite(minX) ? minX : 0,
+      maxX: isFinite(maxX) ? maxX : 0,
+      minY: isFinite(minY) ? minY : 0,
+      maxY: isFinite(maxY) ? maxY : 0
+    };
+  }
+
+  // Desloca todos os comandos de um path em X — usado para alinhar o
+  // glifo à margem esquerda (side bearing) depois de construído.
+  function shiftPathX(path, dx){
+    if(dx === 0) return;
+    path.commands.forEach(cmd => {
+      if(cmd.x !== undefined) cmd.x += dx;
+      if(cmd.x1 !== undefined) cmd.x1 += dx;
+      if(cmd.x2 !== undefined) cmd.x2 += dx;
+    });
+  }
+
+  // Desloca todos os comandos de um path em Y — usado para alinhar o
+  // glifo à linha de base (ver ALINHAMENTO VERTICAL abaixo).
+  function shiftPathY(path, dy){
+    if(dy === 0) return;
+    path.commands.forEach(cmd => {
+      if(cmd.y !== undefined) cmd.y += dy;
+      if(cmd.y1 !== undefined) cmd.y1 += dy;
+      if(cmd.y2 !== undefined) cmd.y2 += dy;
+    });
+  }
+
+  // ============================================================
+  // ALINHAMENTO VERTICAL — a caixa de captura não tinha nenhuma linha
+  // de base desenhada, por isso cada letra foi desenhada numa altura
+  // um pouco diferente dentro do quadrado (visível quando "abc" saem
+  // desalinhados no WPS). Em vez de obrigar a recapturar tudo,
+  // alinha-se cada glifo pela base automaticamente aqui: para a
+  // maioria dos carateres, a base do traço (o ponto mais baixo) é
+  // empurrada para a linha de base (y=0); para os que têm "rabicho"
+  // (g, j, p, q, y, ç...), a base é empurrada para um pouco abaixo da
+  // linha de base, para o rabicho continuar a descer como esperado.
+  // ============================================================
+  const DESCENDER_CHARS = new Set(['f', 'g', 'j', 'p', 'q', 'y', 'ç', 'Ç']);
+  const DESCENDER_TARGET_BOTTOM = -360; // unidades de fonte abaixo da baseline
+  // Linhas-guia de altura (usadas também em drawBaselineGuide, mais
+  // acima no ficheiro — ver comentário lá): topo baixo (x-height) para
+  // minúsculas "normais", topo alto (cap-height) para maiúsculas,
+  // números e minúsculas com haste.
+  const FONT_X_HEIGHT = 500;
+  const FONT_CAP_HEIGHT = 700;
+  const ASCENDER_LOWERCASE = new Set(['b', 'd', 'f', 'h', 'k', 'l', 't']);
+  const DIGIT_CHARS = new Set('0123456789'.split(''));
+  function isUpperCaseChar(ch){
+    return ch !== ch.toLowerCase() && ch === ch.toUpperCase();
+  }
+  function isAscenderHeight(char){
+    return isUpperCaseChar(char) || DIGIT_CHARS.has(char) || ASCENDER_LOWERCASE.has(char);
+  }
+
+  function targetGlyphBottom(char){
+    return DESCENDER_CHARS.has(char) ? DESCENDER_TARGET_BOTTOM : 0;
+  }
+
+  // Nome de glifo estável e válido em qualquer motor de fontes —
+  // evita lidar com acentos/pontuação em nomes de glifo "bonitos".
+  function glyphNameFor(char){
+    return 'uni' + char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+  }
+
+  // Um caráter só entra na fonte se tiver sido desenhado.
+  function hasCapture(char){
+    const c = captures[char] && captures[char][0];
+    return !!(c && c.raw && c.raw.length);
+  }
+
+  function capturedCount(){
+    return ALL_CHARS.filter(hasCapture).length;
+  }
+
+  // Monta a fonte completa: um glifo .notdef obrigatório, um glifo
+  // de espaço, e um glifo por caráter capturado. Os não capturados
+  // ficam simplesmente de fora — o opentype.js não obriga a ter o
+  // conjunto completo.
+  function buildFont(){
+    const glyphs = [];
+    glyphs.push(new opentype.Glyph({
+      name: '.notdef',
+      unicode: 0,
+      advanceWidth: Math.round(FONT_UNITS_PER_EM / 2),
+      path: new opentype.Path()
+    }));
+    glyphs.push(new opentype.Glyph({
+      name: 'space',
+      unicode: 32,
+      advanceWidth: SPACE_ADVANCE,
+      path: new opentype.Path()
+    }));
+
+    ALL_CHARS.forEach(char => {
+      if(!hasCapture(char)) return;
+      const { path, minX, maxX, minY } = buildGlyphPath(char, 0);
+      const glyphWidth = (maxX - minX) || Math.round(FONT_UNITS_PER_EM * 0.5);
+      shiftPathX(path, GLYPH_SIDE_BEARING - minX);
+      shiftPathY(path, targetGlyphBottom(char) - minY);
+      glyphs.push(new opentype.Glyph({
+        name: glyphNameFor(char),
+        unicode: char.codePointAt(0),
+        advanceWidth: Math.round(glyphWidth + GLYPH_SIDE_BEARING * 2),
+        path
+      }));
+    });
+
+    return new opentype.Font({
+      familyName: 'MinhaLetra',
+      styleName: 'Regular',
+      unitsPerEm: FONT_UNITS_PER_EM,
+      ascender: FONT_ASCENDER,
+      descender: FONT_DESCENDER,
+      glyphs
+    });
+  }
+
+  // Chamado pelo botão "Gerar ficheiro da fonte" no ecrã de
+  // pré-visualização: valida que há pelo menos um caráter capturado,
+  // atualiza o resumo do ecrã final e navega para lá. A construção
+  // real do .ttf só acontece quando se carrega em "Descarregar" —
+  // aqui só confirmamos que há dados suficientes.
+  function goToDoneAndGenerate(){
+    const n = capturedCount();
+    if(n === 0){
+      alert('Ainda não capturaste nenhum caráter — volta ao ecrã de captura primeiro.');
+      return;
+    }
+    const meta = document.getElementById('doneFileMeta');
+    if(meta) meta.textContent = `${n} de ${ALL_CHARS.length} carateres capturados`;
+    goTo('done');
+  }
+
+  // Chamado pelo botão "Descarregar fonte": constrói a fonte com
+  // opentype.js, gera os bytes do .ttf e força o download no
+  // browser através de um link temporário com Blob + object URL.
+  function generateAndDownloadFont(){
+    if(typeof opentype === 'undefined'){
+      alert('A biblioteca opentype.js ainda não carregou — verifica a ligação à internet e tenta outra vez.');
+      return;
+    }
+    if(capturedCount() === 0){
+      alert('Ainda não capturaste nenhum caráter.');
+      return;
+    }
+    try{
+      const font = buildFont();
+      const arrayBuffer = font.toArrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'font/ttf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MinhaLetra.ttf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch(err){
+      console.error(err);
+      alert('Não foi possível gerar a fonte: ' + err.message);
+    }
+  }
+
+  // ============================================================
+  // PASSO 8 — usar a fonte dentro da própria app (sem depender do
+  // teclado do telemóvel)
+  //
+  // O sistema operativo não deixa trocar a fonte do teclado global
+  // por um .ttf arbitrário (ver nota mais abaixo). O que É possível
+  // é carregar o .ttf gerado como uma fonte "ao vivo" só dentro
+  // desta página, com a FontFace API, e usá-la num editor de texto
+  // normal (<textarea> não suporta font customizada em todos os
+  // motores da mesma forma para *medir* texto, por isso a exportação
+  // como imagem usa um <canvas> com a mesma fonte, que é onde a
+  // medição de texto realmente importa).
+  //
+  // Isto reaproveita 100% o buildFont() do passo 6 — a única
+  // diferença é que aqui os bytes ficam em memória (ArrayBuffer →
+  // FontFace) em vez de descarregados como ficheiro.
+  // ============================================================
+
+  const LIVE_FONT_FAMILY = 'MinhaLetraLive';
+  let liveFontLoadPromise = null; // evita reconstruir a fonte a cada visita ao ecrã, se nada mudou
+
+  function setWriteStatus(state, text){
+    const el = document.getElementById('writeStatus');
+    const label = document.getElementById('writeStatusText');
+    if(!el || !label) return;
+    el.classList.remove('loading', 'error');
+    if(state === 'loading') el.classList.add('loading');
+    if(state === 'error') el.classList.add('error');
+    label.textContent = text;
+  }
+
+  // Constrói a fonte (buildFont, passo 6), converte para FontFace e
+  // regista-a no documento com document.fonts.add — a partir daí
+  // qualquer elemento com font-family: 'MinhaLetraLive' já a usa,
+  // exatamente como uma fonte normal do sistema.
+  function ensureLiveFontLoaded(force){
+    if(liveFontLoadPromise && !force) return liveFontLoadPromise;
+    liveFontLoadPromise = (async () => {
+      if(typeof opentype === 'undefined'){
+        throw new Error('A biblioteca opentype.js ainda não carregou.');
+      }
+      const font = buildFont();
+      const arrayBuffer = font.toArrayBuffer();
+      const fontFace = new FontFace(LIVE_FONT_FAMILY, arrayBuffer);
+      await fontFace.load();
+      // remove uma versão anterior antes de adicionar a nova, para
+      // não acumular FontFace obsoletas se o utilizador voltar a
+      // capturar carateres e reabrir este ecrã.
+      document.fonts.forEach(f => { if(f.family === LIVE_FONT_FAMILY) document.fonts.delete(f); });
+      document.fonts.add(fontFace);
+      return fontFace;
+    })();
+    return liveFontLoadPromise;
+  }
+
+  // ============================================================
+  // PASSO 9 — usar o teclado do telemóvel sem perder trabalho nem
+  // sofrer autocorreção
+  //
+  // Três mudanças à volta do ecrã "Escrever":
+  //  1) o texto passa a ser guardado no localStorage (junto dos
+  //     traços do passo 7), pouco depois de cada tecla — para um
+  //     texto grande não se perder se a app for interrompida a meio
+  //     (ida para segundo plano a consultar o texto original, troca
+  //     de app, etc.);
+  //  2) a caixa de texto já não deixa o teclado
+  //     corrigir/capitalizar automaticamente (ver atributos no
+  //     <textarea id="writeArea"> no HTML) — importante para
+  //     transcrever tal e qual, sem alterações silenciosas;
+  //  3) ao entrar neste ecrã o foco vai logo para a caixa (o
+  //     teclado abre sem precisar de tocar primeiro — ver
+  //     goToWriteScreen), e ao focar volta a fazer scroll até ela
+  //     ficar visível por cima do teclado.
+  // ============================================================
+
+  let writeSaveTimer = null;
+  function scheduleWriteSave(){
+    clearTimeout(writeSaveTimer);
+    writeSaveTimer = setTimeout(persistState, 500);
+  }
+
+  function bindWriteScreenControlsOnce(){
+    const sizeSlider = document.getElementById('writeFontSize');
+    if(sizeSlider && !sizeSlider.dataset.bound){
+      sizeSlider.addEventListener('input', (e) => {
+        const px = e.target.value;
+        document.getElementById('writeFontSizeValue').textContent = px + 'px';
+        const area = document.getElementById('writeArea');
+        if(area) area.style.fontSize = px + 'px';
+      });
+      sizeSlider.dataset.bound = '1';
+    }
+    const area = document.getElementById('writeArea');
+    if(area && !area.dataset.bound){
+      area.addEventListener('input', scheduleWriteSave);
+      area.addEventListener('focus', () => {
+        setTimeout(() => area.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+      });
+      area.dataset.bound = '1';
+    }
+  }
+
+  // Chamado pelo botão "Escrever um texto agora". Valida que há
+  // pelo menos um caráter capturado (como goToDoneAndGenerate),
+  // muda para o ecrã, e só depois carrega a fonte — para o ecrã já
+  // aparecer com placeholder na fonte de sistema em vez de ficar
+  // tudo bloqueado à espera.
+  function goToWriteScreen(){
+    if(capturedCount() === 0){
+      alert('Ainda não capturaste nenhum caráter — volta ao ecrã de captura primeiro.');
+      return;
+    }
+    goTo('write');
+    bindWriteScreenControlsOnce();
+    const area = document.getElementById('writeArea');
+    if(area){
+      // tem de acontecer já, sem esperar pela fonte — o toque no botão
+      // só "autoriza" abrir o teclado por um instante
+      area.focus();
+      if(area.value === 'A tua letra, agora digital.') area.select();
+    }
+    setWriteStatus('loading', 'A montar a fonte…');
+    ensureLiveFontLoaded()
+      .then(() => {
+        const area = document.getElementById('writeArea');
+        if(area) area.style.fontFamily = `'${LIVE_FONT_FAMILY}'`;
+        setWriteStatus('ok', 'Fonte carregada — isto é a tua letra real');
+      })
+      .catch(err => {
+        console.error(err);
+        setWriteStatus('error', 'Não foi possível montar a fonte: ' + err.message);
+      });
+  }
+
+  // Quebra um parágrafo em linhas que cabem em maxWidth, medindo
+  // com o mesmo ctx (e portanto a mesma fonte) que depois desenha o
+  // texto — é a forma correta de quebrar linha com uma fonte
+  // customizada, já que a largura de cada letra desta fonte não é
+  // uniforme como numa fonte monoespaçada.
+  function wrapTextForCanvas(ctx, text, maxWidth){
+    const lines = [];
+    text.split('\n').forEach(paragraph => {
+      const words = paragraph.split(' ');
+      let line = '';
+      words.forEach(word => {
+        const test = line ? line + ' ' + word : word;
+        if(ctx.measureText(test).width > maxWidth && line){
+          lines.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      });
+      lines.push(line);
+    });
+    return lines;
+  }
+
+  // Exporta o texto do editor como PNG usando a fonte real — este é
+  // o caminho prático para "usar a letra" fora da app (partilhar a
+  // imagem no WhatsApp/Instagram/etc.), já que nenhum sistema
+  // operativo deixa trocar a fonte do teclado por um .ttf arbitrário.
+  async function exportWriteAsImage(){
+    const text = (document.getElementById('writeArea') || {}).value || '';
+    if(!text.trim()){
+      alert('Escreve algo primeiro.');
+      return;
+    }
+    try{
+      await ensureLiveFontLoaded();
+    } catch(err){
+      alert('Não foi possível montar a fonte: ' + err.message);
+      return;
+    }
+    const fontSize = parseInt((document.getElementById('writeFontSize') || {}).value || '26', 10);
+    const paddingPx = 32;
+    const canvasWidth = 900;
+    const lineHeight = Math.round(fontSize * 1.6);
+
+    const measureCanvas = document.createElement('canvas');
+    const mctx = measureCanvas.getContext('2d');
+    mctx.font = `${fontSize}px '${LIVE_FONT_FAMILY}'`;
+    const lines = wrapTextForCanvas(mctx, text, canvasWidth - paddingPx * 2);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasWidth;
+    canvas.height = lines.length * lineHeight + paddingPx * 2;
+    const ctx2 = canvas.getContext('2d');
+    ctx2.fillStyle = '#F7F4EE';
+    ctx2.fillRect(0, 0, canvas.width, canvas.height);
+    ctx2.fillStyle = '#2B4C7E';
+    ctx2.font = `${fontSize}px '${LIVE_FONT_FAMILY}'`;
+    ctx2.textBaseline = 'top';
+    lines.forEach((line, i) => {
+      ctx2.fillText(line, paddingPx, paddingPx + i * lineHeight);
+    });
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'minha-letra.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }, 'image/png');
+  }
+
+  // ============================================================
+  // PASSO 15 — exportar como .docx real (texto editável, não imagem)
+  //
+  // Ao contrário do PNG acima, isto NÃO desenha nada — gera um Word
+  // (.docx) a sério: parágrafos com TEXTO de verdade, formatados
+  // para usar a fonte "MinhaLetra" pelo NOME. Um .docx é só um zip
+  // com uns ficheiros XML lá dentro (por isso precisamos do JSZip),
+  // por isso construímos esse zip à mão em vez de desenhar em canvas.
+  //
+  // Isto só mostra a letra certa se a fonte "MinhaLetra" já estiver
+  // instalada no telemóvel que abrir o ficheiro — um .docx normal só
+  // GUARDA o NOME da fonte a usar, não os contornos dela; quem lê o
+  // ficheiro é que tem de já ter essa fonte instalada para a
+  // aplicar. Sem isso, o Word/WPS mostra o texto na fonte de
+  // substituição habitual dele, mas o ficheiro continua a abrir e o
+  // texto continua editável.
+  //
+  // A paginação (quantas linhas cabem por página A4) e a quebra de
+  // página são feitas pelo próprio Word/WPS, tal como em qualquer
+  // documento normal — não há nada a calcular aqui.
+  // ============================================================
+
+  // Escapa os 5 carateres que têm significado especial em XML —
+  // sem isto, um texto com "&", "<", ">", aspas ou apóstrofo partia
+  // o document.xml e o Word recusava-se a abrir o ficheiro.
+  function escapeXml(str){
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  async function generateAndDownloadDocx(){
+    const text = (document.getElementById('writeArea') || {}).value || '';
+    if(!text.trim()){
+      alert('Escreve algo primeiro.');
+      return;
+    }
+    if(typeof JSZip === 'undefined'){
+      alert('A biblioteca JSZip ainda não carregou — verifica a ligação à internet e tenta outra vez.');
+      return;
+    }
+
+    // O slider "Tamanho" está em píxeis (ecrã); o Word usa pontos
+    // (1px = 0.75pt a 96dpi) e "meios-ponto" no XML (w:sz), daí o ×2.
+    const fontSizePx = parseInt((document.getElementById('writeFontSize') || {}).value || '26', 10);
+    const halfPoints = Math.round(fontSizePx * 0.75 * 2);
+
+    // Cada linha do textarea (separada por \n) vira um parágrafo. Uma
+    // linha vazia ainda tem de virar um <w:p> (parágrafo vazio) para
+    // não perder linhas em branco que o utilizador deixou de propósito.
+    const paragraphsXml = text.split('\n').map(line => {
+      if(!line){
+        return '<w:p/>';
+      }
+      return `<w:p><w:r><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
+    }).join('');
+
+    // Página A4 (11906×16838 vigésimos de ponto/twips) com margens de
+    // ~2,5cm (1417 twips) de cada lado — a "Normal" habitual do Word.
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    ${paragraphsXml}
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417" w:header="708" w:footer="708" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+    // docDefaults aplica a fonte e o tamanho a TODO o texto de uma
+    // só vez — mais simples e mais leve (para documentos grandes)
+    // do que repetir <w:rPr> em cada parágrafo.
+    const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="MinhaLetra" w:hAnsi="MinhaLetra" w:eastAsia="MinhaLetra" w:cs="MinhaLetra"/>
+        <w:sz w:val="${halfPoints}"/>
+        <w:szCs w:val="${halfPoints}"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+    <w:rPr>
+      <w:rFonts w:ascii="MinhaLetra" w:hAnsi="MinhaLetra" w:eastAsia="MinhaLetra" w:cs="MinhaLetra"/>
+      <w:sz w:val="${halfPoints}"/>
+      <w:szCs w:val="${halfPoints}"/>
+    </w:rPr>
+  </w:style>
+</w:styles>`;
+
+    const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+
+    const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+    const documentRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+    try{
+      const zip = new JSZip();
+      zip.file('[Content_Types].xml', contentTypesXml);
+      zip.folder('_rels').file('.rels', rootRelsXml);
+      const wordFolder = zip.folder('word');
+      wordFolder.file('document.xml', documentXml);
+      wordFolder.file('styles.xml', stylesXml);
+      wordFolder.folder('_rels').file('document.xml.rels', documentRelsXml);
+
+      const blob = await zip.generateAsync({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'minha-letra.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch(err){
+      console.error('Não foi possível gerar o .docx:', err);
+      alert('Não foi possível gerar o ficheiro Word: ' + err.message);
+    }
+  }
+
+  // Ao abrir a app: restaura trabalho de uma sessão anterior (se
+  // existir) e liga o botão "Continuar fonte anterior" na home.
+  restorePersistedStateIfAny();
+</script>
+</body>
+</html>
