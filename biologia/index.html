@@ -1140,6 +1140,68 @@ table.data-table{ width:100%; min-width:460px; border-collapse: collapse; font-s
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior:auto !important; }
 }
+
+
+/* Biologia Pré-Médico — ambiente editorial de estudo */
+:root{
+ --bg:#f5f7f5;--bg-elevated:#fff;--bg-soft:#edf2ee;--surface:#fff;
+ --surface-glass:rgba(255,255,255,.94);--border:#dfe7e1;--border-soft:#e9efea;
+ --text-primary:#18251d;--text-secondary:#5e6e63;--text-muted:#829087;
+ --brand-emerald:#176b45;--brand-emerald-dark:#145c3d;--brand-emerald-soft:#eaf2ec;
+ --brand-indigo:#536a83;--brand-indigo-soft:#edf1f5;--brand-cyan:#347d83;
+ --brand-cyan-soft:#eaf3f3;--brand-amber:#a47734;--brand-amber-soft:#f6f0e6;
+ --gradient-hero:linear-gradient(135deg,#185b40 0%,#176b45 100%);
+ --gradient-card:none;
+ --shadow-xs:0 1px 2px rgba(20,40,25,.04);--shadow-sm:0 2px 8px rgba(20,40,25,.045);
+ --shadow-md:0 8px 22px rgba(20,40,25,.07);--shadow-lg:0 14px 36px rgba(20,40,25,.09);
+ --radius-sm:7px;--radius-md:11px;--radius-lg:14px;--radius-xl:18px;
+ --font-display:Georgia,"Times New Roman",serif;
+ --font-body:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+body{background:var(--bg);color:var(--text-primary);letter-spacing:0}
+h1,h2,h3,h4,h5,h6{letter-spacing:-.025em}
+.app-header{background:rgba(255,255,255,.96);border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(20,40,25,.025)}
+.sidebar{background:#fff;border-right:1px solid var(--border);box-shadow:none}
+.sidebar-head{border-bottom:1px solid var(--border-soft)}
+.brand-name,.header-brand-name{letter-spacing:-.035em}
+.nav-link{border-radius:7px}
+.nav-link:hover{background:#f1f5f1;color:#176b45}
+.nav-item.active .nav-link,.nav-link.active{background:#eaf2ec;color:#145c3d}
+.search-bar{background:#f7f9f7;border:1px solid #e3eae4;border-radius:8px}
+.btn-primary{background:#176b45;color:#fff;box-shadow:none;border-radius:8px}
+.btn-primary:hover{background:#145c3d;box-shadow:none;transform:translateY(-1px)}
+.btn-ghost{border-radius:8px}
+.btn-icon{border-radius:8px}
+.card,.module-card,.exam-card,.glossary-card,.map-card{border-radius:12px;box-shadow:0 2px 7px rgba(20,40,25,.035);border-color:#e3eae4}
+.card:hover,.module-card:hover,.exam-card:hover{box-shadow:0 8px 20px rgba(20,40,25,.065);transform:translateY(-1px)}
+.hero-panel{border-radius:14px;background:linear-gradient(120deg,#174f38,#176b45)!important;box-shadow:none}
+.hero-panel::before,.hero-panel::after{opacity:.12}
+.hero-eyebrow{letter-spacing:.1em}
+.section-heading{letter-spacing:-.025em}
+.chip{border-radius:5px;font-size:.74rem}
+.progress,.progress-bar{border-radius:99px}
+input,select,textarea{border-radius:8px}
+@media(max-width:760px){
+ .app-header{box-shadow:0 1px 4px rgba(20,40,25,.035)}
+ .hero-panel{border-radius:11px}
+}
+[data-theme="dark"]{
+ --bg:#111a15;--bg-elevated:#18231c;--bg-soft:#1b2a21;--surface:#19251e;
+ --surface-glass:rgba(25,37,30,.96);--border:#2c4033;--border-soft:#24362b;
+ --text-primary:#edf4ee;--text-secondary:#b0c0b4;--text-muted:#819388;
+ --brand-emerald:#67c397;--brand-emerald-dark:#78cda4;--brand-emerald-soft:rgba(103,195,151,.12);
+ --brand-indigo:#a3b4c8;--brand-indigo-soft:rgba(163,180,200,.12);
+ --brand-cyan:#75bdc1;--brand-cyan-soft:rgba(117,189,193,.12);
+ --brand-amber:#d7b477;--brand-amber-soft:rgba(215,180,119,.12);
+ --gradient-hero:linear-gradient(120deg,#174f38,#176b45);
+ --shadow-xs:0 1px 2px rgba(0,0,0,.2);--shadow-sm:0 2px 8px rgba(0,0,0,.22);
+ --shadow-md:0 8px 22px rgba(0,0,0,.25);--shadow-lg:0 14px 36px rgba(0,0,0,.3);
+}
+[data-theme="dark"] .app-header,[data-theme="dark"] .sidebar{background:#151f19;border-color:#2c4033}
+[data-theme="dark"] .search-bar{background:#111a15;border-color:#2c4033}
+[data-theme="dark"] .nav-link:hover{background:#1d2b22}
+[data-theme="dark"] .nav-item.active .nav-link,[data-theme="dark"] .nav-link.active{background:rgba(103,195,151,.13);color:#8bd5ae}
+
 </style>
 </head>
 <body>
@@ -9793,15 +9855,33 @@ function examIsAnswered(q, ans){
   return true;
 }
 
+function normalizeExamAnswer(value){
+  return String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\u2060\uFEFF\u00AD]/g, '')
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt')
+    .replace(/[‐‑‒–—―]/g, '-')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 function examIsCorrect(q, ans){
   if(!examIsAnswered(q, ans)) return false;
   if(q.kind === 'mc') return ans === q.correct;
   if(q.kind === 'vf') return ans === q.isTrue;
   if(q.kind === 'comp'){
-    const given = normalizeSearch(ans);
-    const full = normalizeSearch(q.answer);
-    const primary = normalizeSearch(q.answer.replace(/\s*\(.*?\)\s*/g, ' ').trim());
-    return given === full || given === primary;
+    const given = normalizeExamAnswer(ans);
+    const rawAnswer = String(q.answer ?? '').trim();
+    const accepted = new Set([
+      normalizeExamAnswer(rawAnswer),
+      normalizeExamAnswer(rawAnswer.replace(/\s*\([^)]*\)\s*/g, ' ')),
+      ...rawAnswer.split(/\s*(?:\/|;|\|)\s*/).map(normalizeExamAnswer)
+    ].filter(Boolean));
+    return accepted.has(given);
   }
   if(q.kind === 'rel') return ans.every((v,i) => v === q.correctOrder[i]);
   if(q.kind === 'dev') return ans.mark === true;
@@ -10126,7 +10206,7 @@ function renderExamResult(){
     } else if(q.kind === 'comp'){
       bodyHtml += '<div class="sri-q">'+ badge +'<span>'+ (qi+1) +'. Complete: ________ — '+ q.prompt +'</span></div>';
       bodyHtml += '<div class="sri-opt is-correct">Resposta correta: '+ q.answer +'</div>';
-      if(userAns) bodyHtml += '<div class="sri-opt '+ (isCorrect?'':'is-wrong') +'">Você escreveu: '+ userAns +'</div>';
+      if(userAns) bodyHtml += '<div class="sri-opt '+ (isCorrect?'':'is-wrong') +'">Você escreveu: '+ String(userAns).trim() +'</div>';
     } else if(q.kind === 'rel'){
       bodyHtml += '<div class="sri-q">'+ badge +'<span>'+ (qi+1) +'. Relação de colunas — '+ q.moduleName +'</span></div>';
       q.terms.forEach((term, ti) => {
