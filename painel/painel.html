@@ -401,6 +401,55 @@
     font-family: var(--font-display); letter-spacing: .01em; transition: color .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
   }
   .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); background: var(--card-hover); }
+
+
+/* MEDBI Painel — consola administrativa sóbria */
+:root{
+ --bg:#101713;--bg-soft:#141d17;--bg-elevated:#18231c;
+ --card:#19241d;--card-2:#1d2a22;--card-hover:#223329;
+ --border:#2b3b30;--border-soft:#243229;--border-strong:#3c5142;
+ --text:#f1f5f1;--text-dim:#a0b0a4;--text-faint:#718276;
+ --accent:#c7a36a;--accent-2:#ddbd8c;--accent-3:#ead4ad;
+ --accent-wash:rgba(199,163,106,.11);--accent-wash-strong:rgba(199,163,106,.17);
+ --mint:#78b99a;--mint-wash:rgba(120,185,154,.11);
+ --font-display:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ --font-body:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ --font-mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+ --radius:12px;--radius-sm:9px;
+ --shadow-card:0 1px 2px rgba(0,0,0,.14);--shadow-float:0 22px 55px rgba(0,0,0,.34);
+}
+body{background:#101713;background-image:none;letter-spacing:0}
+.grid-veil{display:none}
+.wrap{max-width:1160px;padding:28px 24px calc(32px + env(safe-area-inset-bottom,0px))}
+.login-box{background:#19241d;border:1px solid #304035;border-radius:15px;padding:34px 30px 27px;box-shadow:0 24px 65px rgba(0,0,0,.32)}
+.login-box::before{display:none}
+.login-icon{border-radius:13px;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+.login-box h1{font-size:22px;letter-spacing:-.035em}
+.eyebrow{font-family:var(--font-body);font-size:10px;font-weight:750;letter-spacing:.12em}
+.field label{font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.09em}
+.field input{background:#121a15;border:1px solid #344438;border-radius:8px;font-size:14px}
+.field input:focus{border-color:#c7a36a;box-shadow:0 0 0 3px rgba(199,163,106,.12)}
+.btn{border-radius:8px;font-family:var(--font-body);font-weight:700}
+.btn:not(.btn-ghost){background:#c7a36a;color:#17140e;box-shadow:none}
+.btn:not(.btn-ghost):hover{background:#ddbd8c;box-shadow:none}
+.topbar{border-bottom:1px solid #2b3b30;padding-bottom:18px;margin-bottom:25px}
+.topbar h1{font-size:19px;letter-spacing:-.035em}
+.topbar .who{font-family:var(--font-body);font-size:12px}
+.icon-btn{font-family:var(--font-body);border-radius:8px;background:#19241d}
+.section-title{font-family:var(--font-body);font-size:10px;letter-spacing:.12em;font-weight:750}
+.stat-card,.chart-card,.modal-box,.app-card,.panel-card{border-radius:11px;box-shadow:0 1px 2px rgba(0,0,0,.15);background:#19241d;border-color:#2b3b30}
+.stat-card:hover{transform:none;border-color:#465b4a}
+.stat-card .tag-eyebrow{font-family:var(--font-body);font-size:9px;font-weight:750;letter-spacing:.1em}
+.stat-card .num{font-size:26px;letter-spacing:-.04em}
+.modal-box{border-radius:14px}
+input,select,textarea{border-radius:8px}
+@media(max-width:600px){
+ .wrap{padding:20px 15px calc(26px + env(safe-area-inset-bottom,0px))}
+ .login-box{padding:30px 22px 24px;border-radius:13px}
+ .topbar{gap:10px}
+ .top-actions{gap:6px}
+}
+
 </style>
 </head>
 <body>
